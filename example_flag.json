@@ -1,0 +1,12 @@
+{
+    "F001": {
+        "id": "F001",
+        "name": "gave_food_to_stranger",
+        "state": false
+    },
+    "F002": {
+        "id": "F002",
+        "name": "bribed_the_guard",
+        "state": false
+    }
+}

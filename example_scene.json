@@ -1,0 +1,24 @@
+{
+    "S001": {
+        "id": "S001",
+        "name": "Give a Foot to A Stranger",
+        "description": "You found a stranger collapse on the road. You approach him and give your rations.",
+        "requires": [
+            {
+                "flag": "F001",
+                "state": true
+            }
+        ]
+    },
+    "S002": {
+        "id": "S002",
+        "name": "Left the Stranger Alone",
+        "description": "You left the stranger collapse on the road, knowing full well he will not survive.",
+        "requires": [
+            {
+                "flag": "F001",
+                "state": false
+            }
+        ]
+    }
+}
