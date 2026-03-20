@@ -1,0 +1,149 @@
+{
+    "metadata": {
+        "version": "1.0",
+        "created_at": "2026-03-17",
+        "updated_at": "2026-03-17"
+    },
+    "path": {
+        "P001": {
+            "id": "P001",
+            "name": "common"
+        },
+        "P002": {
+            "id": "P002",
+            "name": "vigalante"
+        }
+    },
+    "chapter": {
+        "C001": {
+            "id": "C001",
+            "name": "prologue"
+        },
+        "C002": {
+            "id": "C002",
+            "name": "chapter_1"
+        }
+    },
+    "flags": {
+        "F001": {
+            "id": "F001",
+            "name": "gave_food_to_stranger",
+            "state": false
+        },
+        "F002": {
+            "id": "F002",
+            "name": "bribed_the_guard",
+            "state": false
+        }
+    },
+    "choices": {
+        "CH001": {
+            "id": "CH001",
+            "text": "Do you give your food to the stranger?",
+            "chapter": "C001",
+            "path": "P001",
+            "requires": [],
+            "options": [
+                {
+                    "label": "Yes, I give him food",
+                    "requires": [],
+                    "flags_set": [
+                        "F001"
+                    ],
+                    "status_set": [
+                        {
+                            "status": "SP001",
+                            "amount": 2
+                        }
+                    ],
+                    "next": "S001"
+                },
+                {
+                    "label": "No, I walk away",
+                    "requires": [],
+                    "flags_set": [],
+                    "status_set": [
+                        {
+                            "status": "SP001",
+                            "amount": -2
+                        }
+                    ],
+                    "next": "S002"
+                },
+                {
+                    "label": "I ponder a while",
+                    "requires": [],
+                    "flags_set": [],
+                    "status_set": [],
+                    "next": null
+                }
+            ]
+        }
+    },
+    "scenes": {
+        "S001": {
+            "id": "S001",
+            "name": "Give a Foot to A Stranger",
+            "description": "You found a stranger collapse on the road. You approach him and give your rations.",
+            "chapter": "C001",
+            "path": "P001",
+            "requires": [
+                {
+                    "flag": "F001",
+                    "state": true
+                },
+                {
+                    "status": "SP001",
+                    "min": 1,
+                    "max": 3
+                }
+            ],
+            "next": [
+                {
+                    "requires": [],
+                    "target": "CH002"
+                },
+                {
+                    "requires": [
+                        {
+                            "flag": "F002",
+                            "state": true
+                        }
+                    ],
+                    "target": "CH003"
+                }
+            ]
+        },
+        "S002": {
+            "id": "S002",
+            "name": "Left the Stranger Alone",
+            "description": "You left the stranger collapse on the road, knowing full well he will not survive.",
+            "chapter": "C001",
+            "path": "P001",
+            "requires": [
+                {
+                    "flag": "F001",
+                    "state": false
+                }
+            ],
+            "next": [
+                {
+                    "requires": [],
+                    "target": "CH004"
+                }
+            ]
+        }
+    },
+    "status": {
+        "SP001": {
+            "id": "SP001",
+            "name": "strength",
+            "value": 0
+        },
+        "SP002": {
+            "id": "SP002",
+            "name": "intellect",
+            "value": 0
+        }
+    }
+}
