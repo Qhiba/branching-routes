@@ -1,114 +1,23 @@
-import React, { useState, useMemo } from 'react';
-import { useEditor } from '../../context/EditorContext';
-import { Play, RotateCcw, Undo2, ArrowRight, Flag, LayoutGrid, CheckCircle2, XCircle, Dumbbell } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Play, RotateCcw, Undo2, ArrowRight, Flag, LayoutGrid, CheckCircle2, XCircle, Dumbbell, Award } from 'lucide-react';
+import SearchableDropdown from '../shared/SearchableDropdown';
+import useSimulator from '../../hooks/useSimulator';
 
 export default function Simulator() {
-  const { flags, choices, scenes, statusPoints } = useEditor();
+  const sim = useSimulator();
+  const {
+    flags, choices, scenes, endings, statusPoints, entryNode,
+    currentNodeId, historyStack, activeState, isRunning,
+    passesRequires, handleStart, handleOptionSelect,
+    handleSceneContinue, handleUndo, handleStop, handleRevive,
+  } = sim;
 
-  const [historyStack, setHistoryStack] = useState([]);
-  const [currentNodeId, setCurrentNodeId] = useState(null);
-
-  // Dynamically evaluate flags and status mathematically based purely on chronological choice history
-  const activeState = useMemo(() => {
-    const dFlags = {};
-    const dStatus = {};
-    Object.keys(flags).forEach(f => dFlags[f] = false);
-    Object.values(statusPoints || {}).forEach(sp => dStatus[sp.id] = Number(sp.value));
-    
-    historyStack.forEach(step => {
-      (step.flagsPushed || []).forEach(fId => {
-        dFlags[fId] = true;
-      });
-      (step.statusPushed || []).forEach(sm => {
-        dStatus[sm.status] = (dStatus[sm.status] || 0) + sm.amount;
-      });
-    });
-    return { flags: dFlags, status: dStatus };
-  }, [flags, statusPoints, historyStack]);
-
-  const passesRequires = (requiresArray = []) => {
-    if (!requiresArray || requiresArray.length === 0) return true;
-    return requiresArray.every(req => {
-      if (req.flag) return activeState.flags[req.flag] === req.state;
-      if (req.status) {
-        const val = activeState.status[req.status];
-        if (req.min !== undefined && val < req.min) return false;
-        if (req.max !== undefined && val > req.max) return false;
-        return true;
-      }
-      return true;
-    });
+  const handleStopConfirm = () => {
+    if (window.confirm("Stop simulation and return to Start Screen?")) handleStop();
   };
 
-  const traverseNext = (targetId, flagsToPush = [], statusToPush = []) => {
-    if (!targetId) {
-      alert("Staying on current node (Loop).");
-      setHistoryStack(prev => [...prev, { nodeId: currentNodeId, type: 'loop', flagsPushed: flagsToPush, statusPushed: statusToPush }]);
-      return;
-    }
-
-    const type = scenes[targetId] ? 'scene' : choices[targetId] ? 'choice' : 'unknown';
-    if (type === 'unknown') {
-      alert(`Target ID not found: ${targetId}`);
-      return;
-    }
-    
-    setCurrentNodeId(targetId);
-    setHistoryStack(prev => [...prev, { nodeId: targetId, type, flagsPushed: flagsToPush, statusPushed: statusToPush }]);
-  };
-
-  const handleStart = (nodeId) => {
-    if (!nodeId) return;
-    const type = scenes[nodeId] ? 'scene' : 'choice';
-    setCurrentNodeId(nodeId);
-    setHistoryStack([{ nodeId, type, flagsPushed: [] }]);
-  };
-
-  const handleOptionSelect = (choiceObj, optIndex) => {
-    const opt = choiceObj.options[optIndex];
-    if (!passesRequires(opt.requires)) return; // double check UI lock
-
-    if (opt.next) {
-      traverseNext(opt.next, opt.flags_set || [], opt.status_set || []);
-    } else {
-       // Loop back into self, but push flags
-       const fakeNullTarget = null;
-       traverseNext(fakeNullTarget, opt.flags_set || [], opt.status_set || []);
-    }
-  };
-
-  const handleSceneContinue = (sceneObj) => {
-    const nextArr = sceneObj.next || [];
-    if (nextArr.length === 0) {
-      alert("End of the line. No routes defined for this Scene.");
-      return; 
-    }
-
-    const validRoute = nextArr.find(route => passesRequires(route.requires));
-
-    if (validRoute) {
-      traverseNext(validRoute.target, []);
-    } else {
-      alert("Dead End: No available routes pass the current flag conditions.");
-    }
-  };
-
-  const handleUndo = () => {
-    if (historyStack.length <= 1) {
-      handleReset();
-      return;
-    }
-    const newStack = historyStack.slice(0, -1);
-    const lastNode = [...newStack].reverse().find(step => step.type !== 'loop');
-    setHistoryStack(newStack);
-    setCurrentNodeId(lastNode ? lastNode.nodeId : null);
-  };
-
-  const handleReset = () => {
-    if (window.confirm("Reset entire simulation?")) {
-      setHistoryStack([]);
-      setCurrentNodeId(null);
-    }
+  const handleReviveConfirm = () => {
+    if (window.confirm(`Restart simulation from ${sim.startingNodeId}?`)) handleRevive();
   };
 
   const renderStartScreen = () => {
@@ -123,20 +32,30 @@ export default function Simulator() {
             Test your logic tree cleanly. Flags are completely isolated from your editor and derived naturally through your choices.
           </p>
           
-          <select 
-            onChange={(e) => handleStart(e.target.value)}
-            defaultValue=""
-            disabled={!hasData}
-            className="w-full bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm transition-all hover:bg-indigo-100 disabled:opacity-50"
-          >
-            <option value="" disabled>{hasData ? "Select Starting Node..." : "No data available"}</option>
-            <optgroup label="Scenes">
-              {Object.values(scenes).map(s => <option key={s.id} value={s.id}>{s.id} - {s.name}</option>)}
-            </optgroup>
-            <optgroup label="Choices">
-              {Object.values(choices).map(c => <option key={c.id} value={c.id}>{c.id} - {c.text.substring(0,30)}</option>)}
-            </optgroup>
-          </select>
+          <div className="flex flex-col gap-4 w-full mt-4">
+            <button
+               onClick={() => handleStart(entryNode)}
+               disabled={!entryNode || (!scenes[entryNode] && !choices[entryNode])}
+               className="w-full bg-indigo-600 text-white font-bold tracking-wide rounded-xl px-5 py-4 shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+            >
+               <Play className="w-5 h-5" /> Start from Entry Node
+            </button>
+            <div className="relative">
+               <span className="block text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-2">Or custom start</span>
+               <SearchableDropdown
+                  value={null}
+                  onChange={handleStart}
+                  options={[
+                    ...Object.values(scenes).map(s => ({ ...s, name: `[Scene] ${s.name}`, type: 'Scene' })),
+                    ...Object.values(choices).map(c => ({ ...c, name: `[Choice] ${c.text}`, type: 'Choice' }))
+                  ]}
+                  placeholder="Select a specific node..."
+                  showFilters={true}
+                  className="w-full text-left"
+                  buttonClass="py-3 px-4 border-gray-200"
+               />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -144,6 +63,58 @@ export default function Simulator() {
 
   const renderActiveNode = () => {
     if (!currentNodeId) return null;
+
+    // Check if the current node is an ending
+    const endingObj = endings[currentNodeId];
+    if (endingObj) {
+      return (
+        <div className="max-w-2xl mx-auto py-10 px-6 space-y-6">
+          {/* Controls */}
+          <div className="flex items-center justify-between pb-4">
+            <div className="flex items-center gap-3">
+               <span className="px-3 py-1 bg-amber-50 border border-amber-200 shadow-sm text-amber-700 font-bold text-xs tracking-widest rounded-md uppercase">
+                 Ending
+               </span>
+               <span className="font-mono text-gray-400 font-medium">{currentNodeId}</span>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleUndo} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 shadow-sm bg-white" title="Undo Last Push">
+                <Undo2 className="w-4 h-4" /> Undo
+              </button>
+              <button onClick={handleReviveConfirm} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 shadow-sm bg-white" title="Restart from starting node">
+                <RotateCcw className="w-4 h-4" /> Revive
+              </button>
+              <button onClick={handleStopConfirm} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100 shadow-sm bg-white" title="Stop Simulation">
+                <XCircle className="w-4 h-4" /> Stop
+              </button>
+            </div>
+          </div>
+
+          {/* Ending Card */}
+          <div className="bg-white rounded-3xl shadow-md border border-amber-200 p-10 overflow-hidden relative text-center">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+            <Award className="w-16 h-16 text-amber-400 mx-auto mb-6" />
+            <h1 className="text-3xl font-extrabold text-gray-900 mb-3">Ending Reached</h1>
+            <p className="text-lg text-gray-500 mb-2">You've arrived at:</p>
+            <p className="text-2xl font-bold text-amber-700 capitalize">{endingObj.name.replace(/_/g, ' ')}</p>
+            <div className="mt-10 flex justify-center gap-4">
+              <button 
+                onClick={handleReviveConfirm}
+                className="bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200 text-white px-8 py-3.5 rounded-xl font-semibold tracking-wide flex items-center gap-3 transition-all"
+              >
+                <RotateCcw className="w-5 h-5" /> Play Again
+              </button>
+              <button 
+                onClick={handleStopConfirm}
+                className="bg-white hover:bg-gray-50 shadow-sm border border-gray-200 text-gray-700 px-8 py-3.5 rounded-xl font-semibold tracking-wide flex items-center gap-3 transition-all"
+              >
+                <XCircle className="w-5 h-5" /> Stop
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     
     const nodeObj = scenes[currentNodeId] || choices[currentNodeId];
     if (!nodeObj) return <div className="p-10 text-red-500">Node missing! ({currentNodeId})</div>;
@@ -165,8 +136,11 @@ export default function Simulator() {
             <button onClick={handleUndo} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 shadow-sm bg-white" title="Undo Last Push">
               <Undo2 className="w-4 h-4" /> Undo
             </button>
-            <button onClick={handleReset} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100 shadow-sm bg-white" title="Reset Simulation">
+            <button onClick={handleReviveConfirm} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100 shadow-sm bg-white" title="Restart from starting node">
               <RotateCcw className="w-4 h-4" /> Revive
+            </button>
+            <button onClick={handleStopConfirm} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100 shadow-sm bg-white" title="Stop Simulation">
+              <XCircle className="w-4 h-4" /> Stop
             </button>
           </div>
         </div>
@@ -196,25 +170,41 @@ export default function Simulator() {
             </div>
             
             <div className="p-4 space-y-3 bg-gray-50/50">
-              {(nodeObj.options || []).map((opt, idx) => {
-                const isValid = passesRequires(opt.requires);
+              {(() => {
+                const loopedOptions = new Set();
+                for (let i = historyStack.length - 1; i >= 0; i--) {
+                  const step = historyStack[i];
+                  if (step.nodeId !== currentNodeId) break;
+                  if (step.type === 'loop' && step.optionIndex !== undefined) {
+                    loopedOptions.add(step.optionIndex);
+                  }
+                }
                 
-                return isValid ? (
-                  <button
-                    key={idx}
-                    onClick={() => handleOptionSelect(nodeObj, idx)}
-                    className="w-full text-left p-5 rounded-2xl bg-white border border-gray-200 shadow-sm hover:border-indigo-500 hover:ring-2 hover:ring-indigo-100 hover:shadow-md text-gray-800 font-medium transition-all group flex justify-between items-center"
-                  >
-                    <span className="text-lg text-indigo-950">{opt.label}</span>
-                    <ArrowRight className="w-5 h-5 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1" />
-                  </button>
-                ) : (
-                  <div key={idx} className="w-full text-left p-5 rounded-2xl border border-gray-200 bg-gray-100/50 text-gray-400 font-medium flex justify-between items-center cursor-not-allowed">
-                     <span className="text-lg">{opt.label}</span>
-                     <span className="text-xs uppercase tracking-widest font-bold flex items-center gap-1.5"><XCircle className="w-4 h-4" /> Locked</span>
-                  </div>
-                )
-              })}
+                return (nodeObj.options || []).map((opt, idx) => {
+                  const passesReq = passesRequires(opt.requires);
+                  const isLooped = loopedOptions.has(idx);
+                  const isValid = passesReq && !isLooped;
+                  
+                  return isValid ? (
+                    <button
+                      key={idx}
+                      onClick={() => handleOptionSelect(nodeObj, idx)}
+                      className="w-full text-left p-5 rounded-2xl bg-white border border-gray-200 shadow-sm hover:border-indigo-500 hover:ring-2 hover:ring-indigo-100 hover:shadow-md text-gray-800 font-medium transition-all group flex justify-between items-center"
+                    >
+                      <span className="text-lg text-indigo-950">{opt.label}</span>
+                      <ArrowRight className="w-5 h-5 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1" />
+                    </button>
+                  ) : (
+                    <div key={idx} className="w-full text-left p-5 rounded-2xl border border-gray-200 bg-gray-100/50 text-gray-400 font-medium flex justify-between items-center cursor-not-allowed">
+                       <span className="text-lg">{opt.label}</span>
+                       <span className="text-xs uppercase tracking-widest font-bold flex items-center gap-1.5">
+                         <XCircle className="w-4 h-4" /> 
+                         {isLooped ? "Already Picked" : "Locked"}
+                       </span>
+                    </div>
+                  )
+                });
+              })()}
             </div>
           </div>
         )}

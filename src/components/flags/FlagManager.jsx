@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
-import { useEditor } from '../../context/EditorContext';
-import { Trash2, Plus, AlertCircle, ToggleLeft, ToggleRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useEditor, useEditorActions } from '../../context/EditorContext';
+import { Trash2, Plus, AlertCircle } from 'lucide-react';
 import QuickNav from '../shared/QuickNav';
+import DebouncedInput from '../shared/DebouncedInput';
 
 export default function FlagManager() {
-  const { flags, addFlag, updateFlagName, deleteFlag, getFlagReferences, toggleFlagState } = useEditor();
+  const { flags, addFlag, updateFlagName, deleteFlag, toggleFlagState } = useEditor();
+  const { getFlagReferenceMap } = useEditorActions();
+  const [flagRefMap, setFlagRefMap] = useState({});
+
+  useEffect(() => {
+    setFlagRefMap(getFlagReferenceMap());
+  }, [getFlagReferenceMap]);
+
   const [newFlagName, setNewFlagName] = useState('');
 
   const handleAdd = (e) => {
@@ -15,11 +23,12 @@ export default function FlagManager() {
   };
 
   const handleDelete = (id) => {
-    const refs = getFlagReferences(id);
+    const freshMap = getFlagReferenceMap();
+    const refs = freshMap[id] || { choices: [], scenes: [] };
     const inUse = refs.choices.length > 0 || refs.scenes.length > 0;
     
     if (inUse) {
-      if (!window.confirm(`Warning: This flag is currently used in ${refs.choices.length} choices and ${refs.scenes.length} scenes. Deleting it will irrevocably remove it from them. Are you sure?`)) {
+      if (!window.confirm(`Warning: This flag is currently used in ${refs.choices.length} choices and ${refs.scenes.length} scenes. Deleting it will irrevocably cascade and remove it from them. Are you absolutely sure?`)) {
         return;
       }
     } else {
@@ -27,6 +36,7 @@ export default function FlagManager() {
     }
     
     deleteFlag(id);
+    setFlagRefMap(getFlagReferenceMap());
   };
 
   return (
@@ -69,7 +79,7 @@ export default function FlagManager() {
               return numB - numA; // newest first
             })
             .map(flag => {
-            const refs = getFlagReferences(flag.id);
+            const refs = flagRefMap[flag.id] || { choices: [], scenes: [] };
             const inUseCount = refs.choices.length + refs.scenes.length;
             
             return (
@@ -79,27 +89,16 @@ export default function FlagManager() {
                     {flag.id}
                   </span>
                   
-                  <input 
+                  <DebouncedInput 
                     type="text"
                     value={flag.name}
-                    onChange={(e) => updateFlagName(flag.id, e.target.value)}
+                    onChange={(val) => updateFlagName(flag.id, val)}
                     className="flex-1 font-medium text-gray-800 focus:outline-none focus:border-b-2 focus:border-indigo-500 bg-transparent py-1 transition-colors"
                     placeholder="flag_name"
                   />
                   
                   <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => toggleFlagState(flag.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
-                        flag.state 
-                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200' 
-                        : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                      }`}
-                      title={refs.choices.length > 0 ? "Warning: For testing only. Flag is set by a choice." : "Toggle for scene preview testing"}
-                    >
-                      {flag.state ? <ToggleRight className="w-4 h-4 text-indigo-600" /> : <ToggleLeft className="w-4 h-4 text-gray-400" />}
-                      Test: {flag.state ? 'TRUE' : 'FALSE'}
-                    </button>
+
                     {inUseCount > 0 && (
                       <span className="text-xs flex items-center gap-1.5 font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200" title={`Used in ${refs.choices.length} choices and ${refs.scenes.length} scenes`}>
                         <AlertCircle className="w-3.5 h-3.5" />

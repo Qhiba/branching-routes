@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useEditor } from '../../context/EditorContext';
 import { Plus, Trash2, GitFork, AlertCircle } from 'lucide-react';
 import QuickNav from '../shared/QuickNav';
+import DebouncedInput from '../shared/DebouncedInput';
 
 export default function PathManager() {
   const { paths, addPath, updatePathName, deletePath } = useEditor();
@@ -43,10 +44,10 @@ export default function PathManager() {
           <div key={path.id} id={path.id} className="scroll-mt-8 bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between shadow-[0_2px_10px_rgba(0,0,0,0.02)] group hover:border-indigo-200 transition-colors">
             <div className="flex items-center gap-4">
               <span className="font-mono text-sm font-bold text-indigo-400 bg-indigo-50 px-3 py-1.5 rounded-lg">{path.id}</span>
-              <input
+              <DebouncedInput
                 type="text"
                 value={path.name}
-                onChange={(e) => updatePathName(path.id, e.target.value)}
+                onChange={(val) => updatePathName(path.id, val)}
                 className="font-medium text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-indigo-500 focus:outline-none px-1 py-0.5"
               />
             </div>

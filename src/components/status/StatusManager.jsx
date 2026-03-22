@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
-import { useEditor } from '../../context/EditorContext';
+import React, { useState, useEffect } from 'react';
+import { useEditor, useEditorActions } from '../../context/EditorContext';
 import { Plus, Trash2, Dumbbell, AlertCircle } from 'lucide-react';
 import QuickNav from '../shared/QuickNav';
+import DebouncedInput from '../shared/DebouncedInput';
 
 export default function StatusManager() {
   const { statusPoints, addStatusPoint, updateStatusPoint, deleteStatusPoint } = useEditor();
+  const { getStatusReferenceMap } = useEditorActions();
+  const [statusRefMap, setStatusRefMap] = useState({});
+
+  useEffect(() => {
+    setStatusRefMap(getStatusReferenceMap());
+  }, [getStatusReferenceMap]);
+
   const [newName, setNewName] = useState('');
 
   const handleCreate = (e) => {
@@ -39,20 +47,37 @@ export default function StatusManager() {
       </form>
 
       <div className="space-y-3">
-        {Object.values(statusPoints).map(sp => (
+        {Object.values(statusPoints).map(sp => {
+          const refs = statusRefMap[sp.id] || { choices: [], scenes: [] };
+          const inUseCount = refs.choices.length + refs.scenes.length;
+          
+          return (
           <div key={sp.id} id={sp.id} className="scroll-mt-8 bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between shadow-[0_2px_10px_rgba(0,0,0,0.02)] group hover:border-emerald-200 transition-colors">
             <div className="flex items-center gap-4 flex-1">
               <span className="font-mono text-sm font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-lg">{sp.id}</span>
-              <input
+              <DebouncedInput
                 type="text"
                 value={sp.name}
-                onChange={(e) => updateStatusPoint(sp.id, { name: e.target.value })}
+                onChange={(val) => updateStatusPoint(sp.id, { name: val })}
                 className="font-medium text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-emerald-500 focus:outline-none px-1 py-0.5"
               />
+              {inUseCount > 0 && (
+                <span className="text-xs flex items-center gap-1.5 font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200" title={`Used in ${refs.choices.length} choices and ${refs.scenes.length} scenes`}>
+                  <AlertCircle className="w-3.5 h-3.5" />
+                   in use ({inUseCount})
+                </span>
+              )}
             </div>
             
             <div className="flex items-center gap-6">
                <div className="flex items-center gap-3">
+                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Min Value</label>
+                 <input 
+                   type="number"
+                   value={sp.minValue ?? 0}
+                   onChange={(e) => updateStatusPoint(sp.id, { minValue: parseInt(e.target.value, 10) || 0 })}
+                   className="w-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-center font-mono font-bold text-gray-700 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                 />
                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Start Value</label>
                  <input 
                    type="number"
@@ -64,9 +89,20 @@ export default function StatusManager() {
                
               <button 
                 onClick={() => {
-                  if(window.confirm(`Delete status ${sp.id}? It will be removed from all scene/choice conditions and effects.`)) {
-                    deleteStatusPoint(sp.id);
+                  const freshMap = getStatusReferenceMap();
+                  const currentRefs = freshMap[sp.id] || { choices: [], scenes: [] };
+                  const inUse = currentRefs.choices.length > 0 || currentRefs.scenes.length > 0;
+                  
+                  if (inUse) {
+                    if (!window.confirm(`Warning: This status point is used in ${currentRefs.choices.length} choices and ${currentRefs.scenes.length} scenes. Deleting it will irrevocably cascade and remove it from them. Are you absolutely sure?`)) {
+                      return;
+                    }
+                  } else {
+                    if (!window.confirm(`Delete status ${sp.id}?`)) return;
                   }
+                  
+                  deleteStatusPoint(sp.id);
+                  setStatusRefMap(getStatusReferenceMap());
                 }}
                 className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
               >
@@ -74,7 +110,7 @@ export default function StatusManager() {
               </button>
             </div>
           </div>
-        ))}
+        )})}
         {Object.keys(statusPoints).length === 0 && (
           <div className="text-center py-12 bg-gray-50 border border-gray-200 border-dashed rounded-2xl flex flex-col items-center">
              <AlertCircle className="w-8 h-8 text-gray-400 mb-3" />

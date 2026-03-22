@@ -2,7 +2,8 @@
     "metadata": {
         "version": "1.0",
         "created_at": "2026-03-17",
-        "updated_at": "2026-03-17"
+        "updated_at": "2026-03-17",
+        "entry_node": "CH001"
     },
     "path": {
         "P001": {
@@ -144,6 +145,28 @@
             "id": "SP002",
             "name": "intellect",
             "value": 0
+        }
+    },
+    "quests": {
+        "Q001": {
+            "id": "Q001",
+            "name": "rescue_the_merchant"
+        }
+    },
+    "endings": {
+        "E001": {
+            "id": "E001",
+            "name": "good_ending",
+            "requires": [
+                {
+                    "flag": "F001",
+                    "state": true
+                },
+                {
+                    "status": "SP001",
+                    "min": 5
+                }
+            ]
         }
     }
 }

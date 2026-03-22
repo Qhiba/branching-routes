@@ -1,16 +1,30 @@
-import React, { useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Hash } from 'lucide-react';
 
 export default function QuickNav({ items = [], title = "Quick Jump", renderLabel }) {
-  const [activeId, setActiveId] = useState(null);
+  const activeTimerRef = useRef(null);
+
+  // Clean up any pending timer on unmount to prevent DOM manipulation on removed elements
+  useEffect(() => {
+    return () => {
+      if (activeTimerRef.current) clearTimeout(activeTimerRef.current);
+    };
+  }, []);
 
   const handleScroll = (id) => {
-    setActiveId(id);
     const el = document.getElementById(id);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       el.classList.add('ring-4', 'ring-indigo-300', 'ring-offset-2', 'transition-shadow', 'duration-500');
-      setTimeout(() => el.classList.remove('ring-4', 'ring-indigo-300', 'ring-offset-2'), 1500);
+      // Clear any previous timer before setting a new one
+      if (activeTimerRef.current) clearTimeout(activeTimerRef.current);
+      activeTimerRef.current = setTimeout(() => {
+        // Guard: element may have been removed by the time this fires
+        if (el.isConnected) {
+          el.classList.remove('ring-4', 'ring-indigo-300', 'ring-offset-2');
+        }
+        activeTimerRef.current = null;
+      }, 1500);
     }
   };
 
@@ -27,7 +41,7 @@ export default function QuickNav({ items = [], title = "Quick Jump", renderLabel
             <button
               key={item.id}
               onClick={() => handleScroll(item.id)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors truncate ${activeId === item.id ? 'bg-indigo-50 text-indigo-800 font-bold border border-indigo-100' : 'text-gray-600 hover:bg-gray-50 border border-transparent'}`}
+              className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors truncate text-gray-600 hover:bg-gray-50 border border-transparent"
               title={renderLabel(item)}
             >
               <span className="font-mono text-xs font-bold text-indigo-400/80 mr-2 drop-shadow-sm">{item.id}</span>
