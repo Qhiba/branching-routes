@@ -39,17 +39,24 @@ export default function SearchableDropdown({
         if (topPos < 0) topPos = 4; // fallback if screen is too small
       }
       
+      // Width calculation:
+      // Minimum width = button's width (rect.width), but at least 260px.
+      // Maximum width = 450px (to prevent extreme expansion).
+      const baseWidth = Math.max(260, rect.width);
+      const menuMaxWidth = 450;
+      
       // Prevent off-screen horizontal
-      const menuWidth = Math.max(260, rect.width);
       let leftPos = rect.left;
-      if (leftPos + menuWidth > window.innerWidth) {
-        leftPos = window.innerWidth - menuWidth - 8;
+      if (leftPos + menuMaxWidth > window.innerWidth) {
+        leftPos = window.innerWidth - menuMaxWidth - 8;
+        if (leftPos < 8) leftPos = 8;
       }
       
       setCoords({
         top: topPos,
         left: leftPos,
-        width: Math.max(260, rect.width)
+        width: baseWidth,
+        maxWidth: menuMaxWidth
       });
     }
   }, [isOpen]);
@@ -57,7 +64,6 @@ export default function SearchableDropdown({
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Because portal is outside dropdownRef, we also need to check if target is inside the portal
-      // But we prevent propagation on portal click anyway, so this is mostly fine
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         // Only close if it's not a click inside the portal itself
         if (!event.target.closest('[role="listbox"]')) {
@@ -227,7 +233,8 @@ export default function SearchableDropdown({
           style={{ 
             top: coords.top, 
             left: coords.left, 
-            width: coords.width, 
+            minWidth: coords.width,
+            maxWidth: coords.maxWidth, 
             background: 'var(--color-surface-elevated)', 
             border: '1px solid var(--color-border-card)', 
             borderRadius: 8, 
@@ -352,11 +359,11 @@ export default function SearchableDropdown({
                          role="option"
                          aria-selected={isSelected}
                        >
-                         <span className="truncate flex items-center gap-2">
-                            {opt.id !== LOOP_SENTINEL && (
-                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)' }}>{opt.id}</span>
-                            )}
-                            <span>{opt.name ? opt.name.replace(/\[.*?\]\s/, '') : (opt.text || 'Unnamed')}</span>
+                         <span className="flex items-center gap-2 overflow-hidden w-full">
+                           {opt.id !== LOOP_SENTINEL && (
+                             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)', flexShrink: 0 }}>{opt.id}</span>
+                           )}
+                           <span className="truncate flex-1">{opt.name ? opt.name.replace(/\[.*?\]\s/, '') : (opt.text || 'Unnamed')}</span>
                          </span>
                          {isSelected && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--color-accent-primary)' }} />}
                        </button>
