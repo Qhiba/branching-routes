@@ -23,7 +23,8 @@ const NODE_HEIGHT_ENDING = 70;
  * @returns {{ nodes: Array, edges: Array }}
  */
 export function computeLayout(choices, scenes, endings, opts = {}) {
-  const { filterPath, filterChapter } = opts;
+  const { filterPath, filterChapter, layoutConfig = {} } = opts;
+  const { rankdir = 'TB', nodesep = 100, ranksep = 150 } = layoutConfig;
 
   const passesFilter = (entity) => {
     if (filterPath && entity.path !== filterPath) return false;
@@ -33,6 +34,9 @@ export function computeLayout(choices, scenes, endings, opts = {}) {
 
   // Collect all visible node IDs first for edge filtering
   const visibleIds = new Set();
+
+  const sourcePosition = rankdir === 'LR' ? 'right' : 'bottom';
+  const targetPosition = rankdir === 'LR' ? 'left' : 'top';
 
   const nodes = [];
   const edges = [];
@@ -44,6 +48,8 @@ export function computeLayout(choices, scenes, endings, opts = {}) {
     nodes.push({
       id: scene.id,
       type: 'scene',
+      sourcePosition,
+      targetPosition,
       data: {
         id: scene.id,
         label: scene.name,
@@ -62,6 +68,8 @@ export function computeLayout(choices, scenes, endings, opts = {}) {
     nodes.push({
       id: choice.id,
       type: 'choice',
+      sourcePosition,
+      targetPosition,
       data: {
         id: choice.id,
         label: choice.text,
@@ -79,6 +87,8 @@ export function computeLayout(choices, scenes, endings, opts = {}) {
     nodes.push({
       id: ending.id,
       type: 'ending',
+      sourcePosition,
+      targetPosition,
       data: {
         id: ending.id,
         label: ending.name,
@@ -134,13 +144,15 @@ export function computeLayout(choices, scenes, endings, opts = {}) {
 
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 100 });
+  g.setGraph({ rankdir, nodesep, ranksep });
 
   for (const node of nodes) {
     const h =
       node.type === 'choice' ? NODE_HEIGHT_CHOICE :
       node.type === 'ending' ? NODE_HEIGHT_ENDING :
       NODE_HEIGHT_SCENE;
+    // Allow dagre to compute node width/height with LR support
+    // Node dimensions swap based on rankdir? No, visually nodes are still drawn normally.
     g.setNode(node.id, { width: NODE_WIDTH, height: h });
   }
 

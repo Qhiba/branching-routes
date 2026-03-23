@@ -40,14 +40,14 @@ export default function FlagManager() {
   };
 
   return (
-    <div className="flex gap-8 items-start relative pb-24 h-full">
-      <div className="flex-1 w-full min-w-0 p-8 bg-white rounded-2xl shadow-sm border border-gray-200 h-fit">
+    <div className="flex gap-8 items-start relative pb-24 h-full bg-background text-on-surface">
+      <div className="flex-1 w-full min-w-0 p-8">
         <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800">Flag Manager</h2>
-          <p className="text-sm text-gray-500 mt-1">The definitive list of conditions the game tracks over time.</p>
+          <div>
+            <h2 className="text-2xl font-headline font-bold text-on-surface">Flag Manager</h2>
+            <p className="text-sm text-zinc-400 mt-1">The definitive list of conditions the game tracks over time.</p>
+          </div>
         </div>
-      </div>
 
       <form onSubmit={handleAdd} className="flex gap-3 mb-8">
         <input
@@ -55,20 +55,20 @@ export default function FlagManager() {
           value={newFlagName}
           onChange={(e) => setNewFlagName(e.target.value)}
           placeholder="New flag name (e.g. met_the_king)"
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+          className="flex-1 px-4 py-3 bg-surface-container-low border border-white/5 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-shadow text-on-surface placeholder-zinc-600 shadow-inner"
         />
         <button
           type="submit"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition-colors font-medium shadow-sm hover:shadow"
+          className="signature-gradient text-on-primary px-6 py-3 rounded-xl flex items-center gap-2 transition-all font-bold tracking-widest uppercase hover:brightness-110 shadow-[0_0_15px_rgba(0,209,255,0.3)] text-xs"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4" />
           Add Flag
         </button>
       </form>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {Object.values(flags).length === 0 ? (
-          <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+          <div className="text-center py-12 text-zinc-500 bg-surface-container-low rounded-2xl border border-dashed border-white/10 shadow-inner">
             No flags created yet.<br/> <span className="text-sm mt-2 block">Create a flag to start building your narrative logic.</span>
           </div>
         ) : (
@@ -83,9 +83,9 @@ export default function FlagManager() {
             const inUseCount = refs.choices.length + refs.scenes.length;
             
             return (
-              <div key={flag.id} id={flag.id} className="scroll-mt-8 flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 transition-colors group">
+              <div key={flag.id} id={flag.id} className="scroll-mt-8 flex items-center justify-between p-4 bg-surface-container-high border border-white/5 shadow-lg rounded-2xl hover:border-primary/30 hover:shadow-2xl hover:ring-1 hover:ring-primary/20 transition-all group">
                 <div className="flex items-center gap-4 flex-1">
-                  <span className="font-mono text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded w-12 text-center">
+                  <span className="font-mono text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-1 rounded w-12 text-center uppercase tracking-widest">
                     {flag.id}
                   </span>
                   
@@ -93,14 +93,13 @@ export default function FlagManager() {
                     type="text"
                     value={flag.name}
                     onChange={(val) => updateFlagName(flag.id, val)}
-                    className="flex-1 font-medium text-gray-800 focus:outline-none focus:border-b-2 focus:border-indigo-500 bg-transparent py-1 transition-colors"
+                    className="flex-1 font-headline font-bold text-lg text-on-surface focus:outline-none focus:border-b-2 focus:border-primary bg-transparent py-1 transition-colors"
                     placeholder="flag_name"
                   />
                   
                   <div className="flex items-center gap-3">
-
                     {inUseCount > 0 && (
-                      <span className="text-xs flex items-center gap-1.5 font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200" title={`Used in ${refs.choices.length} choices and ${refs.scenes.length} scenes`}>
+                      <span className="text-[10px] flex items-center gap-1.5 font-bold uppercase tracking-widest text-error bg-error/10 px-2.5 py-1 rounded border border-error/20" title={`Used in ${refs.choices.length} choices and ${refs.scenes.length} scenes`}>
                         <AlertCircle className="w-3.5 h-3.5" />
                          in use ({inUseCount})
                       </span>
@@ -111,7 +110,7 @@ export default function FlagManager() {
                 <div className="ml-4 w-10 flex justify-end">
                   <button
                     onClick={() => handleDelete(flag.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-2 text-zinc-500 hover:text-error hover:bg-error/10 rounded border border-transparent hover:border-error/20 transition-colors opacity-0 group-hover:opacity-100"
                     title="Delete flag"
                   >
                     <Trash2 className="w-5 h-5" />

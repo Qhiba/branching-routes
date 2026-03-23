@@ -45,32 +45,32 @@ export default function ChoiceEditor() {
   };
 
   return (
-    <div className="flex gap-8 items-start relative pb-24 h-full">
-      <div className="flex-1 w-full min-w-0 p-8 bg-white rounded-2xl shadow-sm border border-gray-200 h-fit">
+    <div className="flex gap-8 items-start relative pb-24 h-full bg-background text-on-surface">
+      <div className="flex-1 w-full min-w-0 p-8">
         <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-gray-800">Choice Editor</h2>
-          <p className="text-sm text-gray-500 mt-1">Design the decisions and their outcomes.</p>
+          <div>
+            <h2 className="text-2xl font-headline font-bold text-on-surface">Choice Editor</h2>
+            <p className="text-sm text-zinc-400 mt-1">Design the decisions and their outcomes.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={collapseAll} className="p-2 text-zinc-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors border border-transparent hover:border-primary/20" title="Collapse All">
+               <FoldVertical className="w-5 h-5" />
+            </button>
+            <button onClick={expandAll} className="p-2 text-zinc-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors border border-transparent hover:border-primary/20" title="Expand All">
+               <UnfoldVertical className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleAddChoice}
+              className="signature-gradient text-on-primary px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all font-bold tracking-widest uppercase hover:brightness-110 shadow-[0_0_15px_rgba(0,209,255,0.3)] text-xs"
+            >
+              <Plus className="w-4 h-4" />
+              Add Choice
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={collapseAll} className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Collapse All">
-             <FoldVertical className="w-5 h-5" />
-          </button>
-          <button onClick={expandAll} className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Expand All">
-             <UnfoldVertical className="w-5 h-5" />
-          </button>
-          <button
-            onClick={handleAddChoice}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 transition-colors font-medium shadow-sm hover:shadow"
-          >
-            <Plus className="w-5 h-5" />
-            Add Choice
-          </button>
-        </div>
-      </div>
 
       {Object.values(choices).length === 0 ? (
-        <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+        <div className="text-center py-12 text-zinc-500 bg-surface-container-low rounded-2xl border border-dashed border-white/10">
           No choices created yet.<br/> <span className="text-sm mt-2 block">A choice is the moment a player makes a decision.</span>
         </div>
       ) : (
@@ -81,32 +81,32 @@ export default function ChoiceEditor() {
               const isExpanded = expandedChoices.has(choice.id);
 
               return (
-              <div key={choice.id} id={choice.id} className={`scroll-mt-8 border ${isExpanded ? 'border-indigo-300 shadow-md ring-1 ring-indigo-100' : 'border-gray-200 shadow-sm hover:border-gray-300'} rounded-xl bg-white transition-all`}>
+              <div key={choice.id} id={choice.id} className={`scroll-mt-8 border ${isExpanded ? 'border-primary/30 shadow-2xl ring-1 ring-primary/20' : 'border-white/5 shadow-lg hover:border-white/10'} rounded-2xl bg-surface-container-high transition-all overflow-hidden`}>
                 {/* Accordion Header */}
                 <div 
-                  className={`flex ${isExpanded ? 'bg-indigo-50/50 border-b border-indigo-100 rounded-t-xl' : 'bg-gray-50 rounded-xl'} p-3 sm:p-4 items-center gap-3 sm:gap-4 cursor-pointer hover:bg-gray-100 transition-colors select-none`}
+                  className={`flex ${isExpanded ? 'bg-primary/5 border-b border-primary/20' : 'bg-transparent'} p-4 items-center gap-4 cursor-pointer hover:bg-white/5 transition-colors select-none`}
                   onClick={() => toggleChoice(choice.id)}
                 >
-                  <div className="text-gray-400">
+                  <div className="text-zinc-500">
                     {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                   </div>
 
-                  <span className="font-mono text-xs font-semibold text-indigo-600 bg-indigo-100 px-2 py-1 rounded">
+                  <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded border border-primary/20">
                     {choice.id}
                   </span>
 
                   <div className="flex-1 min-w-0 flex items-center gap-3">
-                    <span className={`font-bold truncate text-base ${choice.text ? 'text-gray-800' : 'text-gray-400 italic'}`}>
+                    <span className={`font-headline text-lg font-bold truncate ${choice.text ? 'text-on-surface' : 'text-zinc-600 italic'}`}>
                       {choice.text || 'Unnamed Choice'}
                     </span>
                     
                     {!isExpanded && (
-                      <div className="hidden sm:flex items-center gap-2 text-[10px] sm:text-xs">
-                        {choice.chapter && <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100 truncate max-w-[120px]">Ch: {chapters[choice.chapter]?.name || choice.chapter}</span>}
-                        {choice.path && <span className="bg-purple-50 text-purple-600 px-2 py-0.5 rounded border border-purple-100 truncate max-w-[120px]">Path: {paths[choice.path]?.name || choice.path}</span>}
+                      <div className="hidden sm:flex items-center gap-2 text-[10px] font-mono">
+                        {choice.chapter && <span className="bg-secondary-container/10 text-secondary-container px-2 py-0.5 rounded border border-secondary-container/20 truncate max-w-[120px]">CH: {chapters[choice.chapter]?.name || choice.chapter}</span>}
+                        {choice.path && <span className="bg-tertiary-container/10 text-tertiary-container px-2 py-0.5 rounded border border-tertiary-container/20 truncate max-w-[120px]">PTH: {paths[choice.path]?.name || choice.path}</span>}
                         
-                        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded border border-gray-200">
-                          Options: {choice.options?.length || 0}
+                        <span className="bg-surface-container-lowest text-zinc-400 px-2 py-0.5 rounded border border-white/5">
+                          OPT: {choice.options?.length || 0}
                         </span>
                       </div>
                     )}
@@ -118,7 +118,7 @@ export default function ChoiceEditor() {
                         e.stopPropagation();
                         setEntryNode(choice.id);
                       }}
-                      className={`px-3 py-1 text-[10px] sm:text-xs font-bold rounded transition-colors border ${entryNode === choice.id ? 'bg-emerald-100/80 text-emerald-800 border-emerald-300 shadow-sm' : 'bg-white text-gray-400 border-gray-200 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 shadow-sm'}`}
+                      className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded transition-colors border ${entryNode === choice.id ? 'bg-secondary-container/20 text-secondary-container border-secondary-container shadow-[0_0_10px_rgba(171,249,0,0.2)]' : 'bg-surface-container-lowest text-zinc-500 border-white/5 hover:bg-secondary-container/10 hover:text-secondary-container hover:border-secondary-container/30'}`}
                       title={entryNode === choice.id ? "Current Entry Node" : "Set as Entry Point"}
                     >
                       {entryNode === choice.id ? 'Entry Node' : 'Set Entry Point'}
@@ -130,37 +130,37 @@ export default function ChoiceEditor() {
                           deleteChoice(choice.id);
                         }
                       }}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      className="p-1.5 text-zinc-500 hover:text-error hover:bg-error/10 rounded border border-transparent hover:border-error/20 transition-colors"
                       title="Delete Choice"
                     >
-                      <Trash2 className="w-4.5 h-4.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
                 {/* Expanded Content */}
                 {isExpanded && (
-                <div className="p-5 bg-white space-y-6">
-                  <div className="space-y-3">
+                <div className="p-6 bg-surface-container shadow-inner space-y-6">
+                  <div className="space-y-4">
                     <DebouncedInput
                       type="text"
                       value={choice.text}
                       onChange={(val) => updateChoice(choice.id, { text: val })}
-                      className="w-full font-semibold text-gray-800 focus:outline-none focus:border-b-2 focus:border-indigo-500 bg-transparent py-1 px-1 transition-colors text-lg"
+                      className="w-full font-headline font-bold text-on-surface focus:outline-none focus:border-b-2 focus:border-primary bg-transparent pb-1 transition-colors text-xl placeholder-zinc-600"
                       placeholder="Choice prompt text..."
                     />
                     
                     <div className="grid grid-cols-2 gap-4 mt-2">
-                      <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Story Chapter</label>
-                        <select value={choice.chapter || ''} onChange={(e) => updateChoice(choice.id, { chapter: e.target.value || null })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                      <div className="bg-surface-container-low p-4 rounded-xl border border-white/5 shadow-inner">
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 block">Story Chapter</label>
+                        <select value={choice.chapter || ''} onChange={(e) => updateChoice(choice.id, { chapter: e.target.value || null })} className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:ring-1 focus:ring-primary">
                             <option value="">No Chapter Assigned</option>
                             {Object.values(chapters).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                       </div>
-                      <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Story Path</label>
-                        <select value={choice.path || ''} onChange={(e) => updateChoice(choice.id, { path: e.target.value || null })} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                      <div className="bg-surface-container-low p-4 rounded-xl border border-white/5 shadow-inner">
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2 block">Story Path</label>
+                        <select value={choice.path || ''} onChange={(e) => updateChoice(choice.id, { path: e.target.value || null })} className="w-full bg-black/40 border border-white/5 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none focus:ring-1 focus:ring-primary">
                             <option value="">No Path Assigned</option>
                             {Object.values(paths).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
@@ -168,7 +168,8 @@ export default function ChoiceEditor() {
                     </div>
 
                     {/* Choice-level conditions */}
-                    <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                    <div className="bg-surface-container-low p-5 rounded-xl border border-white/5 shadow-inner">
+                      <label className="font-label text-xs font-bold text-primary uppercase tracking-widest mb-3 block">Visibility Conditions</label>
                       <ConditionEditor
                         conditions={choice.requires || []}
                         onChange={(newReqs) => updateChoice(choice.id, { requires: newReqs })}
@@ -177,19 +178,19 @@ export default function ChoiceEditor() {
                   </div>
 
                   {/* Options */}
-                  <div className="border-t border-gray-100 pt-5 space-y-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Options</h4>
+                  <div className="border-t border-white/10 pt-6 space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-label text-xs font-bold text-secondary-container uppercase tracking-widest">Options</h4>
                       <button
                         onClick={() => addChoiceOption(choice.id)}
-                        className="text-sm flex items-center gap-1.5 text-indigo-600 hover:text-indigo-700 font-medium px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                        className="text-[10px] flex items-center gap-1.5 text-secondary-container hover:text-secondary-fixed font-bold tracking-widest uppercase px-3 py-2 bg-secondary-container/10 border border-secondary-container/20 hover:border-secondary-container hover:bg-secondary-container/20 rounded-lg transition-colors shadow-sm"
                       >
-                        <Plus className="w-4 h-4" /> Add Option
+                        <Plus className="w-3 h-3" /> Add Option
                       </button>
                     </div>
 
                     {(!choice.options || choice.options.length === 0) ? (
-                      <div className="text-sm text-center py-4 text-gray-400 bg-gray-50 rounded-lg border border-gray-100">
+                      <div className="text-xs text-center py-6 text-zinc-500 bg-surface-container-lowest rounded-xl border border-white/5 font-mono uppercase tracking-widest shadow-inner">
                         No options added to this choice.
                       </div>
                     ) : (
@@ -199,23 +200,23 @@ export default function ChoiceEditor() {
                           const isOptExpanded = expandedOptions.has(optKey);
                           
                           return (
-                          <div key={optKey} className={`border ${isOptExpanded ? 'border-indigo-200 shadow-md ring-1 ring-indigo-50 border-l-4 border-l-indigo-400' : 'border-gray-200 border-l-4 border-l-gray-300 hover:border-gray-300 shadow-sm'} rounded-r-xl rounded-l-md bg-gray-50 relative transition-all group hover:shadow`}>
+                          <div key={optKey} className={`border ${isOptExpanded ? 'border-primary/30 shadow-2xl ring-1 ring-primary/20 border-l-4 border-l-primary' : 'border-white/5 border-l-4 border-l-zinc-600 hover:border-white/20 shadow-lg'} rounded-r-xl rounded-l-md bg-surface-container-lowest relative transition-all group hover:shadow-xl`}>
                             {/* Accordion Header for Option */}
                             <div 
-                              className={`flex p-3 items-center gap-3 cursor-pointer ${isOptExpanded ? 'bg-indigo-50/50 border-b border-indigo-100 rounded-tr-xl' : 'hover:bg-gray-100 rounded-r-xl'} select-none`}
+                              className={`flex p-4 items-center gap-4 cursor-pointer ${isOptExpanded ? 'bg-primary/5 border-b border-primary/20' : 'hover:bg-white/5'} select-none transition-colors`}
                               onClick={() => toggleOption(optKey)}
                             >
-                              <div className="text-gray-400">
+                              <div className="text-zinc-500">
                                 {isOptExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                               </div>
-                              <div className="flex-1 min-w-0 flex items-center gap-2">
-                                <span className={`font-semibold text-sm truncate ${opt.label ? 'text-gray-800' : 'text-gray-400 italic'}`}>
+                              <div className="flex-1 min-w-0 flex items-center gap-3">
+                                <span className={`font-headline text-base font-bold truncate ${opt.label ? 'text-on-surface' : 'text-zinc-600 italic'}`}>
                                   {opt.label || `Option ${idx + 1}`}
                                 </span>
                                 
                                 {!isOptExpanded && opt.next && (
-                                  <span className="bg-white text-gray-500 px-2 flex items-center gap-1 py-0.5 rounded border border-gray-200 text-[10px] shadow-sm ml-2">
-                                    <ListTree className="w-3 h-3" />
+                                  <span className="bg-surface-container text-zinc-400 px-2 flex items-center gap-1.5 py-1 rounded border border-white/5 text-[10px] shadow-sm ml-2 font-mono">
+                                    <ListTree className="w-3 h-3 text-secondary-container" />
                                     Next: {opt.next}
                                   </span>
                                 )}
@@ -226,7 +227,7 @@ export default function ChoiceEditor() {
                                     e.stopPropagation();
                                     deleteChoiceOption(choice.id, idx);
                                   }}
-                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                  className="p-1.5 text-zinc-500 hover:text-error hover:bg-error/10 rounded border border-transparent hover:border-error/20 transition-colors"
                                   title="Delete Option"
                                 >
                                   <Trash2 className="w-4 h-4" />
@@ -236,33 +237,35 @@ export default function ChoiceEditor() {
 
                             {/* Expanded Option Content */}
                             {isOptExpanded && (
-                            <div className="p-4 space-y-4 bg-white/50 rounded-br-xl">
+                            <div className="p-6 space-y-6 bg-surface-container shadow-inner">
                               <div className="pr-1">
-                                <label className="block text-xs font-semibold text-gray-500 mb-1">Option Label</label>
+                                <label className="block text-[10px] font-bold font-mono text-zinc-500 mb-2 uppercase tracking-widest">Option Label</label>
                                 <DebouncedInput
                                   type="text"
                                   value={opt.label}
                                   onChange={(val) => updateChoiceOption(choice.id, idx, { ...opt, label: val })}
-                                  className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
+                                  className="w-full bg-black/40 border border-white/5 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:border-primary focus:ring-primary shadow-inner text-on-surface placeholder-zinc-600"
                                   placeholder="e.g. Yes, I accept..."
                                 />
                               </div>
 
-                              <div className="grid grid-cols-2 gap-6">
+                              <div className="grid grid-cols-2 gap-8">
                                 {/* Left: Requirements and Next */}
-                                <div className="space-y-4">
-                                  <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Next Destination</label>
+                                <div className="space-y-6 pr-4 border-r border-white/5">
+                                  <div className="space-y-2">
+                                    <label className="block text-[10px] font-bold font-mono text-zinc-500 mb-2 uppercase tracking-widest">Next Destination</label>
                                     <SearchableDropdown
                                       value={opt.next || null}
                                       onChange={(val) => updateChoiceOption(choice.id, idx, { ...opt, next: val || null })}
                                       options={dropdownOptions}
                                       placeholder="Current Choice (Loop)"
                                       showFilters={true}
+                                      buttonClass="bg-black/40 border-white/5 text-on-surface"
                                     />
                                   </div>
 
-                                  <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                                  <div className="space-y-2">
+                                    <label className="block text-[10px] font-bold font-mono text-zinc-500 mb-2 uppercase tracking-widest">Option Conditions</label>
                                     <ConditionEditor
                                       conditions={opt.requires || []}
                                       onChange={(newReqs) => updateChoiceOption(choice.id, idx, { ...opt, requires: newReqs })}
@@ -271,15 +274,15 @@ export default function ChoiceEditor() {
                                 </div>
 
                                 {/* Right: Flags and Status Set */}
-                                <div className="space-y-4">
-                                  <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                                <div className="space-y-6 pl-2">
+                                  <div className="space-y-2">
                                     <FlagsSetEditor
                                       flagsSet={opt.flags_set || []}
                                       onChange={(newFlagsSet) => updateChoiceOption(choice.id, idx, { ...opt, flags_set: newFlagsSet })}
                                       availableFlags={Object.values(flags)}
                                     />
                                   </div>
-                                  <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                                  <div className="space-y-2">
                                     <StatusSetEditor
                                       statusSet={opt.status_set || []}
                                       onChange={(newStatusSet) => updateChoiceOption(choice.id, idx, { ...opt, status_set: newStatusSet })}
@@ -320,19 +323,19 @@ function FlagsSetEditor({ flagsSet, onChange, availableFlags }) {
   const removeFlagMod = (idx) => onChange(flagsSet.filter((_, i) => i !== idx));
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-semibold text-gray-700">Flags Set (On Select)</label>
+        <label className="text-[10px] font-bold text-zinc-500 font-mono tracking-widest uppercase">Flags Set (On Select)</label>
       </div>
       
       {availableFlags.length === 0 ? (
-        <div className="text-sm py-3 text-center text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg">
-          No flags available to set.
+        <div className="text-[10px] py-4 text-center text-zinc-600 bg-surface-container-lowest border border-dashed border-white/5 rounded-xl font-mono uppercase tracking-widest">
+          No flags available.
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {flagsSet.map((flagId, idx) => (
-            <div key={idx} className="flex items-center gap-2 bg-indigo-50/50 p-2 border border-indigo-100 rounded-lg">
+            <div key={idx} className="flex items-center gap-3 bg-primary/5 p-3 border border-primary/20 rounded-xl relative shadow-inner">
                <SearchableDropdown
                  value={flagId}
                  onChange={(val) => updateFlagMod(idx, val)}
@@ -340,20 +343,20 @@ function FlagsSetEditor({ flagsSet, onChange, availableFlags }) {
                  placeholder="Select Flag..."
                  showFilters={true}
                  className="flex-1 min-w-[150px]"
-                 buttonClass="border-indigo-200 focus:ring-indigo-400"
+                 buttonClass="border-primary/20 bg-black/40 text-primary focus:ring-primary/50"
                />
-               <button onClick={() => removeFlagMod(idx)} className="text-gray-400 hover:text-red-500 p-1"><Trash2 className="w-3 h-3" /></button>
+               <button onClick={() => removeFlagMod(idx)} className="text-zinc-500 hover:text-error hover:bg-error/10 p-2 rounded border border-transparent hover:border-error/20 transition-all"><Trash2 className="w-4 h-4" /></button>
             </div>
           ))}
-          <div className="pt-1">
-             <button onClick={() => addFlagMod(availableFlags[0]?.id || '')} disabled={availableFlags.length===0} className="text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition-colors w-full justify-center">
-                <Plus className="w-3 h-3" /> Add Flag
+          <div className="pt-2">
+             <button onClick={() => addFlagMod(availableFlags[0]?.id || '')} disabled={availableFlags.length===0} className="text-[10px] text-primary hover:text-primary-fixed bg-primary/10 border border-primary/20 hover:border-primary/50 hover:bg-primary/20 px-3 py-2.5 rounded-lg flex items-center gap-2 font-bold tracking-widest uppercase transition-all shadow-sm w-full justify-center">
+                <Plus className="w-3.5 h-3.5" /> Set Flag Target
              </button>
           </div>
         </div>
       )}
-      <p className="text-xs text-gray-500 mt-2 italic flex items-center gap-1">
-        * Select flags to flip to "true" when chosen.
+      <p className="text-[10px] text-zinc-500 font-mono mt-3 opacity-80 leading-relaxed">
+        * Selected flags will be set to TRUE when this option is chosen.
       </p>
     </div>
   );
@@ -369,20 +372,20 @@ function StatusSetEditor({ statusSet, onChange, availableStatus }) {
   const removeStatusMod = (idx) => onChange(statusSet.filter((_, i) => i !== idx));
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-semibold text-gray-700">Status Modifiers</label>
+        <label className="text-[10px] font-bold text-zinc-500 font-mono tracking-widest uppercase">Status Modifiers</label>
       </div>
       
       {availableStatus.length === 0 ? (
-        <div className="text-sm py-3 text-center text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg">
-          No status points available.
+        <div className="text-[10px] py-4 text-center text-zinc-600 bg-surface-container-lowest border border-dashed border-white/5 rounded-xl font-mono uppercase tracking-widest">
+          No statuses available.
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {statusSet.map((mod, idx) => (
-            <div key={idx} className="flex flex-col gap-2 bg-emerald-50/50 p-2 border border-emerald-100 rounded-lg">
-               <div className="flex items-center gap-2">
+            <div key={idx} className="flex flex-col gap-3 bg-secondary-container/5 p-3 border border-secondary-container/20 rounded-xl relative shadow-inner">
+               <div className="flex items-center gap-3">
                  <SearchableDropdown
                    value={mod.status}
                    onChange={val => updateStatusMod(idx, { status: val })}
@@ -390,19 +393,19 @@ function StatusSetEditor({ statusSet, onChange, availableStatus }) {
                    placeholder="Select Status..."
                    showFilters={false}
                    className="flex-1 min-w-0"
-                   buttonClass="border-emerald-200 focus:ring-emerald-400"
+                   buttonClass="border-secondary-container/20 bg-black/40 text-secondary-container focus:ring-secondary-container/50"
                  />
-                 <button onClick={() => removeStatusMod(idx)} className="text-gray-400 hover:text-red-500 p-1"><Trash2 className="w-3 h-3" /></button>
+                 <button onClick={() => removeStatusMod(idx)} className="text-zinc-500 hover:text-error hover:bg-error/10 p-2 rounded border border-transparent hover:border-error/20 transition-all"><Trash2 className="w-4 h-4" /></button>
                </div>
-               <div className="flex items-center gap-2 pl-1">
-                 <span className="text-xs text-gray-500 font-bold uppercase">Amount:</span>
-                 <input type="number" value={mod.amount} onChange={e => updateStatusMod(idx, { amount: parseInt(e.target.value,10)||0 })} className="w-16 bg-white border border-gray-300 rounded px-2 py-1 text-xs text-center font-mono focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+               <div className="flex items-center gap-3 bg-black/40 px-3 py-2 rounded-lg border border-white/10 transition-colors focus-within:border-secondary-container focus-within:ring-1 focus-within:ring-secondary-container w-full justify-between">
+                 <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Amount offset:</span>
+                 <input type="number" value={mod.amount} onChange={e => updateStatusMod(idx, { amount: parseInt(e.target.value,10)||0 })} className="w-20 bg-transparent border-none text-sm text-right font-mono text-on-surface focus:outline-none font-bold" />
                </div>
             </div>
           ))}
-          <div className="pt-1">
-             <button onClick={() => addStatusMod(availableStatus[0]?.id || '')} disabled={availableStatus.length===0} className="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium transition-colors w-full justify-center">
-                <Plus className="w-3 h-3" /> Add Modifier
+          <div className="pt-2">
+             <button onClick={() => addStatusMod(availableStatus[0]?.id || '')} disabled={availableStatus.length===0} className="text-[10px] text-secondary-container hover:text-secondary-fixed bg-secondary-container/10 border border-secondary-container/20 hover:border-secondary-container/50 hover:bg-secondary-container/20 px-3 py-2.5 rounded-lg flex items-center gap-2 font-bold tracking-widest uppercase transition-all shadow-sm w-full justify-center">
+                <Plus className="w-3.5 h-3.5" /> Modify Status
              </button>
           </div>
         </div>

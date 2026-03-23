@@ -149,184 +149,76 @@ function App() {
     e.target.value = null; // Reset input 
   };
 
-  return (
-    <div className="h-screen flex flex-col bg-gray-50/50 overflow-hidden font-sans text-gray-900">
-      <header className="bg-white border-b border-gray-200 shrink-0 relative z-20">
-        <div className="w-full px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 p-2 rounded-xl shadow-inner">
-              <ListTree className="w-5 h-5 text-indigo-50" />
-            </div>
-            <h1 className="font-bold border-gray-200 text-xl tracking-tight text-gray-800">Narrative Logic Editor</h1>
-          </div>
+  const NavIcon = ({ icon, label, active, onClick }) => (
+    <button 
+      onClick={onClick}
+      className={`w-12 h-12 flex flex-col items-center justify-center rounded-lg transition-all relative group ${active ? 'text-primary bg-primary/10 border-r-2 border-primary rounded-r-none' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'}`}
+      title={label}
+    >
+      {icon}
+      <span className="text-[9px] font-bold uppercase mt-1 opacity-0 group-hover:opacity-100 absolute left-full ml-4 bg-surface-container-high px-2 py-0.5 rounded shadow-xl whitespace-nowrap z-50 pointer-events-none transition-opacity">{label}</span>
+    </button>
+  );
 
-          <div className="flex items-center gap-3">
-            <div className="w-64 mr-2 hidden md:block">
+  return (
+    <div className="h-screen w-full flex bg-background text-on-surface font-body overflow-hidden text-sm">
+      {/* Left Navigation Rail */}
+      <aside className="w-20 flex-shrink-0 border-r border-white/5 bg-zinc-900/50 backdrop-blur-xl shadow-lg flex flex-col items-center py-6 gap-6 z-40">
+        <div className="text-primary font-bold tracking-widest uppercase text-[10px] text-center px-1 mb-4">
+          NEXUS
+        </div>
+        <nav className="flex flex-col gap-2 w-full items-center flex-1">
+          <NavIcon icon={<Flag className="w-6 h-6" />} label="Flags" active={activeTab === 'flags'} onClick={() => setActiveTab('flags')} />
+          <NavIcon icon={<Dumbbell className="w-6 h-6" />} label="Status" active={activeTab === 'status'} onClick={() => setActiveTab('status')} />
+          <NavIcon icon={<GitFork className="w-6 h-6" />} label="Paths" active={activeTab === 'paths'} onClick={() => setActiveTab('paths')} />
+          <NavIcon icon={<Book className="w-6 h-6" />} label="Chapters" active={activeTab === 'chapters'} onClick={() => setActiveTab('chapters')} />
+          <NavIcon icon={<Award className="w-6 h-6" />} label="Endings" active={activeTab === 'endings'} onClick={() => setActiveTab('endings')} />
+          <NavIcon icon={<Network className="w-6 h-6" />} label="Route Viewer" active={activeTab === 'routeviewer'} onClick={() => setActiveTab('routeviewer')} />
+        </nav>
+        <div className="mt-auto flex flex-col items-center gap-2">
+           <NavIcon icon={<PlayCircle className="w-6 h-6 text-secondary-container" />} label="Play" active={activeTab === 'simulator'} onClick={() => setActiveTab('simulator')} />
+        </div>
+      </aside>
+
+      {/* Main Area */}
+      <div className="flex-1 flex flex-col relative overflow-hidden">
+        {/* Top Header Floating */}
+        <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-6 bg-zinc-900/80 backdrop-blur-md shadow-lg shadow-black/20 h-16 border-b border-white/5">
+          <div className="flex items-center gap-6">
+            <h1 className="text-xl font-headline font-black text-primary tracking-tighter">Kinetic Engine</h1>
+            <div className="flex hidden md:flex items-center gap-6 font-headline font-medium text-zinc-400 text-sm ml-4">
+              <button onClick={() => setActiveTab('scenes')} className={`hover:text-white transition-all pb-1 ${activeTab === 'scenes' ? 'text-primary border-b-2 border-primary' : ''}`}>Scenes</button>
+              <button onClick={() => setActiveTab('choices')} className={`hover:text-white transition-all pb-1 ${activeTab === 'choices' ? 'text-primary border-b-2 border-primary' : ''}`}>Choices</button>
+              <button onClick={() => setActiveTab('quests')} className={`hover:text-white transition-all pb-1 ${activeTab === 'quests' ? 'text-primary border-b-2 border-primary' : ''}`}>Quests</button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            {/* IO Buttons */}
+            <label className="p-2 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg cursor-pointer transition-colors" title="Import">
+              <Upload className="w-5 h-5" />
+              <input type="file" accept=".json" className="hidden" onChange={handleImport} />
+            </label>
+            <button onClick={handleExport} className="p-2 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors" title="Export">
+              <Download className="w-5 h-5" />
+            </button>
+            <div className="w-px h-6 bg-white/10 mx-2"></div>
+            <div className="w-64">
               <SearchableDropdown
                 value={entryNode || null}
                 onChange={setEntryNode}
                 options={entryPointOptions}
-                placeholder="Set Entry Point..."
+                placeholder="Starting Node..."
                 showFilters={true}
+                buttonClass="bg-black/40 border-white/5 text-on-surface"
               />
             </div>
-            <label className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-sm font-semibold transition-colors cursor-pointer shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-              <Upload className="w-4 h-4" />
-              Import
-              <input type="file" accept=".json" className="hidden" onChange={handleImport} />
-            </label>
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-950 hover:bg-indigo-900 text-white rounded-xl text-sm font-semibold transition-colors shadow-md shadow-indigo-900/20"
-            >
-              <Download className="w-4 h-4" />
-              Export JSON
-            </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="flex-1 flex overflow-hidden w-full">
-        {/* Dedicated Sidebar */}
-        <aside className="w-72 bg-white border-r border-gray-200 overflow-y-auto shrink-0 flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10">
-          <div className="p-6 flex-1 flex flex-col gap-8">
-
-            <nav className="flex flex-col gap-1.5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 ml-2">Variables</h3>
-
-              <button
-                onClick={() => setActiveTab('flags')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'flags' ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-                  }`}
-              >
-                <Flag className={`w-5 h-5 ${activeTab === 'flags' ? 'text-indigo-600' : 'text-gray-400'}`} />
-                Flags
-                <span className="ml-auto bg-white px-2 py-0.5 rounded-md text-xs font-bold shadow-sm border border-gray-100">
-                  {Object.keys(flags).length}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('status')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'status' ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200' : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-                  }`}
-              >
-                <Dumbbell className={`w-5 h-5 ${activeTab === 'status' ? 'text-emerald-600' : 'text-gray-400'}`} />
-                Status Points
-                <span className="ml-auto bg-white px-2 py-0.5 rounded-md text-xs font-bold shadow-sm border border-gray-100">
-                  {Object.keys(statusPoints).length}
-                </span>
-              </button>
-            </nav>
-
-            <nav className="flex flex-col gap-1.5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 ml-2">Structure</h3>
-              <button
-                onClick={() => setActiveTab('paths')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'paths' ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-                  }`}
-              >
-                <GitFork className={`w-5 h-5 ${activeTab === 'paths' ? 'text-indigo-600' : 'text-gray-400'}`} />
-                Paths
-                <span className="ml-auto bg-white px-2 py-0.5 rounded-md text-xs font-bold shadow-sm border border-gray-100">
-                  {Object.keys(paths).length}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('chapters')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'chapters' ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-                  }`}
-              >
-                <Book className={`w-5 h-5 ${activeTab === 'chapters' ? 'text-indigo-600' : 'text-gray-400'}`} />
-                Chapters
-                <span className="ml-auto bg-white px-2 py-0.5 rounded-md text-xs font-bold shadow-sm border border-gray-100">
-                  {Object.keys(chapters).length}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('quests')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'quests' ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-                  }`}
-              >
-                <Map className={`w-5 h-5 ${activeTab === 'quests' ? 'text-indigo-600' : 'text-gray-400'}`} />
-                Quests
-                <span className="ml-auto bg-white px-2 py-0.5 rounded-md text-xs font-bold shadow-sm border border-gray-100">
-                  {Object.keys(quests).length}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('endings')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'endings' ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-                  }`}
-              >
-                <Award className={`w-5 h-5 ${activeTab === 'endings' ? 'text-indigo-600' : 'text-gray-400'}`} />
-                Endings
-                <span className="ml-auto bg-white px-2 py-0.5 rounded-md text-xs font-bold shadow-sm border border-gray-100">
-                  {Object.keys(endings).length}
-                </span>
-              </button>
-            </nav>
-
-            <nav className="flex flex-col gap-1.5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 ml-2">Events</h3>
-              <button
-                onClick={() => setActiveTab('choices')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'choices' ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-                  }`}
-              >
-                <ListTree className={`w-5 h-5 ${activeTab === 'choices' ? 'text-indigo-600' : 'text-gray-400'}`} />
-                Choices
-                <span className="ml-auto bg-white px-2 py-0.5 rounded-md text-xs font-bold shadow-sm border border-gray-100">
-                  {Object.keys(choices).length}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('scenes')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'scenes' ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-                  }`}
-              >
-                <Layers className={`w-5 h-5 ${activeTab === 'scenes' ? 'text-indigo-600' : 'text-gray-400'}`} />
-                Scenes
-                <span className="ml-auto bg-white px-2 py-0.5 rounded-md text-xs font-bold shadow-sm border border-gray-100">
-                  {Object.keys(scenes).length}
-                </span>
-              </button>
-            </nav>
-
-            <nav className="flex flex-col gap-1.5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 ml-2">Analysis</h3>
-              <button
-                onClick={() => setActiveTab('routeviewer')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${activeTab === 'routeviewer' ? 'bg-violet-50 text-violet-700 shadow-sm border border-violet-200' : 'text-gray-600 hover:bg-gray-50 border border-transparent'
-                  }`}
-              >
-                <Network className={`w-5 h-5 ${activeTab === 'routeviewer' ? 'text-violet-600' : 'text-gray-400'}`} />
-                Route Viewer
-              </button>
-            </nav>
-
-            <nav className="flex flex-col gap-1.5 mt-auto pt-8 border-t border-gray-100">
-              <button
-                onClick={() => setActiveTab('simulator')}
-                className={`flex items-center gap-3 px-4 py-4 rounded-xl font-bold tracking-wide transition-all ${activeTab === 'simulator' ? 'bg-indigo-950 text-white shadow-[0_4px_20px_rgba(49,46,129,0.3)]' : 'bg-gray-900 text-white hover:bg-gray-800 shadow-md shadow-gray-900/10'
-                  }`}
-              >
-                <PlayCircle className={`w-5 h-5 ${activeTab === 'simulator' ? 'text-indigo-400' : 'text-gray-400'}`} />
-                Play Sandbox
-              </button>
-            </nav>
-
-          </div>
-        </aside>
-
-        {/* Expansive Main Content Area */}
-        <main className="flex-1 overflow-y-auto relative p-6 md:p-8 flex flex-col bg-gray-50/50">
+        {/* Dynamic Content */}
+        <main className="flex-1 overflow-auto pt-16 relative w-full h-full text-on-surface">
           <ErrorBoundary>
-          <div className="w-full max-w-[100rem] mx-auto h-full flex flex-col">
             {activeTab === 'paths' && <PathManager />}
             {activeTab === 'chapters' && <ChapterManager />}
             {activeTab === 'quests' && <QuestManager />}
@@ -337,7 +229,6 @@ function App() {
             {activeTab === 'scenes' && <SceneEditor />}
             {activeTab === 'simulator' && <Simulator />}
             {activeTab === 'routeviewer' && <RouteViewer />}
-          </div>
           </ErrorBoundary>
         </main>
       </div>

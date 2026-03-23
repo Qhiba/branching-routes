@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kinetic Blueprint | Narrative Engine</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary-fixed-variant": "#004e60",
+              "primary": "#a4e6ff",
+              "outline": "#859399",
+              "on-secondary-fixed-variant": "#334f00",
+              "on-tertiary": "#520070",
+              "surface-container-low": "#1c1b1b",
+              "on-error": "#690005",
+              "on-secondary-fixed": "#121f00",
+              "secondary-container": "#abf900",
+              "on-primary": "#003543",
+              "primary-container": "#00d1ff",
+              "on-surface": "#e5e2e1",
+              "background": "#131313",
+              "outline-variant": "#3c494e",
+              "on-tertiary-fixed-variant": "#75009e",
+              "tertiary-fixed": "#f9d8ff",
+              "on-tertiary-container": "#8100ad",
+              "on-tertiary-fixed": "#320046",
+              "tertiary-fixed-dim": "#ecb1ff",
+              "on-primary-container": "#00566a",
+              "inverse-on-surface": "#313030",
+              "inverse-surface": "#e5e2e1",
+              "primary-fixed": "#b7eaff",
+              "surface-container-lowest": "#0e0e0e",
+              "tertiary": "#f6d0ff",
+              "tertiary-container": "#eaa9ff",
+              "on-primary-fixed": "#001f28",
+              "secondary-fixed": "#abf900",
+              "secondary-fixed-dim": "#95da00",
+              "on-background": "#e5e2e1",
+              "primary-fixed-dim": "#4cd6ff",
+              "surface-bright": "#3a3939",
+              "surface-container-high": "#2a2a2a",
+              "on-error-container": "#ffdad6",
+              "surface-dim": "#131313",
+              "surface": "#131313",
+              "on-secondary-container": "#4a6f00",
+              "error": "#ffb4ab",
+              "surface-variant": "#353534",
+              "surface-container": "#201f1f",
+              "secondary": "#ffffff",
+              "inverse-primary": "#00677f",
+              "error-container": "#93000a",
+              "on-secondary": "#223600",
+              "surface-tint": "#4cd6ff",
+              "surface-container-highest": "#353534",
+              "on-surface-variant": "#bbc9cf"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .canvas-grid {
+            background-image: radial-gradient(circle, #2a2a2a 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .glass-panel {
+            backdrop-filter: blur(16px);
+            background-color: rgba(28, 27, 27, 0.7);
+        }
+        .signature-gradient {
+            background: linear-gradient(135deg, #a4e6ff 0%, #00d1ff 100%);
+        }
+        .neon-glow-blue { box-shadow: 0 0 15px rgba(0, 209, 255, 0.3); }
+        .neon-glow-lime { box-shadow: 0 0 15px rgba(171, 249, 0, 0.3); }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body overflow-hidden">
+<!-- SideNavBar (Rail) -->
+<aside class="fixed left-0 top-0 h-full z-40 h-screen w-20 flex flex-col border-r border-white/5 bg-zinc-900/50 backdrop-blur-xl shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
+<div class="flex flex-col items-center py-6 gap-8 h-full">
+<div class="text-[#a4e6ff] font-bold tracking-widest uppercase text-xs text-center px-2">
+                OBSIDIAN
+            </div>
+<nav class="flex flex-col gap-4 w-full items-center">
+<!-- Route Viewer (Active) -->
+<button class="w-12 h-12 flex items-center justify-center rounded-lg text-[#00d1ff] bg-[#00d1ff]/10 border-r-2 border-[#00d1ff] transition-all">
+<span class="material-symbols-outlined" data-icon="alt_route">alt_route</span>
+</button>
+<button class="w-12 h-12 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="clapperboard">whiteboard</span>
+</button>
+<button class="w-12 h-12 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+</button>
+<button class="w-12 h-12 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="flag">flag</span>
+</button>
+<button class="w-12 h-12 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+</button>
+</nav>
+<div class="mt-auto pb-6 flex flex-col gap-4 items-center">
+<button class="w-10 h-10 rounded-full overflow-hidden border border-primary/20">
+<img alt="User Profile" data-alt="Cyberpunk style user avatar portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEoQW7pTEDD6jEURUvC444wCpfzVq6qJb-8fcUmPbBRT_uBaoJy3CrvBc0_2ZxmEiLRC019lMlX3KBe5nUM2EOYX9ruHM_K-wWVmpXPTTRTsw2KKvUF3SSsQx1cwrnMvUrhQPcCSHkzec-YGIGWsKJ1Bqy9FHD6DA822r_im2M-5beB721oyyFsBvBT0o9tRoM2lKeXfI_pUDj0EMbIMxqxld9eBZLa1VU8rxJrqL1lWtSPDq7pO6enEI3RBgQyYrmKxTueeg69Q"/>
+</button>
+</div>
+</div>
+</aside>
+<!-- TopNavBar (Floating Toolbar Logic) -->
+<header class="fixed top-0 right-0 left-20 z-30 flex items-center justify-between px-6 bg-zinc-900/80 backdrop-blur-md shadow-lg shadow-black/20 h-16">
+<div class="flex items-center gap-8">
+<h1 class="text-xl font-black text-[#a4e6ff] tracking-tighter font-headline">Kinetic Blueprint</h1>
+<div class="flex items-center gap-6 font-['Space_Grotesk'] font-medium text-zinc-400">
+<a class="text-[#00d1ff] border-b-2 border-[#00d1ff] pb-1 hover:brightness-110 transition-all" href="#">Nodes</a>
+<a class="hover:text-white transition-all" href="#">Variables</a>
+<a class="hover:text-white transition-all" href="#">Assets</a>
+<a class="hover:text-white transition-all" href="#">Timeline</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative flex items-center bg-surface-container-lowest rounded-full px-4 py-1.5 border border-outline-variant/20">
+<span class="material-symbols-outlined text-sm text-zinc-500 mr-2" data-icon="search">search</span>
+<span class="text-xs text-zinc-400 font-label">Starting Node: <span class="text-primary ml-1">Intro_01</span></span>
+<span class="material-symbols-outlined text-xs text-zinc-500 ml-4" data-icon="expand_more">expand_more</span>
+</div>
+<button class="px-6 py-2 rounded-full bg-secondary-container text-on-secondary-container text-xs font-bold uppercase tracking-widest hover:brightness-110 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(171,249,0,0.2)]">
+<span class="material-symbols-outlined text-sm" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                Play Simulation
+            </button>
+<div class="flex items-center gap-2 ml-2 text-zinc-400">
+<span class="material-symbols-outlined cursor-pointer hover:text-white transition-all" data-icon="settings">settings</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-white transition-all" data-icon="help">help</span>
+</div>
+</div>
+</header>
+<!-- Main Canvas Area -->
+<main class="ml-20 mr-80 pt-16 h-screen relative canvas-grid overflow-hidden">
+<!-- SVG Connections Layer -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none opacity-40">
+<path d="M420,240 C550,240 550,420 680,420" fill="none" stroke="#00d1ff" stroke-width="2"></path>
+<path d="M420,240 C550,240 550,120 680,120" fill="none" stroke="#eaa9ff" stroke-dasharray="4" stroke-width="2"></path>
+<path d="M920,420 C1050,420 1050,420 1150,420" fill="none" stroke="#ffb4ab" stroke-width="2"></path>
+</svg>
+<!-- Node: Scene (Intro) -->
+<div class="absolute top-40 left-10 w-80 bg-surface-container-high rounded-xl overflow-hidden shadow-2xl border border-white/5">
+<div class="h-1.5 signature-gradient"></div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-primary/80">Dialogue Node</span>
+<span class="material-symbols-outlined text-zinc-600 text-sm" data-icon="more_vert">more_vert</span>
+</div>
+<h3 class="font-headline text-lg font-bold mb-2">Intro_01: The Gates</h3>
+<p class="text-zinc-400 text-sm leading-relaxed mb-6">"You stand before the obsidian pillars. The wind whispers of ancient codes and forgotten branches."</p>
+<div class="flex items-center gap-2">
+<div class="px-2 py-0.5 rounded bg-surface-container-lowest text-[10px] text-zinc-500 font-mono">ID: 882-X</div>
+<div class="px-2 py-0.5 rounded bg-primary/10 text-[10px] text-primary font-mono">LAYER: ROOT</div>
+</div>
+</div>
+<!-- Output Port -->
+<div class="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-secondary-container rounded-full border-4 border-background hover:scale-125 transition-transform cursor-crosshair neon-glow-lime"></div>
+</div>
+<!-- Node: Choice (Neon Purple) -->
+<div class="absolute top-10 left-[680px] w-72 bg-surface-container-high rounded-xl overflow-hidden shadow-2xl border border-white/5">
+<div class="h-1.5 bg-tertiary-container"></div>
+<div class="p-5">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-tertiary">Logic Override</span>
+</div>
+<h3 class="font-headline text-md font-bold mb-4">Choice_Branch_0A</h3>
+<div class="space-y-2">
+<div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest text-xs group cursor-pointer hover:bg-white/5 transition-colors">
+<span class="text-zinc-300">Enter the ruins</span>
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed-dim"></div>
+</div>
+<div class="flex items-center justify-between p-2 rounded bg-surface-container-lowest text-xs group cursor-pointer hover:bg-white/5 transition-colors">
+<span class="text-zinc-300">Retreat to camp</span>
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed-dim opacity-40"></div>
+</div>
+</div>
+</div>
+<!-- Input Port -->
+<div class="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-tertiary-container rounded-full border-4 border-background"></div>
+</div>
+<!-- Node: Ending (Neon Red) -->
+<div class="absolute top-[360px] left-[680px] w-80 bg-surface-container-high rounded-xl overflow-hidden shadow-2xl border border-white/5">
+<div class="h-1.5 bg-error"></div>
+<div class="p-6">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold uppercase tracking-tighter text-error">Terminal State</span>
+</div>
+<h3 class="font-headline text-lg font-bold mb-2">END_01: The Descent</h3>
+<p class="text-zinc-400 text-sm leading-relaxed mb-6">The player enters the deep vault. Sequence locked. No further branches possible in this segment.</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-sm" data-icon="lock" style="font-variation-settings: 'FILL' 1;">lock</span>
+<span class="text-[10px] font-mono text-error/80 uppercase">Hard Termination</span>
+</div>
+</div>
+<!-- Input Port -->
+<div class="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-error rounded-full border-4 border-background"></div>
+</div>
+<!-- Floating Controls (Bottom Left Canvas) -->
+<div class="absolute bottom-8 left-8 flex gap-2">
+<div class="glass-panel p-2 rounded-lg border border-white/5 flex gap-1 shadow-2xl">
+<button class="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/5 rounded"><span class="material-symbols-outlined" data-icon="zoom_in">zoom_in</span></button>
+<button class="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/5 rounded"><span class="material-symbols-outlined" data-icon="zoom_out">zoom_out</span></button>
+<div class="w-px h-6 bg-white/10 my-auto mx-1"></div>
+<button class="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/5 rounded"><span class="material-symbols-outlined" data-icon="center_focus_weak">center_focus_weak</span></button>
+</div>
+</div>
+</main>
+<!-- SideNavBar (Drawer / Inspector) -->
+<aside class="fixed right-0 top-16 h-[calc(100vh-64px)] w-80 border-l border-white/5 bg-zinc-900 shadow-2xl flex flex-col z-30">
+<div class="p-6 border-b border-white/5 bg-zinc-950/60">
+<div class="flex justify-between items-center mb-1">
+<h2 class="font-headline font-bold text-sm text-[#abf900] tracking-widest uppercase">Live Simulator</h2>
+<div class="w-2 h-2 rounded-full bg-[#abf900] animate-pulse"></div>
+</div>
+<p class="font-body text-[10px] text-zinc-500 tracking-wider">Session ID: 882-X</p>
+</div>
+<!-- Dynamic Tracker -->
+<div class="p-6 space-y-6 overflow-y-auto flex-1">
+<section>
+<h3 class="font-label text-[10px] text-zinc-500 uppercase tracking-widest mb-4">Dynamic Tracker</h3>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface-container-lowest p-3 rounded-lg border border-white/5">
+<div class="text-[10px] text-zinc-500 uppercase mb-1">Strength</div>
+<div class="text-xl font-headline font-bold text-primary">05</div>
+</div>
+<div class="bg-surface-container-lowest p-3 rounded-lg border border-white/5">
+<div class="text-[10px] text-zinc-500 uppercase mb-1">Gold</div>
+<div class="text-xl font-headline font-bold text-secondary-container">10</div>
+</div>
+</div>
+</section>
+<!-- Flags -->
+<section>
+<h3 class="font-label text-[10px] text-zinc-500 uppercase tracking-widest mb-4">Active Flags</h3>
+<div class="space-y-2">
+<div class="flex items-center gap-3 bg-white/5 p-2 px-3 rounded text-xs border-l-2 border-[#abf900]">
+<span class="material-symbols-outlined text-sm text-[#abf900]" data-icon="terminal">terminal</span>
+<span class="text-zinc-300 font-mono">is_gate_open</span>
+<span class="ml-auto text-[#abf900] font-bold">TRUE</span>
+</div>
+<div class="flex items-center gap-3 bg-white/5 p-2 px-3 rounded text-xs border-l-2 border-zinc-700 opacity-60">
+<span class="material-symbols-outlined text-sm text-zinc-500" data-icon="terminal">terminal</span>
+<span class="text-zinc-500 font-mono">has_amulet</span>
+<span class="ml-auto text-zinc-500 font-bold">FALSE</span>
+</div>
+</div>
+</section>
+<!-- History Stack -->
+<section>
+<h3 class="font-label text-[10px] text-zinc-500 uppercase tracking-widest mb-4">History Stack</h3>
+<div class="space-y-3">
+<div class="relative pl-6 pb-6 border-l border-zinc-800">
+<div class="absolute -left-1.5 top-0 w-3 h-3 rounded-full bg-zinc-800 border-2 border-zinc-900"></div>
+<div class="flex flex-col gap-1">
+<span class="text-[10px] text-zinc-600 font-mono uppercase">Step 02 — Scene</span>
+<div class="flex items-center justify-between">
+<span class="text-xs text-zinc-300 font-medium">Intro_01 → The Gates</span>
+<button class="text-[10px] font-bold text-primary uppercase hover:underline">Undo</button>
+</div>
+</div>
+</div>
+<div class="relative pl-6 pb-6 border-l border-zinc-800">
+<div class="absolute -left-1.5 top-0 w-3 h-3 rounded-full bg-zinc-800 border-2 border-zinc-900"></div>
+<div class="flex flex-col gap-1">
+<span class="text-[10px] text-zinc-600 font-mono uppercase">Step 01 — Init</span>
+<div class="flex items-center justify-between">
+<span class="text-xs text-zinc-500 font-medium">Simulation Started</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<div class="p-6 mt-auto border-t border-white/5 bg-zinc-950/40">
+<button class="w-full py-3 rounded-xl border border-white/10 text-xs font-bold text-zinc-400 uppercase tracking-widest hover:bg-white/5 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="history">history</span>
+                Export Log
+            </button>
+</div>
+</aside>
+</body></html>

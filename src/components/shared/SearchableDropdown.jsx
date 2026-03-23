@@ -164,32 +164,32 @@ export default function SearchableDropdown({
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className={`w-full flex items-center justify-between bg-white border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 hover:border-gray-300 transition-colors ${buttonClass}`}
+        className={`w-full flex items-center justify-between border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 hover:border-white/20 transition-colors ${buttonClass}`}
         aria-label={selectedOption ? `${selectedOption.id} - ${selectedOption.name || selectedOption.text || 'Unnamed'}` : placeholder}
       >
-        <span className="truncate text-gray-700 font-medium whitespace-nowrap overflow-hidden">
+        <span className="truncate font-medium whitespace-nowrap overflow-hidden pr-2">
           {selectedOption ? `${selectedOption.id === LOOP_SENTINEL ? '' : selectedOption.id + ' - '}${selectedOption.name || selectedOption.text || 'Unnamed'}` : placeholder}
         </span>
-        <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-1" />
+        <ChevronDown className="w-4 h-4 opacity-50 shrink-0 ml-1" />
       </button>
 
       {isOpen && (
-        <div className="absolute z-[100] mt-1 w-[320px] max-w-[90vw] bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden flex flex-col"
+        <div className="absolute z-[100] mt-2 w-auto min-w-full max-w-[90vw] bg-surface-container-highest border border-white/5 rounded-xl shadow-2xl overflow-hidden flex flex-col"
              onClick={(e) => e.stopPropagation()}
              role="listbox"
         >
-          <div className="p-3 bg-gray-50 border-b border-gray-100 flex flex-col gap-2 shrink-0">
+          <div className="p-3 bg-black/40 border-b border-white/5 flex flex-col gap-3 shrink-0">
             <div className="relative">
-              <Search className="absolute left-2.5 top-2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
               <input
                 ref={searchInputRef}
                 type="text"
                 autoFocus
-                placeholder="Search by ID or name..."
+                placeholder="Search by ID or title..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className="w-full pl-9 pr-3 py-2 text-sm bg-surface-container border border-white/5 text-on-surface rounded-lg focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary placeholder-zinc-500 transition-colors"
                 role="searchbox"
                 aria-label="Search dropdown options"
               />
@@ -201,7 +201,7 @@ export default function SearchableDropdown({
                   <select 
                     value={filterType} 
                     onChange={(e) => setFilterType(e.target.value)}
-                    className="flex-1 bg-white border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-indigo-500 min-w-[30%]"
+                    className="flex-1 bg-surface-container border border-white/5 rounded-lg px-2 py-1.5 text-xs font-bold font-mono tracking-widest uppercase text-zinc-400 focus:outline-none focus:border-primary focus:text-primary transition-colors cursor-pointer min-w-[30%]"
                     aria-label="Filter by type"
                   >
                     <option value="ALL">All Types</option>
@@ -214,7 +214,7 @@ export default function SearchableDropdown({
                     <select 
                       value={filterPath} 
                       onChange={(e) => setFilterPath(e.target.value)}
-                      className="flex-1 bg-white border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-indigo-500 min-w-[30%]"
+                      className="flex-1 bg-surface-container border border-white/5 rounded-lg px-2 py-1.5 text-xs font-bold font-mono tracking-widest uppercase text-zinc-400 focus:outline-none focus:border-primary focus:text-primary transition-colors cursor-pointer min-w-[30%]"
                       aria-label="Filter by path"
                     >
                       <option value="ALL">All Paths</option>
@@ -224,7 +224,7 @@ export default function SearchableDropdown({
                     <select 
                       value={filterChapter} 
                       onChange={(e) => setFilterChapter(e.target.value)}
-                      className="flex-1 bg-white border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 focus:outline-none focus:border-indigo-500 min-w-[30%]"
+                      className="flex-1 bg-surface-container border border-white/5 rounded-lg px-2 py-1.5 text-xs font-bold font-mono tracking-widest uppercase text-zinc-400 focus:outline-none focus:border-primary focus:text-primary transition-colors cursor-pointer min-w-[30%]"
                       aria-label="Filter by chapter"
                     >
                       <option value="ALL">All Chapters</option>
@@ -236,29 +236,29 @@ export default function SearchableDropdown({
             )}
           </div>
 
-          <div className="h-60 relative w-full">
+          <div className="h-[280px] relative w-full">
             {flatItems.length === 0 ? (
-               <div className="text-center py-4 text-sm text-gray-500" role="option" aria-disabled="true">No results found</div>
+               <div className="text-center py-8 text-sm text-zinc-500 font-mono" role="option" aria-disabled="true">No results found</div>
             ) : (
                <Virtuoso
                  ref={listRef}
-                 style={{ height: 240, width: '100%' }}
+                 style={{ height: '100%', width: '100%' }}
                  totalCount={flatItems.length}
                  itemContent={(index) => {
                    const data = flatItems[index];
 
                    if (data.isHeader) {
                      return (
-                       <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/90 backdrop-blur-sm z-10 border-b border-gray-100 flex items-center justify-between" aria-hidden="true">
+                       <div className="px-4 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest bg-surface-container-highest/90 backdrop-blur-md z-10 border-y border-white/5 flex items-center justify-between" aria-hidden="true">
                          {data.title}
-                         <span className="text-gray-300 text-[9px]">{data.count}</span>
+                         <span className="font-mono text-[9px] text-zinc-600 bg-surface-container px-1.5 py-0.5 rounded">{data.count}</span>
                        </div>
                      );
                    }
 
                    const { item: opt, flatIdx: currentFlatIdx } = data;
                    return (
-                     <div className="p-0.5">
+                     <div className="p-1">
                        <button
                          type="button"
                          data-dropdown-item
@@ -268,24 +268,24 @@ export default function SearchableDropdown({
                            selectItem(opt.id);
                          }}
                          onMouseEnter={() => setHighlightIndex(currentFlatIdx)}
-                         className={`w-full text-left px-3 py-1.5 text-sm rounded-lg flex items-center justify-between transition-colors ${
-                           normalizedValue === opt.id ? 'bg-indigo-50 text-indigo-700 font-bold' :
-                           currentFlatIdx === highlightIndex ? 'bg-gray-100 text-gray-800' :
-                           'text-gray-700 hover:bg-gray-100'
+                         className={`w-full text-left px-3 py-2 text-sm rounded-lg flex items-center justify-between transition-colors ${
+                           normalizedValue === opt.id ? 'bg-primary/10 border border-primary/20 text-on-primary font-bold' :
+                           currentFlatIdx === highlightIndex ? 'bg-white/10 text-on-surface border border-transparent' :
+                           'text-zinc-400 hover:text-zinc-200 hover:bg-white/5 border border-transparent'
                          }`}
                          role="option"
                          aria-selected={normalizedValue === opt.id}
                        >
-                         <span className="truncate">
-                            {opt.id !== LOOP_SENTINEL && <span className="font-mono text-xs opacity-60 mr-2">{opt.id}</span>}
-                            {opt.name ? opt.name.replace(/\[.*?\]\s/, '') : (opt.text || 'Unnamed')}
+                         <span className="truncate flex items-center gap-2">
+                            {opt.id !== LOOP_SENTINEL && <span className="font-mono text-[10px] font-bold text-primary px-1.5 py-0.5 bg-black/30 rounded border border-white/5">{opt.id}</span>}
+                            <span>{opt.name ? opt.name.replace(/\[.*?\]\s/, '') : (opt.text || 'Unnamed')}</span>
                          </span>
-                         {normalizedValue === opt.id && <Check className="w-4 h-4 shrink-0 text-indigo-600" />}
+                         {normalizedValue === opt.id && <Check className="w-4 h-4 shrink-0 text-primary drop-shadow-[0_0_8px_rgba(0,209,255,0.8)]" />}
                        </button>
                      </div>
                    );
                  }}
-                 className="scrollbar-thin scrollbar-thumb-gray-200"
+                 className="custom-scrollbar"
                />
             )}
           </div>

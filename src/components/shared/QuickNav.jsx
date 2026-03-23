@@ -32,19 +32,19 @@ export default function QuickNav({ items = [], title = "Quick Jump", renderLabel
 
   return (
     <div className="w-72 shrink-0 hidden lg:block sticky top-8">
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm max-h-[calc(100vh-8rem)] flex flex-col">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-          <Hash className="w-4 h-4 text-indigo-400" /> {title} Navigator
+      <div className="bg-surface-container border border-white/5 rounded-2xl p-4 shadow-xl max-h-[calc(100vh-8rem)] flex flex-col">
+        <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+          <Hash className="w-4 h-4 text-primary" /> {title} Navigator
         </h3>
-        <div className="overflow-y-auto pr-2 space-y-1 pb-2 flex-1 scrollbar-thin scrollbar-thumb-gray-200">
+        <div className="overflow-y-auto pr-2 space-y-1 pb-2 flex-1 custom-scrollbar">
           {items.map(item => (
             <button
               key={item.id}
               onClick={() => handleScroll(item.id)}
-              className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors truncate text-gray-600 hover:bg-gray-50 border border-transparent"
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm transition-all truncate text-zinc-400 hover:text-on-surface hover:bg-white/5 border border-transparent shadow-none hover:shadow-sm"
               title={renderLabel(item)}
             >
-              <span className="font-mono text-xs font-bold text-indigo-400/80 mr-2 drop-shadow-sm">{item.id}</span>
+              <span className="font-mono text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 mr-2">{item.id}</span>
               {renderLabel(item)}
             </button>
           ))}
