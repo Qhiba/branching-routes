@@ -6,8 +6,8 @@
  */
 import dagre from '@dagrejs/dagre';
 
-const NODE_WIDTH = 220;
-const NODE_HEIGHT_SCENE = 80;
+const NODE_WIDTH = 240;
+const NODE_HEIGHT_SCENE = 120;
 const NODE_HEIGHT_CHOICE = 100;
 const NODE_HEIGHT_ENDING = 70;
 
@@ -53,6 +53,7 @@ export function computeLayout(choices, scenes, endings, opts = {}) {
       data: {
         id: scene.id,
         label: scene.name,
+        description: scene.description,
         requiresCount: (scene.requires || []).length,
         nextCount: (scene.next || []).length,
         state: 'reachable',

@@ -17,25 +17,26 @@ export default function SimulatorPanel({ sim }) {
   // --- Pre-simulation start screen ---
   if (!isRunning) {
     return (
-      <div className="p-6 space-y-6 flex flex-col h-full bg-surface-container-low text-on-surface">
-        <div className="flex justify-between items-center bg-black/40 p-4 rounded-xl border border-white/5 shadow-inner">
-          <h2 className="font-headline font-bold text-xs text-secondary-container tracking-widest uppercase flex items-center gap-2">
+      <div className="p-5 space-y-5 flex flex-col h-full" style={{ background: 'var(--color-surface-panel)', color: 'var(--color-text-primary)' }}>
+        <div className="flex justify-between items-center p-3 rounded-md" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)' }}>
+          <h2 className="flex items-center gap-2" style={{ fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Offline
           </h2>
-          <div className="w-2 h-2 rounded-full bg-zinc-600"></div>
+          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-text-disabled)' }} />
         </div>
         
-        <div className="space-y-4">
+        <div className="space-y-3">
           <button
             onClick={() => handleStart(entryNode)}
             disabled={!entryNode || (!scenes[entryNode] && !choices[entryNode])}
-            className="w-full signature-gradient text-on-primary font-bold tracking-wider uppercase text-sm rounded-xl px-4 py-3 shadow-[0_0_20px_rgba(0,209,255,0.2)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all flex items-center justify-center gap-2"
+            className="w-full signature-gradient flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            style={{ color: '#0a1a1f', borderRadius: 24, padding: '8px 16px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', border: 'none', cursor: entryNode ? 'pointer' : 'not-allowed' }}
           >
             <Play className="w-4 h-4" /> Start Entry Node
           </button>
           
-          <div className="pt-4 border-t border-white/5">
-            <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-3">Or manually target</span>
+          <div style={{ borderTop: '1px solid var(--color-border-divider)', paddingTop: 12 }}>
+            <span style={{ display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Or manually target</span>
             <SearchableDropdown
               value={null}
               onChange={handleStart}
@@ -45,8 +46,7 @@ export default function SimulatorPanel({ sim }) {
               ]}
               placeholder="Select a specific node..."
               showFilters={true}
-              className="w-full text-left bg-surface-container-lowest"
-              buttonClass="py-3 px-4 text-sm border-white/5 bg-surface-container-lowest text-zinc-300"
+              className="w-full text-left"
             />
           </div>
         </div>
@@ -63,77 +63,65 @@ export default function SimulatorPanel({ sim }) {
   const flagList = Object.keys(flags).sort();
   const statusList = Object.values(statusPoints || {}).sort((a, b) => a.id.localeCompare(b.id));
 
+  const GhostBtn = ({ onClick, icon: Icon, title }) => (
+    <button onClick={onClick} className="p-1.5 rounded transition-colors" style={{ color: 'var(--color-text-muted)', border: '1px solid transparent' }}
+      onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-text-secondary)'; e.currentTarget.style.borderColor = 'var(--color-border-row)'; }}
+      onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.borderColor = 'transparent'; }}
+      title={title}
+    >
+      <Icon className="w-3.5 h-3.5" />
+    </button>
+  );
+
   return (
-    <div className="flex flex-col h-full bg-surface-container-low text-on-surface">
+    <div className="flex flex-col h-full" style={{ background: 'var(--color-surface-panel)', color: 'var(--color-text-primary)' }}>
       {/* Simulation Header */}
-      <div className="p-6 border-b border-white/5 bg-surface/50">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="font-headline font-bold text-xs text-secondary-container tracking-widest uppercase flex items-center gap-2">
-            Live Simulator
+      <div className="p-4" style={{ borderBottom: '1px solid var(--color-border-divider)' }}>
+        <div className="flex justify-between items-center mb-1.5">
+          <h2 className="flex items-center gap-2" style={{ fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 600, color: 'var(--color-accent-success)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Live
           </h2>
-          <div className="w-2 h-2 rounded-full bg-secondary-container animate-pulse shadow-[0_0_8px_rgba(171,249,0,0.8)]"></div>
+          <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--color-accent-success)' }} />
         </div>
         <div className="flex items-center justify-between">
-          <p className="font-body text-[10px] text-zinc-500 tracking-wider font-mono">NODE: {currentNodeId}</p>
-          <div className="flex gap-1.5">
-            <button onClick={handleUndo} className="p-1.5 text-zinc-400 hover:text-primary hover:bg-primary/10 rounded border border-transparent hover:border-primary/20 transition-all" title="Undo Step">
-              <Undo2 className="w-3.5 h-3.5" />
-            </button>
-            <button onClick={() => { if (window.confirm('Restart simulation?')) handleRevive(); }} className="p-1.5 text-zinc-400 hover:text-secondary-container hover:bg-secondary-container/10 rounded border border-transparent hover:border-secondary-container/20 transition-all" title="Restart">
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-            <button onClick={() => { if (window.confirm('Stop simulation?')) handleStop(); }} className="p-1.5 text-zinc-400 hover:text-error hover:bg-error/10 rounded border border-transparent hover:border-error/20 transition-all" title="Stop">
-              <StopCircle className="w-3.5 h-3.5" />
-            </button>
+          <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)' }}>NODE: {currentNodeId}</p>
+          <div className="flex gap-1">
+            <GhostBtn onClick={handleUndo} icon={Undo2} title="Undo Step" />
+            <GhostBtn onClick={() => { if (window.confirm('Restart simulation?')) handleRevive(); }} icon={RotateCcw} title="Restart" />
+            <GhostBtn onClick={() => { if (window.confirm('Stop simulation?')) handleStop(); }} icon={StopCircle} title="Stop" />
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
         
-        {/* Dynamic Tracker Grid */}
+        {/* Current Event */}
         <section>
-          <h3 className="font-label text-[10px] text-zinc-500 uppercase tracking-widest mb-3">Dynamic Tracker</h3>
-          {statusList.length === 0 ? (
-            <div className="text-[10px] text-zinc-600 italic bg-surface-container-lowest p-3 rounded-lg border border-white/5">No status points tracking</div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {statusList.map(sp => (
-                <div key={sp.id} className="bg-surface-container-lowest p-3 rounded-lg border border-white/5 relative overflow-hidden group">
-                  <div className="text-[10px] text-zinc-500 uppercase mb-1 truncate">{sp.name}</div>
-                  <div className="text-xl font-headline font-bold text-primary">{activeState.status[sp.id]}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Current Node Content Action */}
-        <section>
-          <h3 className="font-label text-[10px] text-zinc-500 uppercase tracking-widest mb-3">Current Event</h3>
-          <div className="bg-surface-container-highest p-4 rounded-xl border border-white/5 shadow-xl relative overflow-hidden">
-            <div className={`absolute top-0 left-0 w-full h-1 ${isEnding ? 'bg-error' : isScene ? 'signature-gradient' : 'bg-tertiary-container'}`}></div>
+          <h3 style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Current Event</h3>
+          <div className="rounded-md overflow-hidden" style={{ background: 'var(--color-surface-card)', border: '1px solid var(--color-border-card)' }}>
+            <div style={{ height: 3, background: isEnding ? 'var(--color-accent-terminal)' : isScene ? 'var(--color-accent-scene)' : 'var(--color-accent-primary-dim)' }} />
             {isEnding ? (
-              <div className="text-center py-4 space-y-3">
-                <Award className="w-10 h-10 text-error mx-auto drop-shadow-lg" />
-                <h3 className="text-sm font-headline font-bold text-on-surface uppercase tracking-widest">Termination</h3>
-                <p className="text-sm text-error/80 capitalize">{endingObj.name.replace(/_/g, ' ')}</p>
+              <div className="text-center py-4 px-3 space-y-2">
+                <Award className="w-8 h-8 mx-auto" style={{ color: 'var(--color-accent-terminal)' }} />
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase' }}>Termination</h3>
+                <p style={{ fontSize: 12, color: 'var(--color-accent-terminal)' }} className="capitalize">{endingObj.name.replace(/_/g, ' ')}</p>
               </div>
             ) : isScene && nodeObj ? (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-on-surface font-headline">{nodeObj.name}</h3>
-                <p className="text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap">{nodeObj.description}</p>
+              <div className="p-3 space-y-2">
+                <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)' }}>{nodeObj.name}</h3>
+                <p style={{ fontSize: 11, color: 'var(--color-text-muted)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{nodeObj.description}</p>
                 <button
                   onClick={() => handleSceneContinue(nodeObj)}
-                  className="w-full mt-2 bg-surface-container-lowest hover:bg-white/5 border border-white/10 text-primary px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+                  className="w-full mt-1 flex items-center justify-center gap-2 rounded-md transition-colors"
+                  style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)', color: 'var(--color-accent-primary)', padding: '6px 12px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer' }}
                 >
-                  Continue <ArrowRight className="w-4 h-4" />
+                  Continue <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : nodeObj ? (
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-on-surface font-headline leading-relaxed">{nodeObj.text}</h3>
-                <div className="space-y-2">
+              <div className="p-3 space-y-2">
+                <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)', lineHeight: 1.4 }}>{nodeObj.text}</h3>
+                <div className="space-y-1.5">
                   {(() => {
                     const loopedOptions = new Set();
                     for (let i = historyStack.length - 1; i >= 0; i--) {
@@ -153,15 +141,20 @@ export default function SimulatorPanel({ sim }) {
                         <button
                           key={idx}
                           onClick={() => handleOptionSelect(nodeObj, idx)}
-                          className="w-full text-left p-3 rounded-lg bg-surface-container-lowest border border-white/5 hover:border-tertiary-container hover:bg-tertiary/5 text-zinc-300 text-xs transition-all group flex justify-between items-center"
+                          className="w-full text-left p-2.5 rounded-md flex justify-between items-center group transition-colors"
+                          style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)', color: 'var(--color-text-secondary)', fontSize: 11, cursor: 'pointer' }}
+                          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-border-active)'}
+                          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border-row)'}
                         >
-                          <span className="flex-1 mr-2 leading-relaxed">{opt.label}</span>
-                          <ArrowRight className="w-4 h-4 text-tertiary-container opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                          <span className="flex-1 mr-2">{opt.label}</span>
+                          <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" style={{ color: 'var(--color-accent-primary)' }} />
                         </button>
                       ) : (
-                        <div key={idx} className="w-full text-left p-3 rounded-lg border border-white/5 bg-black/20 text-zinc-600 text-xs flex justify-between items-center cursor-not-allowed">
+                        <div key={idx} className="w-full text-left p-2.5 rounded-md flex justify-between items-center"
+                          style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)', color: 'var(--color-text-disabled)', fontSize: 11, cursor: 'not-allowed' }}
+                        >
                           <span className="flex-1 mr-2 truncate">{opt.label}</span>
-                          <span className="text-[9px] uppercase tracking-widest font-bold flex items-center gap-1 text-zinc-500 shrink-0">
+                          <span className="flex items-center gap-1 shrink-0" style={{ fontSize: 9, fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
                             <XCircle className="w-3 h-3" />
                             {isLooped ? 'Loop' : 'Lock'}
                           </span>
@@ -172,36 +165,14 @@ export default function SimulatorPanel({ sim }) {
                 </div>
               </div>
             ) : (
-              <div className="text-error text-xs">Node missing! ({currentNodeId})</div>
-            )}
-          </div>
-        </section>
-
-        {/* Active Flags List */}
-        <section>
-          <h3 className="font-label text-[10px] text-zinc-500 uppercase tracking-widest mb-3">Active Flags</h3>
-          <div className="space-y-2">
-            {flagList.length === 0 && <div className="text-[10px] text-zinc-600 italic bg-surface-container-lowest p-3 rounded-lg border border-white/5">No flags defined</div>}
-            {flagList.map(fId => {
-              const isActive = activeState.flags[fId];
-              if (!isActive) return null; // Only show active in this new design for brevity
-              return (
-                <div key={fId} className="flex items-center gap-3 bg-white/5 p-2 px-3 rounded text-xs border-l-2 border-secondary-container">
-                  <span className="material-symbols-outlined text-sm text-secondary-container" style={{fontFamily: 'Material Symbols Outlined'}}>terminal</span>
-                  <span className="text-zinc-300 font-mono truncate" title={flags[fId]?.name}>{flags[fId]?.name || fId}</span>
-                  <span className="ml-auto text-secondary-container font-bold text-[10px]">TRUE</span>
-                </div>
-              );
-            })}
-            {flagList.filter(f => activeState.flags[f]).length === 0 && flagList.length > 0 && (
-               <div className="text-[10px] text-zinc-600 italic px-2">No active flags at current state.</div>
+              <div className="p-3" style={{ color: 'var(--color-accent-error)', fontSize: 11 }}>Node missing! ({currentNodeId})</div>
             )}
           </div>
         </section>
 
         {/* History Stack */}
         <section>
-          <h3 className="font-label text-[10px] text-zinc-500 uppercase tracking-widest mb-4">History Stack</h3>
+          <h3 style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>History Stack</h3>
           <div className="space-y-0">
             {[...historyStack].reverse().map((step, revIdx) => {
               const actualIdx = historyStack.length - 1 - revIdx;
@@ -209,14 +180,14 @@ export default function SimulatorPanel({ sim }) {
               const entity = scenes[step.nodeId] || choices[step.nodeId] || endings[step.nodeId];
               
               return (
-                <div key={actualIdx} className={`relative pl-6 pb-6 border-l ${isFirst ? 'border-transparent' : 'border-zinc-800'}`}>
-                  <div className="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full bg-zinc-800 border-2 border-background"></div>
-                  <div className="flex flex-col gap-1 -mt-0.5">
-                    <span className="text-[9px] text-zinc-500 font-mono uppercase tracking-widest">Step {String(actualIdx).padStart(2, '0')}</span>
+                <div key={actualIdx} className="relative pl-5 pb-5" style={{ borderLeft: isFirst ? 'none' : '1px solid var(--color-border-divider)' }}>
+                  <div className="absolute -left-[4px] top-1 w-2 h-2 rounded-full" style={{ background: 'var(--color-border-ghost)', border: '2px solid var(--color-surface-panel)' }} />
+                  <div className="flex flex-col gap-0.5 -mt-0.5">
+                    <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Step {String(actualIdx).padStart(2, '0')}</span>
                     <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs text-zinc-300 flex-1 truncate">{entity ? entity.name || entity.text : step.nodeId}</span>
+                      <span className="flex-1 truncate" style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>{entity ? entity.name || entity.text : step.nodeId}</span>
                       {actualIdx === historyStack.length - 1 && actualIdx !== 0 && (
-                        <button onClick={handleUndo} className="text-[9px] font-bold text-primary uppercase hover:underline tracking-widest shrink-0">Undo</button>
+                        <button onClick={handleUndo} style={{ fontSize: 9, fontWeight: 600, color: 'var(--color-accent-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>Undo</button>
                       )}
                     </div>
                   </div>

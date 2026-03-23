@@ -1,28 +1,28 @@
-import React, { useState, useMemo } from 'react';
-import { Flag, ListTree, Layers, Download, Upload, PlayCircle, GitFork, Book, Dumbbell, Map, Award, Network } from 'lucide-react';
-import FlagManager from './components/flags/FlagManager';
-import ChoiceEditor from './components/choices/ChoiceEditor';
-import SceneEditor from './components/scenes/SceneEditor';
-import Simulator from './components/simulator/Simulator';
+import React, { useMemo } from 'react';
 import RouteViewer from './components/routeviewer/RouteViewer';
-import PathManager from './components/paths/PathManager';
-import ChapterManager from './components/chapters/ChapterManager';
-import StatusManager from './components/status/StatusManager';
-import QuestManager from './components/quests/QuestManager';
-import EndingManager from './components/endings/EndingManager';
-import SearchableDropdown from './components/shared/SearchableDropdown';
 import { useEditor } from './context/EditorContext';
+import useSimulator from './hooks/useSimulator';
 import ErrorBoundary from './components/shared/ErrorBoundary';
+import NavBar from './components/layout/NavBar';
+import LeftSidebar from './components/layout/LeftSidebar';
+import RightSidebar from './components/layout/RightSidebar';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('flags');
-  const { flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, setEntryNode, loadData } = useEditor();
+  const { flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, loadData } = useEditor();
+  const sim = useSimulator();
+  const [activeNavItem, setActiveNavItem] = React.useState(null);
+  const [activeEditId, setActiveEditId] = React.useState(null);
 
-  // Memoize entry point dropdown options (#8)
-  const entryPointOptions = useMemo(() => [
-    ...Object.values(scenes).map(s => ({ ...s, name: `[Scene] ${s.name}`, type: 'Scene' })),
-    ...Object.values(choices).map(c => ({ ...c, name: `[Choice] ${c.text}`, type: 'Choice' }))
-  ], [scenes, choices]);
+  const handleNavChange = (item) => {
+    setActiveNavItem(item);
+    setActiveEditId(null);
+  };
+
+  const handleNodeEdit = (id, type) => {
+    const navMap = { 'scene': 'scenes', 'choice': 'choices', 'ending': 'endings' };
+    setActiveNavItem(navMap[type.toLowerCase()] || 'scenes');
+    setActiveEditId(id);
+  };
 
   const handleExport = () => {
     if (!entryNode) {
@@ -71,7 +71,6 @@ function App() {
           return;
         }
 
-        // Type-check each data slice — must be objects (or absent)
         const sliceKeys = ['flags', 'choices', 'scenes', 'path', 'chapter', 'status', 'quests', 'endings'];
         for (const key of sliceKeys) {
           if (data[key] !== undefined && (typeof data[key] !== 'object' || data[key] === null || Array.isArray(data[key]))) {
@@ -80,13 +79,11 @@ function App() {
           }
         }
 
-        // Require at least one valid data slice
         if (!sliceKeys.some(k => data[k] && Object.keys(data[k]).length > 0)) {
           alert("Invalid file structure. No valid data found.");
           return;
         }
 
-        // Structural validation — ensure entities have 'id' fields
         const validateEntities = (obj, label) => {
           const bad = [];
           for (const [key, val] of Object.entries(obj || {})) {
@@ -107,7 +104,6 @@ function App() {
         if (!validateEntities(data.quests, 'quests')) return;
         if (!validateEntities(data.endings, 'endings')) return;
 
-        // ID collision detection
         const collisions = [];
         const checkCollisions = (incoming, existing, label) => {
           if (!incoming) return;
@@ -146,91 +142,70 @@ function App() {
       }
     };
     reader.readAsText(file);
-    e.target.value = null; // Reset input 
+    e.target.value = null;
   };
 
-  const NavIcon = ({ icon, label, active, onClick }) => (
-    <button 
-      onClick={onClick}
-      className={`w-12 h-12 flex flex-col items-center justify-center rounded-lg transition-all relative group ${active ? 'text-primary bg-primary/10 border-r-2 border-primary rounded-r-none' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'}`}
-      title={label}
-    >
-      {icon}
-      <span className="text-[9px] font-bold uppercase mt-1 opacity-0 group-hover:opacity-100 absolute left-full ml-4 bg-surface-container-high px-2 py-0.5 rounded shadow-xl whitespace-nowrap z-50 pointer-events-none transition-opacity">{label}</span>
-    </button>
-  );
-
   return (
-    <div className="h-screen w-full flex bg-background text-on-surface font-body overflow-hidden text-sm">
-      {/* Left Navigation Rail */}
-      <aside className="w-20 flex-shrink-0 border-r border-white/5 bg-zinc-900/50 backdrop-blur-xl shadow-lg flex flex-col items-center py-6 gap-6 z-40">
-        <div className="text-primary font-bold tracking-widest uppercase text-[10px] text-center px-1 mb-4">
-          NEXUS
-        </div>
-        <nav className="flex flex-col gap-2 w-full items-center flex-1">
-          <NavIcon icon={<Flag className="w-6 h-6" />} label="Flags" active={activeTab === 'flags'} onClick={() => setActiveTab('flags')} />
-          <NavIcon icon={<Dumbbell className="w-6 h-6" />} label="Status" active={activeTab === 'status'} onClick={() => setActiveTab('status')} />
-          <NavIcon icon={<GitFork className="w-6 h-6" />} label="Paths" active={activeTab === 'paths'} onClick={() => setActiveTab('paths')} />
-          <NavIcon icon={<Book className="w-6 h-6" />} label="Chapters" active={activeTab === 'chapters'} onClick={() => setActiveTab('chapters')} />
-          <NavIcon icon={<Award className="w-6 h-6" />} label="Endings" active={activeTab === 'endings'} onClick={() => setActiveTab('endings')} />
-          <NavIcon icon={<Network className="w-6 h-6" />} label="Route Viewer" active={activeTab === 'routeviewer'} onClick={() => setActiveTab('routeviewer')} />
-        </nav>
-        <div className="mt-auto flex flex-col items-center gap-2">
-           <NavIcon icon={<PlayCircle className="w-6 h-6 text-secondary-container" />} label="Play" active={activeTab === 'simulator'} onClick={() => setActiveTab('simulator')} />
-        </div>
-      </aside>
+    <div className="h-screen w-full flex flex-col overflow-hidden" style={{ fontFamily: "var(--font-ui)" }}>
+      {/* ═══ TOPBAR — 40px ═══ */}
+      <header className="h-10 flex-shrink-0 flex items-center px-3.5 gap-2.5" style={{ background: 'var(--color-surface-panel)', borderBottom: '1px solid var(--color-border-panel)' }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600, color: 'var(--color-accent-primary-dim)', letterSpacing: '0.02em' }}>
+          BRANCHING ROUTES
+        </span>
+        <div className="w-px h-4" style={{ background: 'var(--color-border-ghost)' }} />
+        <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+          branching-routes.json
+        </span>
+        <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99, background: 'rgba(0,209,255,0.12)', color: 'var(--color-accent-primary-dim)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          Phase 5
+        </span>
 
-      {/* Main Area */}
-      <div className="flex-1 flex flex-col relative overflow-hidden">
-        {/* Top Header Floating */}
-        <header className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-6 bg-zinc-900/80 backdrop-blur-md shadow-lg shadow-black/20 h-16 border-b border-white/5">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-headline font-black text-primary tracking-tighter">Kinetic Engine</h1>
-            <div className="flex hidden md:flex items-center gap-6 font-headline font-medium text-zinc-400 text-sm ml-4">
-              <button onClick={() => setActiveTab('scenes')} className={`hover:text-white transition-all pb-1 ${activeTab === 'scenes' ? 'text-primary border-b-2 border-primary' : ''}`}>Scenes</button>
-              <button onClick={() => setActiveTab('choices')} className={`hover:text-white transition-all pb-1 ${activeTab === 'choices' ? 'text-primary border-b-2 border-primary' : ''}`}>Choices</button>
-              <button onClick={() => setActiveTab('quests')} className={`hover:text-white transition-all pb-1 ${activeTab === 'quests' ? 'text-primary border-b-2 border-primary' : ''}`}>Quests</button>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {/* IO Buttons */}
-            <label className="p-2 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg cursor-pointer transition-colors" title="Import">
-              <Upload className="w-5 h-5" />
-              <input type="file" accept=".json" className="hidden" onChange={handleImport} />
-            </label>
-            <button onClick={handleExport} className="p-2 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors" title="Export">
-              <Download className="w-5 h-5" />
-            </button>
-            <div className="w-px h-6 bg-white/10 mx-2"></div>
-            <div className="w-64">
-              <SearchableDropdown
-                value={entryNode || null}
-                onChange={setEntryNode}
-                options={entryPointOptions}
-                placeholder="Starting Node..."
-                showFilters={true}
-                buttonClass="bg-black/40 border-white/5 text-on-surface"
-              />
-            </div>
-          </div>
-        </header>
+        <div className="ml-auto flex items-center gap-1.5">
+          <button style={{ background: 'none', border: '1px solid var(--color-border-ghost)', borderRadius: 6, color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500, padding: '4px 10px', cursor: 'pointer', transition: 'border-color 0.15s, color 0.15s' }}>
+            Validate
+          </button>
+          <label className="cursor-pointer" style={{ background: 'none', border: '1px solid var(--color-border-ghost)', borderRadius: 6, color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500, padding: '4px 10px', transition: 'border-color 0.15s, color 0.15s' }}>
+            Import
+            <input type="file" accept=".json" className="hidden" onChange={handleImport} />
+          </label>
+          <button
+            onClick={handleExport}
+            disabled={!entryNode}
+            className="signature-gradient"
+            style={{ color: '#0a1a1f', border: 'none', borderRadius: 24, padding: '5px 14px', fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: entryNode ? 'pointer' : 'not-allowed', opacity: entryNode ? 1 : 0.5 }}
+            title={!entryNode ? 'Set an entry node to enable export' : 'Export JSON'}
+          >
+            Export JSON
+          </button>
+        </div>
+      </header>
 
-        {/* Dynamic Content */}
-        <main className="flex-1 overflow-auto pt-16 relative w-full h-full text-on-surface">
+      {/* ═══ NAV BAR — 36px ═══ */}
+      <NavBar activeNavItem={activeNavItem} onNavChange={handleNavChange} />
+
+      {/* ═══ BODY ROW (3-COLUMN LAYOUT) ═══ */}
+      <div className="flex flex-1 overflow-hidden">
+        
+        {/* Left Sidebar */}
+        <LeftSidebar 
+          activeNavItem={activeNavItem} 
+          onNavChange={handleNavChange} 
+          activeEditId={activeEditId}
+          onSetEditId={setActiveEditId}
+          onClearEdit={() => setActiveEditId(null)}
+          sim={sim}
+        />
+
+        {/* Center Canvas */}
+        <main className="flex-1 overflow-auto relative w-full h-full" style={{ background: 'var(--color-surface-workspace)' }}>
           <ErrorBoundary>
-            {activeTab === 'paths' && <PathManager />}
-            {activeTab === 'chapters' && <ChapterManager />}
-            {activeTab === 'quests' && <QuestManager />}
-            {activeTab === 'endings' && <EndingManager />}
-            {activeTab === 'flags' && <FlagManager />}
-            {activeTab === 'status' && <StatusManager />}
-            {activeTab === 'choices' && <ChoiceEditor />}
-            {activeTab === 'scenes' && <SceneEditor />}
-            {activeTab === 'simulator' && <Simulator />}
-            {activeTab === 'routeviewer' && <RouteViewer />}
+             <RouteViewer onNodeEdit={handleNodeEdit} sim={sim} />
           </ErrorBoundary>
         </main>
+
+        {/* Right Sidebar */}
+        <RightSidebar sim={sim} />
+
       </div>
     </div>
   );

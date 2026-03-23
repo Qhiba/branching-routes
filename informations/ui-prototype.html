@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Branching Narrative Editor — UI Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&family=DM+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════
+   TOKEN SYSTEM — all colors reference these variables
+═══════════════════════════════════════════════════ */
+:root {
+  --surface-canvas:      #0e0e0e;
+  --surface-workspace:   #131313;
+  --surface-panel:       #1c1b1b;
+  --surface-card:        #2a2a2a;
+  --surface-card-low:    #201f1f;
+  --surface-elevated:    #353534;
+  --surface-bright:      #3a3939;
+
+  --text-primary:        #e8e8e8;
+  --text-secondary:      #bbc9cf;
+  --text-muted:          #6b8a93;
+  --text-disabled:       #3a3939;
+
+  --border-ghost:        rgba(60,73,78,0.2);
+  --border-subtle:       rgba(60,73,78,0.45);
+  --border-active:       #00d1ff;
+
+  --accent-primary:      #00d1ff;
+  --accent-primary-dim:  #4cd6ff;
+  --accent-visited:      #1d9e75;
+  --accent-terminal:     #c8770a;
+  --accent-variable:     #eaa9ff;
+  --accent-success:      #abf900;
+  --accent-error:        #ff6b6b;
+  --accent-scene:        #a78bfa;
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-ui:      'DM Sans', sans-serif;
+  --font-mono:    'IBM Plex Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--surface-workspace);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════════════════════ */
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* TOPBAR */
+.topbar {
+  height: 40px;
+  background: var(--surface-panel);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.topbar-logo {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-primary-dim);
+  letter-spacing: 0.02em;
+  margin-right: 4px;
+}
+.topbar-sep { width: 1px; height: 16px; background: var(--border-ghost); }
+.topbar-project {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.topbar-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: rgba(0,209,255,0.12);
+  color: var(--accent-primary-dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.topbar-actions { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.btn-ghost {
+  background: none;
+  border: 1px solid var(--border-ghost);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-ghost:hover { border-color: var(--border-subtle); color: var(--text-primary); }
+.btn-primary {
+  background: linear-gradient(135deg, #a4e6ff, #00d1ff);
+  color: #0a1a1f;
+  border: none;
+  border-radius: 24px;
+  padding: 5px 14px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+/* BODY ROW */
+.body-row { display: flex; flex: 1; overflow: hidden; }
+
+/* NAV PANEL */
+.nav-panel {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--surface-panel);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 10px 14px 5px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  border-left: 2px solid transparent;
+}
+.nav-item:hover { background: var(--surface-card-low); color: var(--text-primary); }
+.nav-item.active {
+  color: var(--accent-primary-dim);
+  border-left-color: var(--accent-primary);
+  background: rgba(0,209,255,0.06);
+}
+.nav-item-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.nav-count {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: var(--surface-card);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.nav-divider { height: 1px; background: var(--border-ghost); margin: 8px 14px; }
+
+/* CANVAS */
+.canvas-area {
+  flex: 1;
+  background: var(--surface-canvas);
+  position: relative;
+  overflow: hidden;
+}
+.canvas-label {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  pointer-events: none;
+}
+
+/* GRAPH NODES ON CANVAS */
+.node-graph {
+  position: absolute;
+  inset: 0;
+  padding: 30px;
+}
+
+/* NODE BASE */
+.node {
+  position: absolute;
+  border-radius: 10px;
+  background: var(--surface-card);
+  border: 0.5px solid var(--border-ghost);
+  width: 240px;
+  font-family: var(--font-ui);
+  overflow: hidden;
+  transition: border-color 0.2s, background 0.2s;
+}
+.node-stripe { height: 3px; width: 100%; }
+.node-header {
+  padding: 9px 12px 7px;
+  border-bottom: 1px solid var(--border-ghost);
+}
+.node-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.node-id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.chip {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.chip-type-choice { background: rgba(76,214,255,0.12); color: var(--accent-primary-dim); }
+.chip-type-scene  { background: rgba(167,139,250,0.12); color: var(--accent-scene); }
+.chip-type-end    { background: rgba(200,119,10,0.14); color: var(--accent-terminal); }
+.chip-state {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.node-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.node-body { padding: 8px 12px; }
+.node-conditions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.cond-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--surface-card-low);
+  border: 1px solid var(--border-ghost);
+  border-radius: 99px;
+  padding: 2px 7px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.c-flag    { color: var(--accent-variable); }
+.c-status  { color: var(--accent-primary-dim); }
+.c-op      { color: var(--text-muted); }
+.c-true    { color: var(--accent-success); }
+.c-false   { color: var(--accent-error); }
+.c-num     { color: var(--accent-primary); }
+.node-ports {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px 9px;
+}
+.port-group { display: flex; gap: 5px; }
+.port {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--surface-card-low);
+  border: 1px solid var(--border-subtle);
+  cursor: crosshair;
+  transition: background 0.15s;
+}
+.port:hover { background: var(--surface-bright); }
+.port-label { font-size: 9px; color: var(--text-muted); align-self: center; }
+
+/* ── SIMULATION STATES ── */
+.state-current {
+  border: 1.5px solid var(--accent-primary) !important;
+  background: #001e2e !important;
+}
+.state-current .node-title { color: #e8e8e8; }
+.chip-state-current { background: rgba(0,209,255,0.15); color: var(--accent-primary); }
+
+.state-visited {
+  border: 0.5px solid var(--accent-visited) !important;
+  background: #0a1e1a !important;
+}
+.state-visited .node-title { color: #7ab89a; }
+.chip-state-visited { background: rgba(29,158,117,0.15); color: var(--accent-visited); }
+
+.state-reachable {
+  border: 0.5px solid var(--border-ghost) !important;
+  background: var(--surface-card) !important;
+}
+/* default — no state class needed */
+
+.state-unreachable {
+  border: 0.5px solid #252525 !important;
+  background: #181818 !important;
+  opacity: 0.55;
+}
+.state-unreachable .node-title {
+  color: var(--text-disabled);
+  text-decoration: line-through;
+}
+.chip-state-locked { background: #1e1e1e; color: #444; }
+
+.state-terminal {
+  border: 1.5px solid var(--accent-terminal) !important;
+  background: #1e1400 !important;
+}
+.state-terminal .node-title { color: #e8b96a; }
+.chip-state-terminal { background: rgba(200,119,10,0.15); color: var(--accent-terminal); }
+
+/* EDGES (SVG) */
+.edges-svg { position: absolute; inset: 0; pointer-events: none; }
+
+/* INSPECTOR PANEL */
+.inspector {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--surface-panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.inspector-header {
+  padding: 10px 13px;
+  background: var(--surface-card);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+.inspector-header .chip { font-size: 10px; }
+.inspector-id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.inspector-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-left: auto;
+}
+.inspector-path-chips { display: flex; gap: 4px; margin-top: 6px; }
+.path-chip {
+  font-size: 10px;
+  font-weight: 400;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: var(--surface-card-low);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.inspector-body { flex: 1; overflow-y: auto; }
+.ins-section { border-bottom: 1px solid var(--border-ghost); }
+.ins-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 8px 13px 5px;
+}
+.ins-section-body { padding: 4px 13px 10px; }
+.ins-conditions { display: flex; flex-wrap: wrap; gap: 4px; }
+.ins-flag-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.flag-arrow { font-size: 10px; color: var(--accent-success); font-family: var(--font-mono); }
+.flag-name { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.flag-label { font-size: 11px; color: var(--text-muted); }
+.ins-status-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 0;
+  background: var(--surface-card-low);
+  border-radius: 5px;
+  padding: 5px 8px;
+  margin-bottom: 3px;
+}
+.status-delta { font-family: var(--font-mono); font-size: 12px; color: var(--accent-primary); font-weight: 500; }
+.status-name { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.status-scope { font-size: 10px; color: var(--text-muted); margin-left: auto; }
+.ins-next-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--surface-card-low);
+  border: 1px solid var(--border-ghost);
+  border-radius: 5px;
+  padding: 5px 8px;
+  margin-bottom: 3px;
+  font-size: 11px;
+}
+.next-cond { color: var(--text-muted); font-family: var(--font-mono); }
+.next-cond-val { color: var(--accent-variable); font-family: var(--font-mono); }
+.next-target { margin-left: auto; font-family: var(--font-mono); color: var(--accent-primary-dim); font-weight: 500; }
+.next-fallback { color: var(--text-muted); font-style: italic; }
+.inspector-footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  background: var(--surface-card-low);
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-ghost);
+}
+.footer-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.footer-ok { background: rgba(29,158,117,0.15); color: var(--accent-visited); }
+.footer-meta { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-ghost); border-radius: 2px; }
+
+/* SIM CONTROLS */
+.sim-bar {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-end;
+}
+.sim-btn {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sim-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary-dim); }
+.sim-btn.active {
+  background: rgba(0,209,255,0.1);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary-dim);
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══ TOPBAR ═══ -->
+  <div class="topbar">
+    <span class="topbar-logo">NARRATEFLOW</span>
+    <div class="topbar-sep"></div>
+    <span class="topbar-project">vigilante_story_v3.json</span>
+    <span class="topbar-badge">Phase 4</span>
+    <div class="topbar-actions">
+      <button class="btn-ghost">Import</button>
+      <button class="btn-ghost">Validate</button>
+      <button class="btn-primary">Export JSON</button>
+    </div>
+  </div>
+
+  <!-- ═══ BODY ROW ═══ -->
+  <div class="body-row">
+
+    <!-- ═══ NAV PANEL ═══ -->
+    <div class="nav-panel">
+      <div class="nav-section-label">Navigation</div>
+      <div class="nav-item active">
+        <div class="nav-item-dot" style="background:var(--accent-primary)"></div>
+        Route Viewer
+        <span class="nav-count">—</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-dot" style="background:var(--accent-primary-dim)"></div>
+        Choices
+        <span class="nav-count">18</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-dot" style="background:var(--accent-scene)"></div>
+        Scenes
+        <span class="nav-count">24</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-dot" style="background:var(--accent-terminal)"></div>
+        Endings
+        <span class="nav-count">5</span>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Data</div>
+      <div class="nav-item">
+        <div class="nav-item-dot" style="background:var(--accent-variable)"></div>
+        Flags
+        <span class="nav-count">31</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-dot" style="background:var(--accent-primary)"></div>
+        Status Points
+        <span class="nav-count">4</span>
+      </div>
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Structure</div>
+      <div class="nav-item">
+        <div class="nav-item-dot" style="background:var(--text-muted)"></div>
+        Paths
+        <span class="nav-count">3</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-dot" style="background:var(--text-muted)"></div>
+        Chapters
+        <span class="nav-count">4</span>
+      </div>
+      <div class="nav-item">
+        <div class="nav-item-dot" style="background:var(--text-muted)"></div>
+        Quests
+        <span class="nav-count">8</span>
+      </div>
+    </div>
+
+    <!-- ═══ CANVAS ═══ -->
+    <div class="canvas-area">
+
+      <!-- SVG EDGES -->
+      <svg class="edges-svg" xmlns="http://www.w3.org/2000/svg">
+        <!-- Visited path edge: CH001 → S001 -->
+        <path d="M 290 138 Q 400 138 400 170" fill="none" stroke="#1d9e75" stroke-width="2" stroke-linecap="round"/>
+        <!-- Visited path edge: S001 → CH002 -->
+        <path d="M 400 252 L 400 270" fill="none" stroke="#1d9e75" stroke-width="2" stroke-linecap="round"/>
+        <!-- Current path edge: CH002 → S003 -->
+        <path d="M 520 348 Q 600 348 600 370" fill="none" stroke="rgba(0,209,255,0.5)" stroke-width="2" stroke-dasharray="5 3"/>
+        <!-- Blocked edge to unreachable -->
+        <path d="M 180 270 L 100 330" fill="none" stroke="#2a2a2a" stroke-width="1" stroke-dasharray="4 4"/>
+      </svg>
+
+      <div class="node-graph">
+
+        <!-- NODE 1: VISITED — Choice -->
+        <div class="node state-visited" style="left:50px; top:40px;">
+          <div class="node-stripe" style="background:var(--accent-primary-dim)"></div>
+          <div class="node-header">
+            <div class="node-meta">
+              <span class="node-id">CH001</span>
+              <span class="chip chip-type-choice">Choice</span>
+              <span class="chip chip-state chip-state-visited">Visited</span>
+            </div>
+            <div class="node-title">give_food_to_stranger</div>
+          </div>
+          <div class="node-body">
+            <div class="node-conditions">
+              <span class="cond-chip"><span class="c-flag">F001</span><span class="c-op">=</span><span class="c-false">false</span></span>
+            </div>
+          </div>
+          <div class="node-ports">
+            <div class="port-group">
+              <div class="port"></div>
+              <div class="port"></div>
+            </div>
+            <span class="port-label">2 options</span>
+          </div>
+        </div>
+
+        <!-- NODE 2: VISITED — Scene -->
+        <div class="node state-visited" style="left:290px; top:170px;">
+          <div class="node-stripe" style="background:var(--accent-scene)"></div>
+          <div class="node-header">
+            <div class="node-meta">
+              <span class="node-id">S001</span>
+              <span class="chip chip-type-scene">Scene</span>
+              <span class="chip chip-state chip-state-visited">Visited</span>
+            </div>
+            <div class="node-title">stranger_accepts_food</div>
+          </div>
+          <div class="node-body">
+            <div class="node-conditions">
+              <span class="cond-chip"><span class="c-flag">F001</span><span class="c-op">=</span><span class="c-true">true</span></span>
+              <span class="cond-chip"><span class="c-status">SP001</span><span class="c-op">≥</span><span class="c-num">1</span></span>
+            </div>
+          </div>
+          <div class="node-ports">
+            <div class="port-group"><div class="port"></div></div>
+            <span class="port-label">→ CH002</span>
+          </div>
+        </div>
+
+        <!-- NODE 3: CURRENT — Choice -->
+        <div class="node state-current" style="left:290px; top:330px;">
+          <div class="node-stripe" style="background:var(--accent-primary)"></div>
+          <div class="node-header">
+            <div class="node-meta">
+              <span class="node-id">CH002</span>
+              <span class="chip chip-type-choice">Choice</span>
+              <span class="chip chip-state chip-state-current">Current</span>
+            </div>
+            <div class="node-title">offer_shelter_tonight</div>
+          </div>
+          <div class="node-body">
+            <div class="node-conditions">
+              <span class="cond-chip"><span class="c-flag">F001</span><span class="c-op">=</span><span class="c-true">true</span></span>
+            </div>
+          </div>
+          <div class="node-ports">
+            <div class="port-group">
+              <div class="port" style="border-color:var(--accent-primary)"></div>
+              <div class="port" style="border-color:var(--accent-primary)"></div>
+              <div class="port" style="border-color:var(--accent-primary)"></div>
+            </div>
+            <span class="port-label">3 options</span>
+          </div>
+        </div>
+
+        <!-- NODE 4: UNREACHABLE — Scene -->
+        <div class="node state-unreachable" style="left:50px; top:290px;">
+          <div class="node-stripe" style="background:#222"></div>
+          <div class="node-header">
+            <div class="node-meta">
+              <span class="node-id">S007</span>
+              <span class="chip chip-type-scene" style="opacity:0.3">Scene</span>
+              <span class="chip chip-state chip-state-locked">Locked</span>
+            </div>
+            <div class="node-title">vigilante_confronts_guard</div>
+          </div>
+          <div class="node-body">
+            <div class="node-conditions">
+              <span class="cond-chip" style="opacity:0.4"><span class="c-flag">F003</span><span class="c-op">=</span><span class="c-true">true</span></span>
+              <span class="cond-chip" style="opacity:0.4"><span class="c-status">SP002</span><span class="c-op">≥</span><span class="c-num">5</span></span>
+            </div>
+          </div>
+          <div class="node-ports">
+            <div class="port-group"><div class="port" style="opacity:0.3"></div></div>
+          </div>
+        </div>
+
+        <!-- NODE 5: REACHABLE — Scene -->
+        <div class="node" style="left:540px; top:370px;">
+          <div class="node-stripe" style="background:var(--accent-scene)"></div>
+          <div class="node-header">
+            <div class="node-meta">
+              <span class="node-id">S003</span>
+              <span class="chip chip-type-scene">Scene</span>
+            </div>
+            <div class="node-title">stranger_returns_next_day</div>
+          </div>
+          <div class="node-body">
+            <div class="node-conditions">
+              <span class="cond-chip"><span class="c-flag">F003</span><span class="c-op">=</span><span class="c-true">true</span></span>
+            </div>
+          </div>
+          <div class="node-ports">
+            <div class="port-group"><div class="port"></div></div>
+            <span class="port-label">→ E001</span>
+          </div>
+        </div>
+
+        <!-- NODE 6: TERMINAL — Ending -->
+        <div class="node state-terminal" style="left:540px; top:530px; width:200px;">
+          <div class="node-stripe" style="background:var(--accent-terminal)"></div>
+          <div class="node-header">
+            <div class="node-meta">
+              <span class="node-id">E001</span>
+              <span class="chip chip-type-end">Ending</span>
+              <span class="chip chip-state chip-state-terminal">Terminal</span>
+            </div>
+            <div class="node-title">good_ending</div>
+          </div>
+          <div class="node-body">
+            <div class="node-conditions">
+              <span class="cond-chip"><span class="c-flag">F001</span><span class="c-op">=</span><span class="c-true">true</span></span>
+              <span class="cond-chip"><span class="c-status">SP001</span><span class="c-op">≥</span><span class="c-num">5</span></span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /node-graph -->
+
+      <!-- SIM CONTROLS -->
+      <div class="sim-bar">
+        <button class="sim-btn active">● Simulation active</button>
+        <button class="sim-btn">⟲ Undo last choice</button>
+        <button class="sim-btn">◼ End simulation</button>
+        <button class="sim-btn">⇲ Follow camera</button>
+      </div>
+
+      <div class="canvas-label">ROUTE VIEWER · prologue · vigilante path · 3 choices made</div>
+
+    </div><!-- /canvas-area -->
+
+    <!-- ═══ INSPECTOR PANEL ═══ -->
+    <div class="inspector">
+
+      <div class="inspector-header" style="flex-direction:column; align-items:flex-start; gap:4px;">
+        <div style="display:flex; align-items:center; gap:7px; width:100%;">
+          <span class="chip chip-type-choice">Choice</span>
+          <span class="inspector-id">CH002</span>
+          <span class="inspector-title">offer_shelter_tonight</span>
+        </div>
+        <div class="inspector-path-chips">
+          <span class="path-chip">P002 vigilante</span>
+          <span class="path-chip">C001 prologue</span>
+        </div>
+      </div>
+
+      <div class="inspector-body">
+
+        <!-- REQUIRES -->
+        <div class="ins-section">
+          <div class="ins-section-label">Requires · conditions to display</div>
+          <div class="ins-section-body">
+            <div class="ins-conditions">
+              <span class="cond-chip"><span class="c-flag">F001</span><span class="c-op">=</span><span class="c-true">true</span></span>
+              <span class="cond-chip"><span class="c-status">SP001</span><span class="c-op">≥</span><span class="c-num">2</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- FLAGS SET -->
+        <div class="ins-section">
+          <div class="ins-section-label">Flags set · false → true on selection</div>
+          <div class="ins-section-body">
+            <div class="ins-flag-row">
+              <span class="flag-arrow">↑ F→T</span>
+              <span class="flag-name" style="color:var(--accent-variable)">F003</span>
+              <span class="flag-label">gave_shelter</span>
+            </div>
+            <div class="ins-flag-row">
+              <span class="flag-arrow">↑ F→T</span>
+              <span class="flag-name" style="color:var(--accent-variable)">F004</span>
+              <span class="flag-label">met_stranger_twice</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- STATUS CHANGES -->
+        <div class="ins-section">
+          <div class="ins-section-label">Status changes · applied on selection</div>
+          <div class="ins-section-body">
+            <div class="ins-status-row">
+              <span class="status-delta">+3</span>
+              <span class="status-name" style="color:var(--accent-primary-dim)">SP001</span>
+              <span class="flag-label">strength</span>
+              <span class="status-scope">global</span>
+            </div>
+            <div class="ins-status-row">
+              <span class="status-delta">-1</span>
+              <span class="status-name" style="color:var(--accent-primary-dim)">SP003</span>
+              <span class="flag-label">suspicion</span>
+              <span class="status-scope">global</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEXT TARGETS -->
+        <div class="ins-section">
+          <div class="ins-section-label">Next targets · first match wins</div>
+          <div class="ins-section-body">
+            <div class="ins-next-row">
+              <span class="next-cond">if</span>
+              <span class="next-cond-val">F002=true</span>
+              <span class="next-target">→ S004</span>
+            </div>
+            <div class="ins-next-row">
+              <span class="next-cond">if</span>
+              <span class="next-cond-val">SP001≥5</span>
+              <span class="next-target">→ S003</span>
+            </div>
+            <div class="ins-next-row">
+              <span class="next-fallback">fallback · requires: []</span>
+              <span class="next-target">→ S002</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /inspector-body -->
+
+      <div class="inspector-footer">
+        <span class="footer-badge footer-ok">2 conditions met</span>
+        <span class="footer-meta">referenced by 1 scene</span>
+      </div>
+
+    </div><!-- /inspector -->
+
+  </div><!-- /body-row -->
+</div><!-- /app -->
+
+<!--
+═══════════════════════════════════════════════════════════
+  DESIGN REFERENCE NOTES (for implementing agent)
+═══════════════════════════════════════════════════════════
+
+LAYOUT:
+  - Topbar: 40px, surface-panel, tonal shift only (no border)
+  - Nav panel: 200px fixed, surface-panel
+  - Canvas: flex:1, surface-canvas (#0e0e0e)
+  - Inspector: 280px fixed, surface-panel, slides in on node select
+
+NODES — 5 simulation states, set via CSS class:
+  .state-current     → blue border + deep blue bg
+  .state-visited     → teal border + deep teal bg + muted text
+  (no class)         → default reachable state
+  .state-unreachable → dark border + dark bg + strikethrough text + opacity:0.55
+  .state-terminal    → amber border + deep amber bg + warm text
+
+INSPECTOR — section order:
+  1. Header (id, type badge, path chips, title)
+  2. Requires (condition chips)
+  3. Flags set (flag rows with arrow indicators)
+  4. Status changes (delta rows)
+  5. Next targets (conditional chain)
+  6. Footer (validation badge + reference count)
+
+TYPOGRAPHY — 3 fonts:
+  Space Grotesk 600  → module titles only
+  DM Sans 400/500/600 → all UI labels, body
+  IBM Plex Mono 400/500 → all logic identifiers (IDs, values)
+
+NO blur, NO box-shadow, NO gradients except primary CTA button.
+-->
+</body>
+</html>

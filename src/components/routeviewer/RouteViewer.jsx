@@ -14,33 +14,24 @@ import '@xyflow/react/dist/style.css';
 import { useEditorData } from '../../context/EditorContext';
 import { computeLayout } from '../../utils/graphLayout';
 import { analyzeReachability } from '../../utils/reachabilityAnalyzer';
-import useSimulator from '../../hooks/useSimulator';
-import SimulatorPanel from './SimulatorPanel';
 import SceneNode from './nodes/SceneNode';
 import ChoiceNode from './nodes/ChoiceNode';
 import EndingNode from './nodes/EndingNode';
-import { Navigation, Crosshair, Info, X, AlertTriangle, Blocks } from 'lucide-react';
+import { Navigation, Crosshair, X, AlertTriangle, Blocks, Undo2, StopCircle } from 'lucide-react';
 
 const nodeTypes = { scene: SceneNode, choice: ChoiceNode, ending: EndingNode };
 
-// Color constants
-const EDGE_TAKEN = '#6366f1';
-const EDGE_DEFAULT = '#cbd5e1';
-
-function RouteViewerInner() {
+function RouteViewerInner({ onNodeEdit, sim }) {
   const { paths, chapters, scenes, choices, endings } = useEditorData();
-  const sim = useSimulator();
   const { setCenter, fitView } = useReactFlow();
 
   const [filterPath, setFilterPath] = useState('');
   const [filterChapter, setFilterChapter] = useState('');
   const [cameraFollow, setCameraFollow] = useState(true);
-  const [selectedNode, setSelectedNode] = useState(null);
   const [showWarnings, setShowWarnings] = useState(false);
   const [layoutConfig, setLayoutConfig] = useState({ rankdir: 'TB', nodesep: 100, ranksep: 150 });
   const [showLayoutOpts, setShowLayoutOpts] = useState(false);
 
-  // Static reachability analysis (independent of simulation)
   const staticAnalysis = useMemo(
     () => analyzeReachability(sim.flags, sim.statusPoints, choices, scenes, endings, sim.entryNode),
     [sim.flags, sim.statusPoints, choices, scenes, endings, sim.entryNode]
@@ -50,7 +41,6 @@ function RouteViewerInner() {
     [staticAnalysis]
   );
 
-  // Compute layout from editor data
   const baseLayout = useMemo(
     () => computeLayout(choices, scenes, endings, {
       filterPath: filterPath || undefined,
@@ -63,7 +53,6 @@ function RouteViewerInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Sync base layout to nodes/edges (only when structure/layout config changes)
   useEffect(() => {
     setNodes(baseLayout.nodes);
     setEdges(baseLayout.edges);
@@ -72,7 +61,6 @@ function RouteViewerInner() {
     }
   }, [baseLayout, setNodes, setEdges, sim.isRunning, fitView]);
 
-  // Apply simulation states to nodes without overriding their dragged positions
   useEffect(() => {
     setNodes((currentNodes) => currentNodes.map((node) => {
       let state = 'reachable';
@@ -98,32 +86,61 @@ function RouteViewerInner() {
     }));
   }, [sim.isRunning, sim.currentNodeId, sim.visitedNodeIds, staticUnreachable, scenes, choices, endings, sim.passesRequires, setNodes]);
 
-  // Apply simulation states to edges without overriding their geometry
   useEffect(() => {
     setEdges((currentEdges) => currentEdges.map((edge) => {
       if (!sim.isRunning) {
-        if (edge.animated || edge.style?.opacity !== 0.4) {
-          return { ...edge, animated: false, style: { stroke: EDGE_DEFAULT, strokeWidth: 1.5, opacity: 0.4 } };
+        if (edge.animated || edge.style?.stroke !== '#666') {
+          return { ...edge, animated: false, style: { stroke: '#666', strokeWidth: 1, opacity: 0.6 } };
         }
         return edge;
       }
-      const isTaken = sim.takenEdgeIds.has(edge.id);
-      const stroke = isTaken ? EDGE_TAKEN : EDGE_DEFAULT;
-      const strokeWidth = isTaken ? 2.5 : 1.5;
-      const opacity = isTaken ? 1 : 0.4;
 
-      if (edge.animated !== isTaken || edge.style?.opacity !== opacity) {
+      // During simulation, edges have 4 states
+      const isTaken = sim.takenEdgeIds.has(edge.id);
+      const isBlocked = staticUnreachable.has(edge.target);
+      const isActive = edge.source === sim.currentNodeId; // Edge leading out from current node
+
+      let stroke = '#666';
+      let strokeWidth = 1;
+      let strokeDasharray = 'none';
+      let animated = false;
+      let opacity = 0.5;
+
+      if (isTaken) {
+        stroke = '#1d9e75'; // taken/visited
+        strokeWidth = 2;
+        opacity = 1;
+      } else if (isActive) {
+        stroke = 'rgba(0, 209, 255, 0.5)'; // active
+        strokeWidth = 2;
+        strokeDasharray = '4 4';
+        animated = true;
+        opacity = 1;
+      } else if (isBlocked) {
+        stroke = '#252525'; // blocked/unreachable
+        strokeWidth = 1;
+        strokeDasharray = '4 4';
+      }
+
+      // We only update if something changed
+      const currentStyle = edge.style || {};
+      if (
+        edge.animated !== animated ||
+        currentStyle.stroke !== stroke ||
+        currentStyle.strokeWidth !== strokeWidth ||
+        currentStyle.strokeDasharray !== strokeDasharray ||
+        currentStyle.opacity !== opacity
+      ) {
         return {
           ...edge,
-          animated: isTaken,
-          style: { stroke, strokeWidth, opacity },
+          animated,
+          style: { stroke, strokeWidth, strokeDasharray, opacity },
         };
       }
       return edge;
     }));
-  }, [sim.isRunning, sim.takenEdgeIds, setEdges]);
+  }, [sim.isRunning, sim.takenEdgeIds, sim.currentNodeId, staticUnreachable, setEdges]);
 
-  // Camera follow on node change
   const prevNodeRef = useRef(null);
   useEffect(() => {
     if (!cameraFollow || !sim.currentNodeId || sim.currentNodeId === prevNodeRef.current) return;
@@ -131,137 +148,100 @@ function RouteViewerInner() {
 
     const node = nodes.find((n) => n.id === sim.currentNodeId);
     if (node) {
-      const x = node.position.x + 110; // center of 220px node
-      const y = node.position.y + 40;
-      setCenter(x, y, { zoom: 1.2, duration: 800 });
+      const x = node.position.x + 120;
+      const y = node.position.y + 50;
+      setCenter(x, y, { zoom: 1.2, duration: 600 });
     }
   }, [sim.currentNodeId, cameraFollow, nodes, setCenter]);
 
-  // Fit view when layout changes (e.g. filter change)
-  // This is handled in the effect block above now
-
   const handleNodeClick = useCallback((_event, node) => {
-    const entity = scenes[node.id] || choices[node.id] || endings[node.id];
-    if (entity) {
-      setSelectedNode({ ...entity, nodeType: node.type });
-    }
-  }, [scenes, choices, endings]);
+    if (onNodeEdit) onNodeEdit(node.id, node.type);
+  }, [onNodeEdit]);
 
   const pathOptions = Object.values(paths);
   const chapterOptions = Object.values(chapters);
 
+  /* ─── Inline style helpers ─── */
+  const filterBarStyle = { background: 'var(--color-surface-elevated)', border: '1px solid var(--color-border-card)', borderRadius: 8, padding: 6 };
+  const selectStyle = { background: 'var(--color-surface-card-low)', border: '1px solid transparent', color: 'var(--color-text-secondary)', fontSize: 11, padding: '4px 8px', borderRadius: 6, cursor: 'pointer', outline: 'none' };
+  const toggleBtnStyle = (active) => ({ fontSize: 11, fontWeight: 500, padding: '4px 10px', borderRadius: 6, border: '1px solid transparent', cursor: 'pointer', background: active ? 'rgba(0,209,255,0.08)' : 'transparent', color: active ? 'var(--color-accent-primary)' : 'var(--color-text-muted)', borderColor: active ? 'rgba(0,209,255,0.15)' : 'transparent' });
+
   return (
-    <div className="flex h-full w-full overflow-hidden bg-background">
+    <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--color-surface-workspace)' }}>
       {/* Graph Canvas */}
       <div className="flex-1 flex flex-col relative">
         {/* Floating Filter Bar */}
-        <div className="absolute top-6 left-6 z-10 flex gap-2">
-          <div className="glass-panel p-2 rounded-xl border border-white/5 flex gap-3 items-center shadow-2xl">
-            <Navigation className="w-4 h-4 text-primary ml-1" />
-            <select
-              value={filterPath}
-              onChange={(e) => setFilterPath(e.target.value)}
-              className="text-xs px-3 py-1.5 border-none bg-surface-container rounded-lg text-on-surface focus:ring-1 focus:ring-primary cursor-pointer"
-            >
-              <option value="">All Paths</option>
-              {pathOptions.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            <select
-              value={filterChapter}
-              onChange={(e) => setFilterChapter(e.target.value)}
-              className="text-xs px-3 py-1.5 border-none bg-surface-container rounded-lg text-on-surface focus:ring-1 focus:ring-primary cursor-pointer"
-            >
-              <option value="">All Chapters</option>
-              {chapterOptions.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <div className="w-px h-6 bg-white/10 mx-1"></div>
-            <button
-              onClick={() => setCameraFollow(prev => !prev)}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${cameraFollow
-                ? 'bg-primary/20 text-primary'
-                : 'bg-surface-container text-zinc-400 hover:text-white'
-              }`}
-              title="Toggle camera follow"
-            >
-              <Crosshair className="w-3.5 h-3.5" />
-              Follow
+        <div className="absolute top-4 left-4 z-10 flex gap-2 items-center" style={filterBarStyle}>
+          <Navigation className="w-3.5 h-3.5 ml-1" style={{ color: 'var(--color-accent-primary)' }} />
+          <select value={filterPath} onChange={(e) => setFilterPath(e.target.value)} style={selectStyle}>
+            <option value="">All Paths</option>
+            {pathOptions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <select value={filterChapter} onChange={(e) => setFilterChapter(e.target.value)} style={selectStyle}>
+            <option value="">All Chapters</option>
+            {chapterOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <div style={{ width: 1, height: 20, background: 'var(--color-border-ghost)', margin: '0 2px' }} />
+          <div className="relative">
+            <button onClick={() => setShowLayoutOpts(p => !p)} className="flex items-center gap-1" style={toggleBtnStyle(showLayoutOpts)} title="Layout Options">
+              <Blocks className="w-3.5 h-3.5" /> Layout
             </button>
-            <div className="relative">
-              <button
-                onClick={() => setShowLayoutOpts(p => !p)}
-                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${showLayoutOpts ? 'bg-primary/20 text-primary' : 'bg-surface-container text-zinc-400 hover:text-white'}`}
-                title="Layout Options"
-              >
-                <Blocks className="w-3.5 h-3.5" />
-                Layout
-              </button>
-              {showLayoutOpts && (
-                <div className="absolute top-full mt-2 left-0 bg-surface-container-highest rounded-xl border border-white/10 p-4 shadow-2xl w-64 z-50">
-                  <h4 className="text-xs font-bold text-on-surface mb-3 uppercase tracking-wider">Layout Settings</h4>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider mb-1.5 block">Direction</label>
-                      <div className="flex bg-black/20 rounded-lg p-1">
-                        <button
-                          onClick={() => setLayoutConfig(c => ({...c, rankdir: 'TB'}))}
-                          className={`flex-1 text-xs py-1 rounded-md transition-colors ${layoutConfig.rankdir === 'TB' ? 'bg-primary text-black font-bold' : 'text-zinc-400 hover:text-white'}`}
-                        >Top-Bottom</button>
-                        <button
-                          onClick={() => setLayoutConfig(c => ({...c, rankdir: 'LR'}))}
-                          className={`flex-1 text-xs py-1 rounded-md transition-colors ${layoutConfig.rankdir === 'LR' ? 'bg-primary text-black font-bold' : 'text-zinc-400 hover:text-white'}`}
-                        >Left-Right</button>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-end mb-1.5">
-                        <label className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Node Spacing (X)</label>
-                        <span className="text-[10px] text-primary font-mono">{layoutConfig.nodesep}</span>
-                      </div>
-                      <input 
-                        type="range" min="20" max="300" step="10"
-                        value={layoutConfig.nodesep}
-                        onChange={(e) => setLayoutConfig(c => ({...c, nodesep: Number(e.target.value)}))}
-                        className="w-full h-1.5 bg-black/20 rounded-lg appearance-none cursor-pointer accent-primary" 
-                      />
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-end mb-1.5">
-                        <label className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Rank Spacing (Y)</label>
-                        <span className="text-[10px] text-primary font-mono">{layoutConfig.ranksep}</span>
-                      </div>
-                      <input 
-                        type="range" min="50" max="500" step="10"
-                        value={layoutConfig.ranksep}
-                        onChange={(e) => setLayoutConfig(c => ({...c, ranksep: Number(e.target.value)}))}
-                        className="w-full h-1.5 bg-black/20 rounded-lg appearance-none cursor-pointer accent-primary" 
-                      />
-                    </div>
+            {showLayoutOpts && (
+              <div className="absolute top-full mt-2 left-0 w-56 z-50 p-4 rounded-lg space-y-3" style={{ background: 'var(--color-surface-elevated)', border: '1px solid var(--color-border-card)' }}>
+                <h4 style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Layout Settings</h4>
+                <div>
+                  <label style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Direction</label>
+                  <div className="flex rounded-md overflow-hidden" style={{ border: '1px solid var(--color-border-row)' }}>
+                    <button onClick={() => setLayoutConfig(c => ({...c, rankdir: 'TB'}))} className="flex-1 py-1 transition-colors" style={{ fontSize: 11, fontWeight: layoutConfig.rankdir === 'TB' ? 600 : 400, background: layoutConfig.rankdir === 'TB' ? 'var(--color-accent-primary)' : 'var(--color-surface-card-low)', color: layoutConfig.rankdir === 'TB' ? '#0a1a1f' : 'var(--color-text-muted)', border: 'none', cursor: 'pointer' }}>Top-Bottom</button>
+                    <button onClick={() => setLayoutConfig(c => ({...c, rankdir: 'LR'}))} className="flex-1 py-1 transition-colors" style={{ fontSize: 11, fontWeight: layoutConfig.rankdir === 'LR' ? 600 : 400, background: layoutConfig.rankdir === 'LR' ? 'var(--color-accent-primary)' : 'var(--color-surface-card-low)', color: layoutConfig.rankdir === 'LR' ? '#0a1a1f' : 'var(--color-text-muted)', border: 'none', cursor: 'pointer' }}>Left-Right</button>
                   </div>
                 </div>
-              )}
-            </div>
-            {staticAnalysis.warnings.length > 0 && (
-              <button
-                onClick={() => setShowWarnings(prev => !prev)}
-                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${showWarnings
-                  ? 'bg-amber-500/20 text-amber-400'
-                  : 'bg-surface-container text-zinc-400 hover:text-amber-400'
-                }`}
-                title="Show unreachable node warnings"
-              >
-                <AlertTriangle className="w-3.5 h-3.5" />
-                {staticAnalysis.warnings.length}
-              </button>
+                <div>
+                  <div className="flex justify-between items-end mb-1">
+                    <label style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Node Spacing</label>
+                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--color-accent-primary)' }}>{layoutConfig.nodesep}</span>
+                  </div>
+                  <input type="range" min="20" max="300" step="10" value={layoutConfig.nodesep} onChange={(e) => setLayoutConfig(c => ({...c, nodesep: Number(e.target.value)}))} className="w-full h-1.5 rounded-lg appearance-none cursor-pointer" style={{ background: 'var(--color-surface-card-low)', accentColor: 'var(--color-accent-primary)' }} />
+                </div>
+                <div>
+                  <div className="flex justify-between items-end mb-1">
+                    <label style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Rank Spacing</label>
+                    <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--color-accent-primary)' }}>{layoutConfig.ranksep}</span>
+                  </div>
+                  <input type="range" min="50" max="500" step="10" value={layoutConfig.ranksep} onChange={(e) => setLayoutConfig(c => ({...c, ranksep: Number(e.target.value)}))} className="w-full h-1.5 rounded-lg appearance-none cursor-pointer" style={{ background: 'var(--color-surface-card-low)', accentColor: 'var(--color-accent-primary)' }} />
+                </div>
+              </div>
             )}
           </div>
+          {staticAnalysis.warnings.length > 0 && (
+            <button onClick={() => setShowWarnings(prev => !prev)} className="flex items-center gap-1" style={toggleBtnStyle(showWarnings)} title="Show unreachable node warnings">
+              <AlertTriangle className="w-3.5 h-3.5" style={{ color: 'var(--color-accent-terminal)' }} />
+              {staticAnalysis.warnings.length}
+            </button>
+          )}
         </div>
 
+        {/* Floating Simulation Controls (§4.9) */}
+        {sim.isRunning && (
+          <div className="absolute top-4 right-4 z-50 flex items-center gap-2 p-1.5 rounded-lg shadow-lg" style={{ background: 'var(--color-surface-elevated)', border: '1px solid var(--color-border-card)' }}>
+            <div className="flex items-center gap-2 px-3 py-1.5 border-r" style={{ borderColor: 'var(--color-border-ghost)' }}>
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--color-accent-primary)' }} />
+              <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)' }}>Simulation active</span>
+            </div>
+            <button onClick={() => setCameraFollow(p => !p)} className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors" style={{ fontSize: 11, fontWeight: 500, cursor: 'pointer', color: cameraFollow ? 'var(--color-accent-primary-dim)' : 'var(--color-text-secondary)', background: cameraFollow ? 'rgba(0,209,255,0.08)' : 'transparent', border: `1px solid ${cameraFollow ? 'var(--color-accent-primary)' : 'transparent'}` }}>
+              <Crosshair className="w-3.5 h-3.5" /> Follow camera {cameraFollow ? 'ON' : 'OFF'}
+            </button>
+            <button onClick={sim.handleUndo} className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors" style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', cursor: 'pointer', background: 'transparent', border: 'none' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-card-low)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <Undo2 className="w-3.5 h-3.5" /> Undo last choice
+            </button>
+            <button onClick={() => { if (window.confirm('Stop simulation?')) sim.handleStop(); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors" style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)', cursor: 'pointer', background: 'transparent', border: 'none' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-card-low)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <StopCircle className="w-3.5 h-3.5" /> End simulation
+            </button>
+          </div>
+        )}
+
         {/* React Flow */}
-        <div className="flex-1 canvas-grid">
+        <div className="flex-1">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -275,122 +255,57 @@ function RouteViewerInner() {
             defaultEdgeOptions={{ type: 'smoothstep' }}
             proOptions={{ hideAttribution: true }}
           >
-            <Controls showInteractive={false} className="!bg-surface-container-high !border-none !shadow-2xl !rounded-xl overflow-hidden [&>button]:!bg-transparent [&>button]:!text-zinc-400 [&>button]:!border-b [&>button]:!border-white/5 hover:[&>button]:!text-white" />
+            <Controls showInteractive={false} className="!rounded-lg !overflow-hidden" style={{ background: 'var(--color-surface-elevated)', border: '1px solid var(--color-border-card)' }} />
             <MiniMap
               nodeStrokeWidth={3}
               nodeColor={(node) => {
-                if (node.type === 'ending') return '#ffb4ab'; // error/red
-                if (node.type === 'choice') return '#f9d8ff'; // tertiary/purple
-                return '#a4e6ff'; // primary/blue
+                return {
+                  idle: '#2a2a2a',
+                  current: '#00d1ff',
+                  visited: '#1d9e75',
+                  reachable: '#2a2a2a',
+                  unreachable: '#181818',
+                  terminal: '#c8770a'
+                }[node.data.state] || '#2a2a2a';
               }}
-              className="!bg-surface-container-low !border-white/5 !border !rounded-xl !shadow-2xl"
-              maskColor="rgba(0, 0, 0, 0.5)"
+              className="!rounded-lg mb-14"
+              style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}
+              maskColor="rgba(10, 26, 31, 0.7)"
             />
           </ReactFlow>
         </div>
 
-        {/* Node Detail Popover */}
-        {selectedNode && (
-          <div className="absolute bottom-6 left-6 bg-surface-container-highest rounded-2xl shadow-2xl border border-white/5 p-6 max-w-sm z-50 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Info className="w-4 h-4 text-zinc-400" />
-                <span className="font-mono text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">{selectedNode.id}</span>
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{selectedNode.nodeType}</span>
-              </div>
-              <button onClick={() => setSelectedNode(null)} className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <h4 className="font-headline text-lg font-bold text-on-surface mb-2 leading-snug">
-              {selectedNode.name || selectedNode.text || 'Unnamed'}
-            </h4>
-            {selectedNode.description && (
-              <p className="text-sm text-zinc-400 mb-4 line-clamp-4 leading-relaxed">{selectedNode.description}</p>
-            )}
-            {selectedNode.requires && selectedNode.requires.length > 0 && (
-              <div className="mb-4">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Requires</span>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {selectedNode.requires.map((req, i) => (
-                    <span key={i} className="text-[10px] px-2 py-1 rounded bg-surface-container-lowest border border-white/5 font-mono text-zinc-300">
-                      {req.flag ? `${req.flag}=${String(req.state)}` : `${req.status} ${req.min !== undefined ? `≥${req.min}` : ''}${req.max !== undefined ? `≤${req.max}` : ''}`}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {selectedNode.next && selectedNode.next.length > 0 && (
-              <div>
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Routes</span>
-                <div className="space-y-1.5 mt-2">
-                  {selectedNode.next.map((route, i) => (
-                    <div key={i} className="text-[11px] text-zinc-400 flex items-center gap-2">
-                      <span className="font-mono font-bold text-primary">→ {route.target}</span>
-                      {route.requires && route.requires.length > 0 && (
-                        <span>({route.requires.length} conditions)</span>
-                      )}
-                      {(!route.requires || route.requires.length === 0) && (
-                        <span className="text-secondary-container font-semibold">fallback</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {selectedNode.options && selectedNode.options.length > 0 && (
-              <div>
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Options</span>
-                <div className="space-y-1.5 mt-2">
-                  {selectedNode.options.map((opt, i) => (
-                    <div key={i} className="text-[11px] text-zinc-400 flex items-start gap-2">
-                      <span className="font-mono text-tertiary-dim mt-0.5">→</span>
-                      <span className="font-medium text-zinc-300 flex-1">{opt.label || `Option ${i + 1}`}</span>
-                      <span className="font-mono text-tertiary shrink-0">{opt.next || 'loop'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Static Warnings Panel */}
         {showWarnings && staticAnalysis.warnings.length > 0 && (
-          <div className="absolute top-20 left-6 bg-surface-container-highest rounded-2xl shadow-2xl border border-amber-500/30 p-5 max-w-sm max-h-80 overflow-y-auto z-50">
-            <div className="flex items-center justify-between mb-4">
+          <div className="absolute top-16 left-4 max-w-sm max-h-80 overflow-y-auto z-50 p-4 rounded-lg" style={{ background: 'var(--color-surface-elevated)', border: '1px solid rgba(200,119,10,0.3)' }}>
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500" />
-                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Unreachable Nodes</span>
+                <AlertTriangle className="w-4 h-4" style={{ color: 'var(--color-accent-terminal)' }} />
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-accent-terminal)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Unreachable Nodes</span>
               </div>
-              <button onClick={() => setShowWarnings(false)} className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors">
+              <button onClick={() => setShowWarnings(false)} className="p-1 rounded" style={{ color: 'var(--color-text-muted)', cursor: 'pointer', background: 'none', border: 'none' }}>
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {staticAnalysis.warnings.map((w, i) => (
-                <div key={i} className="text-[11px] p-2.5 rounded-lg bg-black/20 border border-amber-500/10">
-                  <span className="font-mono font-bold text-amber-400">{w.nodeId}</span>
-                  <p className="text-amber-200 mt-1 leading-relaxed">{w.reason}</p>
+                <div key={i} className="p-2.5 rounded-md" style={{ background: 'var(--color-surface-card-low)', border: '1px solid rgba(200,119,10,0.1)' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--color-accent-terminal)', fontSize: 11 }}>{w.nodeId}</span>
+                  <p className="mt-0.5" style={{ fontSize: 11, color: 'var(--color-text-muted)', lineHeight: 1.4 }}>{w.reason}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
       </div>
-
-      {/* Simulator Sidebar */}
-      <aside className="w-80 shrink-0 bg-surface-container-low border-l border-white/5 flex flex-col overflow-hidden shadow-2xl z-20">
-        <SimulatorPanel sim={sim} />
-      </aside>
     </div>
   );
 }
 
-export default function RouteViewer() {
+export default function RouteViewer({ onNodeEdit, sim }) {
   return (
     <ReactFlowProvider>
-      <RouteViewerInner />
+      <RouteViewerInner onNodeEdit={onNodeEdit} sim={sim} />
     </ReactFlowProvider>
   );
 }

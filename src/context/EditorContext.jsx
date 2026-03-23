@@ -86,12 +86,18 @@ export function EditorProvider({ children }) {
   const endingsRef = useRef(endings);
   const statusPointsRef = useRef(statusPoints);
   const entryNodeRef = useRef(entryNode);
+  const pathsRef = useRef(paths);
+  const chaptersRef = useRef(chapters);
+  const questsRef = useRef(quests);
   useEffect(() => { flagsRef.current = flags; }, [flags]);
   useEffect(() => { choicesRef.current = choices; }, [choices]);
   useEffect(() => { scenesRef.current = scenes; }, [scenes]);
   useEffect(() => { endingsRef.current = endings; }, [endings]);
   useEffect(() => { statusPointsRef.current = statusPoints; }, [statusPoints]);
   useEffect(() => { entryNodeRef.current = entryNode; }, [entryNode]);
+  useEffect(() => { pathsRef.current = paths; }, [paths]);
+  useEffect(() => { chaptersRef.current = chapters; }, [chapters]);
+  useEffect(() => { questsRef.current = quests; }, [quests]);
 
   // --- IndexedDB auto-save with debounce (#16) ---
   const saveTimerRef = useRef(null);
@@ -192,10 +198,9 @@ export function EditorProvider({ children }) {
   // --- Flags ---
   const addFlag = useCallback((name) => {
     const snakeName = sanitizeName(name);
-    setFlags(prev => {
-      const id = generateId('F', prev);
-      return { ...prev, [id]: { id, name: snakeName, state: false } };
-    });
+    const id = generateId('F', flagsRef.current);
+    setFlags(prev => ({ ...prev, [id]: { id, name: snakeName, state: false } }));
+    return id;
   }, []);
 
   const updateFlagName = useCallback((id, name) => {
@@ -268,10 +273,9 @@ export function EditorProvider({ children }) {
 
   // --- Paths ---
   const addPath = useCallback((name) => {
-    setPaths(prev => {
-      const id = generateId('P', prev);
-      return { ...prev, [id]: { id, name: sanitizeName(name) } };
-    });
+    const id = generateId('P', pathsRef.current);
+    setPaths(prev => ({ ...prev, [id]: { id, name: sanitizeName(name) } }));
+    return id;
   }, []);
 
   const updatePathName = useCallback((id, name) => {
@@ -307,10 +311,9 @@ export function EditorProvider({ children }) {
 
   // --- Chapters ---
   const addChapter = useCallback((name) => {
-    setChapters(prev => {
-      const id = generateId('C', prev);
-      return { ...prev, [id]: { id, name: sanitizeName(name) } };
-    });
+    const id = generateId('C', chaptersRef.current);
+    setChapters(prev => ({ ...prev, [id]: { id, name: sanitizeName(name) } }));
+    return id;
   }, []);
 
   const updateChapterName = useCallback((id, name) => {
@@ -346,10 +349,9 @@ export function EditorProvider({ children }) {
 
   // --- Status Points ---
   const addStatusPoint = useCallback((name, value = 0) => {
-    setStatusPoints(prev => {
-      const id = generateId('SP', prev);
-      return { ...prev, [id]: { id, name: sanitizeName(name), value: Number(value), minValue: 0 } };
-    });
+    const id = generateId('SP', statusPointsRef.current);
+    setStatusPoints(prev => ({ ...prev, [id]: { id, name: sanitizeName(name), value: Number(value), minValue: 0 } }));
+    return id;
   }, []);
 
   const updateStatusPoint = useCallback((id, updates) => {
@@ -419,10 +421,9 @@ export function EditorProvider({ children }) {
 
   // --- Quests ---
   const addQuest = useCallback((name) => {
-    setQuests(prev => {
-      const id = generateId('Q', prev);
-      return { ...prev, [id]: { id, name: sanitizeName(name) } };
-    });
+    const id = generateId('Q', questsRef.current);
+    setQuests(prev => ({ ...prev, [id]: { id, name: sanitizeName(name) } }));
+    return id;
   }, []);
 
   const updateQuestName = useCallback((id, name) => {
@@ -458,10 +459,9 @@ export function EditorProvider({ children }) {
 
   // --- Endings ---
   const addEnding = useCallback((name = "new_ending") => {
-    setEndings(prev => {
-      const id = generateId('E', prev);
-      return { ...prev, [id]: { id, name: sanitizeName(name), requires: [] } };
-    });
+    const id = generateId('E', endingsRef.current);
+    setEndings(prev => ({ ...prev, [id]: { id, name: sanitizeName(name), requires: [] } }));
+    return id;
   }, []);
 
   const updateEnding = useCallback((id, updates) => {
@@ -496,13 +496,12 @@ export function EditorProvider({ children }) {
 
   // --- Choices ---
   const addChoice = useCallback((text = "New Choice") => {
-    setChoices(prev => {
-      const id = generateId('CH', prev);
-      return {
-        ...prev,
-        [id]: { id, text, chapter: null, path: null, requires: [], options: [] }
-      };
-    });
+    const id = generateId('CH', choicesRef.current);
+    setChoices(prev => ({
+      ...prev,
+      [id]: { id, text, chapter: null, path: null, requires: [], options: [] }
+    }));
+    return id;
   }, []);
 
   const updateChoice = useCallback((id, updates) => {
@@ -569,13 +568,12 @@ export function EditorProvider({ children }) {
 
   // --- Scenes ---
   const addScene = useCallback((name = "New Scene", description = "") => {
-    setScenes(prev => {
-      const id = generateId('S', prev);
-      return {
-        ...prev,
-        [id]: { id, name, description, chapter: null, path: null, requires: [], next: [] }
-      };
-    });
+    const id = generateId('S', scenesRef.current);
+    setScenes(prev => ({
+      ...prev,
+      [id]: { id, name, description, chapter: null, path: null, requires: [], next: [] }
+    }));
+    return id;
   }, []);
 
   const updateScene = useCallback((id, updates) => {

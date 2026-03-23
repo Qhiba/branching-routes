@@ -15,7 +15,7 @@ This document provides a high-level overview of the major React components, cont
   - **Blocking Deletion**: `Endings`, `Choices`, and `Scenes` are strictly blocked from deletion if referenced as a target elsewhere.
   - **Cascading Cleanup**: `Flags`, `Paths`, `Chapters`, `Stats`, and `Quests` perform automatic recursive cleanup, removing themselves from all requirements and modifiers upon deletion.
 - **Persistence & Logic Tracking**: 
-  - **Debounced Save**: Houses a 500ms debounced `localStorage` auto-save engine.
+  - **Debounced Save**: Houses a 500ms debounced `IndexedDB` auto-save engine via `localforage` for persistent, non-blocking asynchronous state storage.
   - **Dependency Mapping**: Maintains a real-time `flagReferenceMap` to track exactly where every flag is utilized across the entire project graph.
 - **Save/Load**: Houses the unified `loadData` parsing function to serialize incoming `JSON` formats correctly into the active state.
 
@@ -98,15 +98,28 @@ This document provides a high-level overview of the major React components, cont
 
 ## Utility & Simulation Core
 
+### `src/hooks/useSimulator.js`
+- **Purpose**: A reusable, decoupled simulation engine that manages the active chronological `historyStack`.
+- **Features**: 
+  - **Derivation-Based State Engine**: Flags and Status points are derived in real-time with an active **Snapshot Caching** system to optimize performance on long logic chains.
+  - **Shared Logic**: Extracted to simultaneously power both the standalone Simulator tab and the active RouteViewer panel without duplicating tree traversal logic.
+
+### `src/components/routeviewer/RouteViewer.jsx`
+- **Purpose**: A comprehensive visual node graph mapping the entire structural project logic using React Flow.
+- **Features**: 
+  - **Auto-Layout Options**: Integrates `dagre` to automatically format dense logic trees in Top-Bottom or Left-Right orientations, replacing manual coordinate management.
+  - **Static Reachability Analysis**: Proactively scans the logic structure for "Mutually Exclusive Conditions" or structurally impossible bounds, rendering unreachable nodes as fully disabled blockages.
+  - **Live Graph Tracking**: Synchronizes with `useSimulator` to visually represent active plays. Highlights the `currentNodeId`, turns visited routes green, pulses active edges, and follows the player viewport with an automatic dynamic camera.
+  - **Integrated Sandbox**: Natively embeds a `SimulatorPanel` sidebar so authors can track graph state modifications in real-time alongside visual routing loops.
+
 ### `src/components/simulator/Simulator.jsx`
-- **Purpose**: The active "Playtest Sandbox" mapping strictly against how an external Game Engine would load the `.json` structure natively.
+- **Purpose**: The standalone "Playtest Sandbox" mapping strictly against how an external Game Engine would load the `.json` structure natively. Now leverages the shared `useSimulator` hook.
 - **Features**: 
   - **Pre-Flight Initialization**: Maps natively onto the active `entryNode` allowing click-to-start, while supporting custom selection of specific Scenes/Choices for isolated testing.
-  - **Derivation-Based State Engine**: Flags and Status points are not stored as static variables; they are mathematically derived in real-time from the chronological `historyStack`.
   - **Loop & Lock Detection**: Automatically greys out previously selected loop-back options on Choice nodes to prevent infinite recursion and ensure player progression.
   - **Terminal Outcome Detection**: Recognizes terminal "Ending" nodes and triggers a specialized Award-themed UI presenting narrative closure.
   - **Undo & Revive Workflow**: Enables users to step backward through the history stack or restart from the initial starting node without a full session reset.
-  - **Live Logic Sidebar**: Provides a high-visibility real-time mapping of all global scenes, highlighting which nodes are "reachable" under the current derived state.
+  - **Dynamic Tracker**: Provides high-visibility real-time mapping of derived states directly within its right-hand panel during isolated playtests.
 
 ### `src/components/shared/ConditionEditor.jsx`
 - **Purpose**: Powerful shared requirement-builder UI component natively embedded across all major components.
@@ -120,6 +133,7 @@ This document provides a high-level overview of the major React components, cont
 - **Purpose**: The primary mechanism managing highly-scalar variable pools scaling structurally securely.
 - **Features**: 
   - **Multi-Type Logic**: Supports unified selection of Scenes, Choices, and Endings within a single interface.
+  - **Virtualization**: Employs `react-virtuoso` for dynamic list rendering, ensuring high performance even with massive entity pools.
   - **Dynamic Filtering**: Presents quick-toggle filtering by **Type**, **Path**, and **Chapter** scopes to manage high-density entity lists.
   - **Sticky Headers**: Utilizes a backdrop-blur sticky header system to visually group items by their entity type for easier navigation.
   - **Search & Highlighting**: Inject deep string-matching across IDs and names with full **Keyboard Navigation** support (Arrow keys, Enter, Escape).

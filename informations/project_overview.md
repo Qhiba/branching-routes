@@ -165,8 +165,10 @@ The logic is fully decoupled from the rendering code. The game does not need to 
 | Build Tool | Vite v7.2.4 |
 | Styling | Tailwind CSS v4.1.18 (via `@tailwindcss/vite` plugin) |
 | Icons | Lucide React v0.562.0 |
-| Node Graph (Phase 4) | React Flow `@xyflow/react` v12.10.0 |
-| Auto Layout (Phase 4) | `@dagrejs/dagre` |
+| List Virtualization | `react-virtuoso` v4.18.3 |
+| Persistence | `localforage` (IndexedDB auto-save) |
+| Node Graph | React Flow `@xyflow/react` v12.10.1 |
+| Auto Layout | `@dagrejs/dagre` v2.0.4 |
 
 ---
 
@@ -176,151 +178,166 @@ The logic is fully decoupled from the rendering code. The game does not need to 
 The full logic engine. Everything in later phases is built on top of what is defined here.
 
 **Top Navigation**
-- A button to navigate each menu or page of the site
+- Sticky left sidebar with buttons to navigate all 9 tabbed views
+- `ErrorBoundary` wraps the main stage — runtime errors in any manager view are isolated without crashing the entire editor
+
+**Persistence**
+- 500ms debounced auto-save to `IndexedDB` via `localforage` — state persists between sessions without manual saving
+- Unified `loadData` parser deserializes incoming JSON into active state correctly on import or session restore
 
 **Path & Chapter Manager**
 - Create, edit, and delete paths and chapters for categorization
 - Both are referenced by ID on choices and scenes
+- Global workspace filtering — scoping by chapter or path condenses high-density projects across all editors
+- Integrated with `QuickNav` for rapid jumping between dense lists
 
 **Flag Manager**
 - Create, name, and browse all flags
-- A search bar to search by name or ID
-- `snake_case` names enforced — flags are logic references, not display text
-- IDs auto-assigned (`F001`, `F002`, ...) and never change after creation
+- `snake_case` enforced globally across all entities via `sanitizeName` — not just flags
+- IDs auto-assigned and never change after creation
 - State starts as `false` on creation — only the simulator via choices can change it
-- Safety lock — flags actively used in a choice or scene cannot be deleted
+- `flagReferenceMap` — real-time dependency map tracking exactly where every flag is used across the entire project
+- "In Use" badges — show the total count of referencing nodes at a glance on each flag
+- Smart deletion — triggers a confirmation modal showing all referencing nodes before allowing deletion. Deleting a flag cascades — automatically removes it from all `requires` and `flags_set` references throughout the project
 
 **Status Point Manager**
 - Create and name status points
 - Set starting value (number, defaults to 0)
-- IDs auto-assigned (`SP001`, `SP002`, ...)
 - No path or chapter — status points are global
-- Safety lock — status points actively used in a choice or scene cannot be deleted
+- Deletion cascades — automatically removes all references from `status_set` and `requires` conditions throughout the project
+- Integrated with `QuickNav`
+
+**Quest Manager**
+- Create and name quests — ID and name only
+- Thematic grouping layer mapped against scene components
+- Deletion cascades — removes all quest references automatically
+- Integrated with `QuickNav`
 
 **Choice Editor**
 - Build choices with a visual form
 - Attach `chapter` and `path` for categorization
 - Add and remove options per choice
-- Collapsible accordion layout — unfocused choices and options collapse into a summary header showing requirement stats and option counts
+- Two-tier collapsible accordion layout — top-level choices and individual options each collapse into summary headers showing chapter, path, and option counts
 - Attach `requires` conditions on the choice root and on each option:
   - Flag condition: structured flag + state selector
   - Status condition: structured status point + min and/or max value
-- Assign `flags_set` per option via a searchable dropdown
+- Assign `flags_set` per option via `SearchableDropdown`
 - Assign `status_set` per option — status point and signed amount
 - Empty `flags_set` (`[]`) is valid — means the option intentionally sets nothing
-- Assign `next` per option via a searchable dropdown (scene, choice, or ending ID)
-- `next: null` is valid — means the option loops back to the current choice with the selected option greyed out
-- Safety lock — choices actively referenced as a `next` target cannot be deleted
+- Assign `next` per option via `SearchableDropdown` (scene, choice, or ending ID)
+- `next: null` supported via `__LOOP__` sentinel — loops back to the current choice with the selected option greyed out
+- "Set as Entry Node" button on each choice — sets it as the global `entryNode`
+- Deletion blocked if the choice is referenced as a `next` target anywhere
 
 **Scene Editor**
-- Write scene name and description
+- Write scene name and description (rich textarea)
 - Attach `chapter` and `path` for categorization — shown as quick-glance badges in collapsed summary header
 - Collapsible accordion layout with expand/collapse all capability
 - Attach `requires` conditions using flag and status condition objects
-- Attach `next` as an ordered conditional array — each entry has `requires` and `target`
+- Attach `next` as an ordered conditional array — each entry has its own `ConditionEditor` and `target`
 - Last `next` entry should always be a fallback with empty `requires`
 - `next` target dropdown includes scenes, choices, and endings
-- Preview which flags and status ranges must be met for the scene to appear
-- Safety lock — scenes actively referenced as a `next` target cannot be deleted
+- "Set as Entry Node" button on each scene — sets it as the global `entryNode`
+- Deletion blocked if the scene is referenced as a `next` target anywhere
+
+**Ending Manager**
+- Create and name endings with full `requires` condition matrix
+- Accordion layout with expand/collapse all capability
+- Endings are terminal nodes — no `next` field
+- Endings appear in `next` target dropdowns across Scene and Choice editors
+- Deletion blocked if the ending is referenced as a `next` target anywhere
+- Integrated with `QuickNav`
 
 **Shared Utilities**
-- `ConditionEditor` — reusable condition builder used by both Choice and Scene editors. Handles flag (true/false dropdown) and status (min/max) conditions in the same array
-- `QuickNav` — floating sticky minimap on the right edge of editors. Clicking any ID instantly scrolls to that entity via `scrollIntoView()`
+- `ConditionEditor` — reusable condition builder used across Choice, Scene, and Ending editors. Handles flag (true/false dropdown) and status (min/max) conditions in the same array. Generates stable `_id` per rule for reliable React list rendering. Empty rulesets treated as inherently accessible.
+- `SearchableDropdown` — unified dropdown supporting scenes, choices, and endings in one interface. Virtualized via `react-virtuoso`. Filters by type, path, and chapter. Sticky headers group items by entity type. Full keyboard navigation (arrow keys, Enter, Escape). String-matching search across IDs and names with highlight. Loop-to-self supported via `__LOOP__` sentinel.
+- `QuickNav` — floating sticky minimap on the right edge of editors. Clicking any ID scrolls to that entity via `scrollIntoView()`. Applies a 1500ms `ring-4` highlight pulse on arrival. Guards against stale DOM manipulation via `activeTimerRef` and `isConnected` checks.
+- `ErrorBoundary` — isolates rendering failures in any manager view. Provides fallback UI with error reporting and "Try Again" reset.
+
+**Entry Node Definition**
+- `entryNode` field in `metadata` — holds a single scene or choice ID representing where the game begins
+- Configured via a top-level header dropdown beside Import/Export — searchable, accepts any scene or choice ID
+- "Set as Entry Node" buttons on individual choice and scene cards as a shortcut
+- Only one entry node active at a time — setting a new one clears the previous automatically
+- Export is blocked if `entryNode` is not set
 
 **Import**
-- Accept `branching-routes.json` — warns on ID conflicts before merging
+- Accept `branching-routes.json`
+- Advanced validation — recursive type-checking, structural integrity verification, ID collision detection with user prompt before overwriting
 
 **Export**
 - Outputs single `branching-routes.json` master file
-- Validated before export — no broken references, no empty IDs, no missing fallbacks on scene `next`, `entry_node` must be set
+- Validated before export — no broken references, no empty IDs, no missing fallbacks on scene `next`, `entryNode` must be set
 
 ---
 
 ### Phase 2 — Simulation Sandbox
 Simulates a playthrough through choices. Flags and status are only changed by making choices — never toggled or set directly.
 
+**`useSimulator` Hook**
+- Shared simulation engine extracted into a reusable hook
+- Powers both the standalone `Simulator` tab and the integrated `RouteViewer` panel simultaneously — no duplicated logic
+- Manages the active `historyStack` chronologically
+- Flags and status derived in real time with snapshot caching for performance on long history chains
+
 **Choice Simulator**
+- Pre-flight initialization — maps onto `entryNode` for click-to-start, or supports custom node selection for isolated testing
 - Step through choices sequentially as a player would
 - Each choice made sets flags and changes status defined in the selected option
-- Choices stored as a history stack — not as raw flag or status state
-- Infinite-loop protection — options already selected in a loop are permanently disabled to prevent stat farming
+- Infinite-loop protection — options already selected in a loop are permanently greyed out to prevent stat farming
+- Terminal outcome detection — recognizes ending nodes and triggers a specialized Award UI presenting narrative closure
 
 **Live Dynamic Tracker**
-- Shows live flags (true/false) and derived status totals in real time
+- Shows live flags (true/false) and derived status totals in real time within the right-hand panel
 - Updates instantly as choices are made
 
 **Undo / Replay**
-- Undo the last choice — recalculates all flags and status from the remaining history stack
-- Reset/Revive button inside the running simulator — restarts from the user-selected starting node
-- Identifies dead ends — choices or scenes unreachable from the current path
+- "Start from the beginning" button above the starting node dropdown — pre-fills with `entryNode` and begins immediately
+- Starting node dropdown — manual pick for isolated testing of any node
+- Undo — steps backward through the history stack, recalculates all flags and status from remaining history
+- Reset/Revive — restarts from the user-selected starting node without a full session reset
 
 ---
 
 ### Phase 3 — Structure & Usability Layer
-Organizational metadata and editor quality-of-life on top of Phase 1 data. No logic changes.
+Organizational metadata and editor quality-of-life. No logic changes. Most of this is already implemented.
 
-**Quest Editor**
-- Create and name quests — ID and name only for now
-- IDs auto-assigned (`Q001`, `Q002`, ...)
-- Full quest logic (start scene, conclusion scene, completion flag) deferred to a later expansion
+**Searchable Dropdowns** *(implemented in Phase 1 via `SearchableDropdown`)*
+- All `next` and condition reference dropdowns support search, type filtering, path filtering, and chapter filtering
+- Keyboard navigation throughout
 
-**Chapter Editor**
-- Group quests into acts or chapters
-- Display and pacing labels only — no conditions or flags
+**Entry Node** *(implemented in Phase 1)*
+- Global `entryNode` configured at the project level
 
-**Path Editor**
-- Group choices and scenes under named story branches or character routes
-- Organizational labels only — no conditions or flags
-
-**Ending Editor**
-- Create and name endings
-- Each ending has a `requires` array — reads existing flags and status to determine which ending plays
-- Endings are terminal nodes — no `next` field
-- IDs auto-assigned (`E001`, `E002`, ...)
-- Endings appear in `next` target dropdowns across Scene and Choice editors
-
-**Entry Node Definition**
-- `entry_node` field in `metadata` — holds a single scene or choice ID representing where the game begins
-- Entry node selector sits beside Import/Export at the project level — a searchable dropdown accepting any scene or choice ID
-- Only one entry node can be active at a time — setting a new one automatically clears the previous
-- Export is blocked if `entry_node` is not set
-
-**Searchable Dropdowns**
-- All flag, status, `next`, and condition reference dropdowns inside `ChoiceEditor` and `SceneEditor` gain search input
-- Supports pre-filtering by `path` and `chapter` before searching — narrows 500 flags to a manageable subset first
-- Implemented through `ConditionEditor` shared component where applicable — one change covers all condition fields
+**Quest, Path, Chapter, Ending editors** *(implemented in Phase 1)*
+- All four are live — organizational only, no logic
 
 ---
 
 ### Phase 4 — Route Viewer & Integrated Simulation
-Requires the full flag graph from Phase 1–3 to be meaningful.
 
 **Layout**
 - Node graph canvas occupies the main center stage
-- Simulator panel is a fixed-width sidebar on the right — scrolls independently, non-collapsible during active simulation
-- Minimap rendered in the corner of the graph canvas via React Flow's built-in minimap component
+- `SimulatorPanel` sidebar on the right — fixed width, scrolls independently, powered by the shared `useSimulator` hook
+- Built-in React Flow minimap in the corner of the graph canvas
 
 **Node Graph Viewer**
-- Nodes generated automatically from `branching-routes.json` — choices, scenes, and endings each become a node, no manual placement needed
+- Nodes generated automatically from `branching-routes.json` — choices, scenes, and endings each become a node
 - Edges generated automatically from `next` references on choice options and scene `next` arrays
-- Auto layout calculated by `@dagrejs/dagre` — positions derived from graph structure, no manual coordinate management, recalculated fresh every session
+- Auto layout by `@dagrejs/dagre` — Top-Bottom or Left-Right orientation options, recalculated fresh every session
 - Node types are visually distinct — choices, scenes, and endings render with different styles
 - Filter graph by `path` and `chapter` to isolate specific story branches
 - Clicking a node opens a read-only summary of its flags, status conditions, and next targets
-- User can freely pan and zoom the canvas — node dragging is display-only, positions are never saved back to JSON
-
-**Integrated Simulator**
-- "Start from the beginning" button above the starting node dropdown — pre-fills dropdown with `entry_node` and begins simulation immediately
-- Starting node dropdown — manual pick, accepts any scene or choice ID
-- Camera animates smoothly to the starting node when simulation begins via React Flow `setCenter`
+- User can freely pan and zoom — node positions are never saved back to JSON
+- Static reachability analysis — proactively scans for mutually exclusive or structurally impossible conditions, rendering provably unreachable nodes as disabled
 
 **Live Graph Tracking**
-- Current node is highlighted prominently on the graph as the simulation progresses
-- Camera follows the current node with smooth animated transitions — follow mode can be toggled on/off
-- Edges that were actually taken are colored differently from untaken edges — the path through the graph is visually traceable
-- Visited nodes show a distinct completed color — different from current and locked
-- Nodes provably unreachable given the current flag state are greyed out — nodes that are unvisited but still reachable remain neutral
-- When an ending node is reached the node is highlighted as terminal and simulation stops
+- Synchronizes with `useSimulator` to represent active playthroughs visually
+- Current node highlighted prominently — camera follows with smooth animated transitions
+- Follow mode toggle — camera tracking can be turned off for free exploration
+- Edges taken are colored differently from untaken edges — the path is visually traceable
+- Visited nodes show a distinct completed color
+- When an ending node is reached it is highlighted as terminal and simulation stops
 
 **Node States**
 
@@ -346,7 +363,7 @@ Requires the full flag graph from Phase 1–3 to be meaningful.
 These must be respected from Phase 1 onward to avoid painful rewrites later:
 
 1. **Every entity gets a unique ID on creation.** `F001`, `CH001`, `S001`, `SP001`, `P001`, `C001`, `Q001`, `E001` — never changes after assigned. Nested choice option IDs are randomized strings for stable UI state.
-2. **Flag and status names are `snake_case`.** They are logic references, not display text.
+2. **All entity names are `snake_case`.** Enforced globally via `sanitizeName` — flags, status, paths, chapters, quests, and endings are all logic references, not display text.
 3. **Flags have no `requires` field.** The flag is just a name. The choice decides when it gets set.
 4. **Status points have no `path` or `chapter`.** They are global across the entire game.
 5. **Conditions use the object format.** `{ "flag": "F001", "state": true }` or `{ "status": "SP001", "min": 3 }` — never string operators.
@@ -354,9 +371,11 @@ These must be respected from Phase 1 onward to avoid painful rewrites later:
 7. **Each phase wraps the previous one.** No phase rewrites the data format of an earlier phase — only adds new optional fields.
 8. **Flags are additive only.** `flags_set` flips `false → true`, never the reverse. If a later event undoes something narratively, create a new flag for it — never unset an existing one.
 9. **Scene `next` always has a fallback.** The last entry in the `next` array must have `requires: []` so the scene is never stuck with nowhere to go.
-10. **Flags and status in active use cannot be deleted.** The editor prevents deletion of any flag or status point currently referenced by a choice or scene.
-11. **Choices and scenes referenced as `next` targets cannot be deleted.** Deletion is blocked until all references pointing to them are removed first.
-12. **Node positions are never saved.** `@dagrejs/dagre` recalculates layout fresh every session — manual drag positions are display-only and not persisted to JSON.
+10. **Dual-mode deletion protection.**
+    - `Endings`, `Choices`, and `Scenes` are blocked from deletion if referenced as a `next` target anywhere — writer must remove the reference first.
+    - `Flags`, `Status`, `Paths`, `Chapters`, and `Quests` cascade on deletion — automatically removed from all `requires`, `flags_set`, and `status_set` references throughout the project.
+11. **Node positions are never saved.** `@dagrejs/dagre` recalculates layout fresh every session — manual drag positions are display-only and not persisted to JSON.
+12. **Simulation state is always derived.** Flags and status are never stored directly — always recalculated from `historyStack`. Snapshot caching is a performance optimization only and must never be the source of truth.
 
 ---
 
@@ -373,19 +392,16 @@ The game renderer reads this file directly. Narrative logic is fully decoupled f
 ## The Sandbox Problem
 
 ### The Impossible State Problem
-Flags are permanent in the actual game. If you toggle an early flag to `false` while deep in a simulation, you create a state no real player could ever reach — scenes that are mutually exclusive start appearing together. This is solved in Phase 2 by making the simulator the only source of flag and status state — no free toggling allowed.
+Flags are permanent in the actual game. If you toggle an early flag to `false` while deep in a simulation, you create a state no real player could ever reach — scenes that are mutually exclusive start appearing together. This is solved by making the simulator the only source of flag and status state — no free toggling allowed anywhere.
 
 ### The Two Types of Cascade
 
-There are two distinct cascade problems that look similar but require different solutions at different phases:
+**Problem 1 — Sandbox integrity**
+When you undo a choice in the sandbox, all flags and status changes from that choice should also revert.
 
-**Problem 1 — Sandbox integrity (Phase 2)**
-When you undo a choice in the sandbox, all flags and status changes from that choice should also revert. This keeps the sandbox in a valid state.
-
-Solution: store choices as a **history stack**, not as raw flag or status state. Undo = pop the last choice and recalculate everything from scratch by replaying the remaining history. No complex cascade math — always valid.
+Solution: store choices as a **history stack**, not as raw flag or status state. Undo = pop the last choice and recalculate everything from the remaining history. Snapshot caching optimizes performance on long chains but the history stack remains the single source of truth — snapshots are invalidated on any undo or reset.
 
 ```js
-// Flags and status are never stored directly — always derived from history
 function recalcState(choiceHistory) {
   const flags = {};
   const status = {};
@@ -400,16 +416,14 @@ function recalcState(choiceHistory) {
 }
 ```
 
-**Problem 2 — Route backtracking (Phase 4)**
-Given a target ending or scene, trace backwards through the flag dependency graph to find which choices must be made to reach it. This finds optimal and required paths.
-
-This requires the full flag graph to exist first. It cannot be built meaningfully until there are enough flags, choices, and scenes defined to make path tracing useful. Scheduled for Phase 4.
+**Problem 2 — Route backtracking**
+Given a target ending or scene, trace backwards through the flag dependency graph to find which choices must be made to reach it. Scheduled for Phase 4. Requires the full flag graph to be populated first.
 
 ### Phased Sandbox Approach
 
 | Phase | Sandbox behavior |
 |-------|-----------------|
 | Phase 1 | Core editor only. No simulation. |
-| Phase 2 | Sandbox simulates through choices only. Choices stored as a history stack. Undo recalculates from scratch. Infinite-loop protection prevents stat farming. |
-| Phase 3 | No sandbox changes — structure layer only. |
-| Phase 4 | Full integrated simulation on the graph canvas. Live node highlighting, camera tracking, edge coloring, reachability greyout, and route backtracking. |
+| Phase 2 | Sandbox simulates through choices only. `useSimulator` hook powers the engine. History stack with snapshot caching. Infinite-loop protection. Terminal ending detection. |
+| Phase 3 | No sandbox changes — structure and usability layer only. |
+| Phase 4 | Full integrated simulation on the graph canvas via shared `useSimulator`. Live node highlighting, camera tracking, edge coloring, static reachability analysis, and route backtracking. |

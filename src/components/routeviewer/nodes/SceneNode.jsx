@@ -1,35 +1,52 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 
+// §4.4 STATE_STYLES table
 const STATE_STYLES = {
-  current:     'border-primary neon-glow-blue',
-  visited:     'border-outline-variant opacity-80',
-  reachable:   'border-white/5',
-  unreachable: 'border-transparent opacity-40 grayscale',
-  terminal:    'border-error shadow-[0_0_15px_rgba(255,180,171,0.3)]',
+  idle:        { border: 'var(--color-border-card)',   bg: 'var(--color-surface-card)',     text: 'var(--color-text-primary)' },
+  current:     { border: 'var(--color-accent-primary)',bg: 'var(--color-surface-card)',     text: 'var(--color-text-primary)' },
+  visited:     { border: 'var(--color-accent-visited)',bg: 'var(--color-surface-card)',     text: 'var(--color-text-primary)' },
+  reachable:   { border: 'var(--color-border-card)',   bg: 'var(--color-surface-card)',     text: 'var(--color-text-secondary)' },
+  unreachable: { border: '#252525',                    bg: 'var(--color-surface-card-low)', text: 'var(--color-text-disabled)', lineThrough: true },
+  terminal:    { border: 'var(--color-accent-terminal)',bg: 'var(--color-surface-card)',    text: 'var(--color-text-primary)' },
 };
 
 function SceneNode({ data, sourcePosition, targetPosition }) {
-  const stateClass = STATE_STYLES[data.state] || STATE_STYLES.reachable;
+  const s = STATE_STYLES[data.state] || STATE_STYLES.reachable;
 
   return (
-    <div className={`w-80 bg-surface-container-high rounded-xl overflow-hidden shadow-2xl border transition-all duration-300 ${stateClass}`}>
-      <Handle type="target" position={targetPosition || Position.Top} className="!bg-primary-container !w-3 !h-3 !border-2 !border-background" />
-      <div className="h-1.5 signature-gradient"></div>
-      <div className="p-5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-bold tracking-tighter uppercase text-primary/80">Scene Node</span>
-          <span className="font-mono text-[10px] font-bold text-primary-fixed bg-primary/10 px-1.5 py-0.5 rounded">
-            {data.id}
-          </span>
-        </div>
-        <h3 className="font-headline text-lg font-bold text-on-surface mb-2 truncate leading-snug">{data.label}</h3>
-        <div className="flex gap-3 mt-1.5 text-[10px] text-zinc-500 font-mono">
-          {data.requiresCount > 0 && <span>🔒 REQ:{data.requiresCount}</span>}
-          {data.nextCount > 0 && <span>→ OUT:{data.nextCount}</span>}
+    <div className="w-[240px] rounded-[10px] transition-all duration-300 relative" style={{ background: s.bg, border: `1px solid ${s.border}`, borderTop: `4px solid var(--color-accent-scene)` }}>
+      {data.state === 'current' && <div className="absolute -top-[12px] right-2 px-1.5 rounded-full" style={{ background: '#00d1ff', color: '#001e2e', fontSize: 8, fontWeight: 700, letterSpacing: '0.04em' }}>CURRENT</div>}
+      {data.state === 'visited' && <div className="absolute -top-[11px] right-2 px-1.5 rounded-full" style={{ background: '#1d9e75', color: '#0a1e1a', fontSize: 8, fontWeight: 700, letterSpacing: '0.04em' }}>VISITED</div>}
+      {data.state === 'unreachable' && <div className="absolute -top-[11px] right-2 px-1.5 rounded-full" style={{ background: '#252525', color: '#888', fontSize: 8, fontWeight: 700, letterSpacing: '0.04em' }}>LOCKED</div>}
+
+      <Handle type="target" position={targetPosition || Position.Top} style={{ background: 'var(--color-surface-card-low)', width: 8, height: 8, border: '1px solid var(--color-border-subtle)' }} />
+      
+      <div style={{ padding: '10px 12px 0' }}>
+        <div className="flex items-center justify-between mb-1.5">
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)' }}>{data.id}</span>
+          <span style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-accent-scene)', background: 'rgba(167,139,250,0.1)', padding: '2px 5px', borderRadius: 4 }}>Scene</span>
         </div>
       </div>
-      <Handle type="source" position={sourcePosition || Position.Bottom} className="!bg-secondary-container hover:scale-125 transition-transform cursor-crosshair neon-glow-lime !w-3 !h-3 !border-2 !border-background" />
+      
+      <div style={{ padding: '4px 12px 9px' }}>
+        <h3 className="truncate" style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: s.text, lineHeight: 1.3, textDecoration: s.lineThrough ? 'line-through' : 'none' }}>{data.label}</h3>
+        
+        {data.description && (
+          <p className="line-clamp-2 mt-1" style={{ fontSize: 11, color: 'var(--color-text-muted)', lineHeight: 1.4, height: '2.8em', overflow: 'hidden' }}>
+            {data.description}
+          </p>
+        )}
+
+        {(data.requiresCount > 0 || data.nextCount > 0) && (
+          <div className="flex gap-1.5 mt-2" style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+            {data.requiresCount > 0 && <span style={{ background: 'var(--color-surface-workspace)', padding: '1px 5px', borderRadius: 4 }}>🔒 {data.requiresCount} reqs</span>}
+            {data.nextCount > 0 && <span style={{ background: 'var(--color-surface-workspace)', padding: '1px 5px', borderRadius: 4 }}>→ {data.nextCount} out</span>}
+          </div>
+        )}
+      </div>
+      
+      <Handle type="source" position={sourcePosition || Position.Bottom} style={{ background: 'var(--color-surface-card-low)', width: 8, height: 8, border: '1px solid var(--color-border-subtle)', cursor: 'crosshair' }} />
     </div>
   );
 }

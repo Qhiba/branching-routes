@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEditor } from '../../context/EditorContext';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import SearchableDropdown from './SearchableDropdown';
 
 let conditionIdCounter = 0;
@@ -29,17 +29,17 @@ export default function ConditionEditor({ conditions = [], onChange }) {
     onChange(next);
   };
 
-  // Ensure every condition has a stable _id for React keys
   const ensureId = (cond) => cond._id ? cond : { ...cond, _id: nextConditionId() };
 
   return (
-     <div className="space-y-3 pb-2">
+     <div className="space-y-2">
         {conditions.length === 0 && (
-           <div className="text-sm font-mono text-zinc-600 italic">No conditions explicitly required. Flow path is unblocked.</div>
+           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+             No conditions — flow path is unblocked.
+           </div>
         )}
         {conditions.map((rawCond, idx) => {
            const cond = ensureId(rawCond);
-           // Persist _id if it was just assigned
            if (!rawCond._id && cond._id) {
              conditions[idx] = cond;
            }
@@ -47,73 +47,95 @@ export default function ConditionEditor({ conditions = [], onChange }) {
            
            if (isFlag) {
              return (
-               <div key={cond._id} className="flex flex-wrap items-center gap-3 bg-primary/5 p-3 border border-primary/20 rounded-xl relative shadow-inner">
+               <div key={cond._id} className="flex flex-wrap items-center gap-2 p-2.5 rounded-md" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
                  <SearchableDropdown
                    value={cond.flag || ''}
                    onChange={val => updateCondition(idx, { ...cond, flag: val })}
                    options={availableFlags}
                    placeholder="Select Flag..."
                    showFilters={true}
-                   className="flex-1 min-w-[200px]"
-                   buttonClass="border-primary/20 bg-black/40 text-primary-fixed focus:ring-primary/50"
+                   className="flex-1 min-w-[120px]"
                  />
-                 <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest px-2">Must Be</span>
-                 <select value={cond.state ? 'true' : 'false'} onChange={e => updateCondition(idx, { ...cond, state: e.target.value === 'true' })} className="w-28 bg-black/40 border border-primary/20 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:ring-1 focus:ring-primary text-on-surface cursor-pointer">
-                   <option value="true">TRUE</option>
-                   <option value="false">FALSE</option>
+                 <span style={{ fontSize: 10, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>=</span>
+                 <select
+                   value={cond.state ? 'true' : 'false'}
+                   onChange={e => updateCondition(idx, { ...cond, state: e.target.value === 'true' })}
+                   className="rounded-md px-2 py-1.5 cursor-pointer focus:outline-none"
+                   style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)', color: cond.state ? 'var(--color-accent-success)' : 'var(--color-accent-error)', fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 500 }}
+                 >
+                   <option value="true">true</option>
+                   <option value="false">false</option>
                  </select>
-                 <button onClick={() => removeCondition(idx)} className="text-zinc-500 hover:text-error hover:bg-error/10 p-2 rounded border border-transparent hover:border-error/20 transition-all"><Trash2 className="w-4 h-4" /></button>
+                 <button onClick={() => removeCondition(idx)} className="p-1 rounded transition-colors" style={{ color: 'var(--color-text-muted)' }}
+                   onMouseEnter={e => e.currentTarget.style.color = 'var(--color-accent-error)'}
+                   onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
+                 >
+                   <X className="w-3.5 h-3.5" />
+                 </button>
                </div>
              )
            } else {
-             // Status Condition
              return (
-               <div key={cond._id} className="flex flex-wrap items-center gap-3 bg-secondary-container/5 p-3 border border-secondary-container/20 rounded-xl relative shadow-inner">
+               <div key={cond._id} className="flex flex-wrap items-center gap-2 p-2.5 rounded-md" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
                  <SearchableDropdown
                    value={cond.status || ''}
                    onChange={val => updateCondition(idx, { ...cond, status: val })}
                    options={availableStatus}
                    placeholder="Select Status..."
                    showFilters={false}
-                   className="flex-1 min-w-[200px]"
-                   buttonClass="border-secondary-container/20 bg-black/40 text-secondary-container focus:ring-secondary-container/50"
+                   className="flex-1 min-w-[120px]"
                  />
                  
-                 <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/10 transition-colors focus-within:border-secondary-container focus-within:ring-1 focus-within:ring-secondary-container group">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest shrink-0">Min</span>
-                    <input type="number" placeholder="n/a" value={cond.min !== undefined ? cond.min : ''} onChange={e => {
+                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-md" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
+                    <span style={{ fontSize: 10, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>min</span>
+                    <input type="number" placeholder="—" value={cond.min !== undefined ? cond.min : ''} onChange={e => {
                        if (e.target.value === '') {
                           const { min, _id, ...rest } = cond;
                           updateCondition(idx, { _id, ...rest });
                        } else {
                           updateCondition(idx, { ...cond, min: Number(e.target.value) });
                        }
-                    }} className="w-16 bg-transparent text-sm focus:outline-none text-right font-mono font-bold text-on-surface placeholder:font-normal placeholder:text-zinc-600" />
+                    }} className="w-12 bg-transparent focus:outline-none text-right"
+                       style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--color-accent-primary)' }}
+                    />
                  </div>
-                 <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-white/10 transition-colors focus-within:border-secondary-container focus-within:ring-1 focus-within:ring-secondary-container group">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest shrink-0">Max</span>
-                    <input type="number" placeholder="n/a" value={cond.max !== undefined ? cond.max : ''} onChange={e => {
+                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-md" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
+                    <span style={{ fontSize: 10, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>max</span>
+                    <input type="number" placeholder="—" value={cond.max !== undefined ? cond.max : ''} onChange={e => {
                        if (e.target.value === '') {
                           const { max, _id, ...rest } = cond;
                           updateCondition(idx, { _id, ...rest });
                        } else {
                           updateCondition(idx, { ...cond, max: Number(e.target.value) });
                        }
-                    }} className="w-16 bg-transparent text-sm focus:outline-none text-right font-mono font-bold text-on-surface placeholder:font-normal placeholder:text-zinc-600" />
+                    }} className="w-12 bg-transparent focus:outline-none text-right"
+                       style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--color-accent-primary)' }}
+                    />
                  </div>
                  
-                 <button onClick={() => removeCondition(idx)} className="text-zinc-500 hover:text-error hover:bg-error/10 p-2 rounded border border-transparent hover:border-error/20 transition-all"><Trash2 className="w-4 h-4" /></button>
+                 <button onClick={() => removeCondition(idx)} className="p-1 rounded transition-colors" style={{ color: 'var(--color-text-muted)' }}
+                   onMouseEnter={e => e.currentTarget.style.color = 'var(--color-accent-error)'}
+                   onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
+                 >
+                   <X className="w-3.5 h-3.5" />
+                 </button>
                </div>
              )
            }
         })}
 
-        <div className="flex gap-3 pt-4 border-t border-white/10 w-full mt-2">
-           <button onClick={addFlagCondition} disabled={availableFlags.length === 0} className="flex-1 justify-center text-[10px] text-primary hover:text-primary-fixed bg-primary/10 border border-primary/20 hover:border-primary/50 hover:bg-primary/20 px-3 py-2.5 rounded-lg flex items-center gap-2 font-bold tracking-widest uppercase transition-all disabled:opacity-20 disabled:cursor-not-allowed">
-              <Plus className="w-3.5 h-3.5" /> Logical Target
+        <div className="flex gap-2 pt-2" style={{ borderTop: '1px solid var(--color-border-ghost)' }}>
+           <button onClick={addFlagCondition} disabled={availableFlags.length === 0}
+             className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+             style={{ background: 'none', border: '1px solid var(--color-border-ghost)', color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500 }}
+           >
+              <Plus className="w-3 h-3" /> Flag condition
            </button>
-           <button onClick={addStatusCondition} disabled={availableStatus.length === 0} className="flex-1 justify-center text-[10px] text-secondary-container hover:text-secondary-fixed bg-secondary-container/10 border border-secondary-container/20 hover:border-secondary-container/50 hover:bg-secondary-container/20 px-3 py-2.5 rounded-lg flex items-center gap-2 font-bold tracking-widest uppercase transition-all disabled:opacity-20 disabled:cursor-not-allowed">
-              <Plus className="w-3.5 h-3.5" /> Threshold Target
+           <button onClick={addStatusCondition} disabled={availableStatus.length === 0}
+             className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+             style={{ background: 'none', border: '1px solid var(--color-border-ghost)', color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500 }}
+           >
+              <Plus className="w-3 h-3" /> Status condition
            </button>
         </div>
      </div>
