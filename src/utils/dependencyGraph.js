@@ -90,9 +90,26 @@ export function buildDependencyGraph(flags, statusPoints, choices, scenes, endin
           }
         }
 
-        // Option next → navigation edge (null next = loop back to same choice, skip)
-        if (opt.next) {
-          addEdge(choice.id, opt.next);
+        // Option next → navigation edges (null/empty next = loop back, skip)
+        const nextArr = Array.isArray(opt.next)
+          ? opt.next
+          : opt.next
+            ? [{ requires: [], target: opt.next }]
+            : [];
+        for (const entry of nextArr) {
+          if (entry.target) {
+            addEdge(choice.id, entry.target);
+          }
+          if (entry.requires) {
+            for (const req of entry.requires) {
+              if (req.flag && flagGraph[req.flag]) {
+                flagGraph[req.flag].requiredBy.choices.push({ id: choice.id, context: 'option_next_requires', optionIndex: optIdx });
+              }
+              if (req.status && statusGraph[req.status]) {
+                statusGraph[req.status].requiredBy.choices.push({ id: choice.id, context: 'option_next_requires', optionIndex: optIdx });
+              }
+            }
+          }
         }
       }
     }

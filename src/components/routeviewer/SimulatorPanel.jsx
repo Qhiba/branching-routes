@@ -60,6 +60,15 @@ export default function SimulatorPanel({ sim }) {
   const isScene = !!scenes[currentNodeId];
   const isEnding = !!endingObj;
 
+  const resolveSceneDescription = (sceneObj) => {
+    const baseDescription = sceneObj.description || '';
+    const variants = sceneObj.variants || [];
+    const matchingVariant = variants.find((v) => passesRequires(v?.requires || []));
+    return matchingVariant?.text
+      ? `${baseDescription}${baseDescription ? '\n' : ''}${matchingVariant.text}`
+      : baseDescription;
+  };
+
   const flagList = Object.keys(flags).sort();
   const statusList = Object.values(statusPoints || {}).sort((a, b) => a.id.localeCompare(b.id));
 
@@ -109,7 +118,7 @@ export default function SimulatorPanel({ sim }) {
             ) : isScene && nodeObj ? (
               <div className="p-3 space-y-2">
                 <h3 style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-primary)', fontFamily: 'var(--font-display)' }}>{nodeObj.name}</h3>
-                <p style={{ fontSize: 11, color: 'var(--color-text-muted)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{nodeObj.description}</p>
+                <p style={{ fontSize: 11, color: 'var(--color-text-muted)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{resolveSceneDescription(nodeObj)}</p>
                 <button
                   onClick={() => handleSceneContinue(nodeObj)}
                   className="w-full mt-1 flex items-center justify-center gap-2 rounded-md transition-colors"

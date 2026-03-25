@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
   ReactFlow,
   MiniMap,
-  Controls,
   Background,
   useReactFlow,
   ReactFlowProvider,
@@ -11,26 +10,41 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { useEditorData } from '../../context/EditorContext';
-import { computeLayout } from '../../utils/graphLayout';
+import { useEditorData, useEditorActions } from '../../context/EditorContext';
+import { computeLayoutWithPositions } from '../../utils/graphLayout';
 import { analyzeReachability } from '../../utils/reachabilityAnalyzer';
 import SceneNode from './nodes/SceneNode';
 import ChoiceNode from './nodes/ChoiceNode';
 import EndingNode from './nodes/EndingNode';
-import { Navigation, Crosshair, X, AlertTriangle, Blocks, Undo2, StopCircle } from 'lucide-react';
+import { Navigation, Crosshair, X, AlertTriangle, Blocks, Undo2, StopCircle, LayoutGrid } from 'lucide-react';
 
 const nodeTypes = { scene: SceneNode, choice: ChoiceNode, ending: EndingNode };
 
-function RouteViewerInner({ onNodeEdit, sim }) {
-  const { paths, chapters, scenes, choices, endings } = useEditorData();
-  const { setCenter, fitView } = useReactFlow();
+function RouteViewerInner({ onNodeEdit, sim, routeViewerRef, tracedPath }) {
+  const { paths, chapters, scenes, choices, endings, flags, statusPoints } = useEditorData();
+  const { updateScene, updateChoiceOption, updateNodePosition, resetAllPositions, resetSpawnOffset } = useEditorActions();
+  const { setCenter, fitView, getViewport, setViewport, screenToFlowPosition } = useReactFlow();
+
+  // Expose viewport center to parent via ref
+  React.useImperativeHandle(routeViewerRef, () => ({
+    getViewportCenter: () => {
+      // Calculate center of the window
+      return screenToFlowPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      });
+    }
+  }));
 
   const [filterPath, setFilterPath] = useState('');
   const [filterChapter, setFilterChapter] = useState('');
   const [cameraFollow, setCameraFollow] = useState(true);
   const [showWarnings, setShowWarnings] = useState(false);
-  const [layoutConfig, setLayoutConfig] = useState({ rankdir: 'TB', nodesep: 100, ranksep: 150 });
+  const [layoutConfig, setLayoutConfig] = useState({ rankdir: 'LR', nodesep: 100, ranksep: 150 });
   const [showLayoutOpts, setShowLayoutOpts] = useState(false);
+
+  // Counter for fitView re-trigger after reset (not used in layout computation)
+  const [layoutVersion, setLayoutVersion] = useState(0);
 
   const staticAnalysis = useMemo(
     () => analyzeReachability(sim.flags, sim.statusPoints, choices, scenes, endings, sim.entryNode),
@@ -42,24 +56,75 @@ function RouteViewerInner({ onNodeEdit, sim }) {
   );
 
   const baseLayout = useMemo(
-    () => computeLayout(choices, scenes, endings, {
-      filterPath: filterPath || undefined,
-      filterChapter: filterChapter || undefined,
-      layoutConfig,
-    }),
-    [choices, scenes, endings, filterPath, filterChapter, layoutConfig]
+    () => {
+      const opts = {
+        filterPath: filterPath || undefined,
+        filterChapter: filterChapter || undefined,
+        layoutConfig,
+      };
+
+      // Always use position-aware layout.
+      // When _position is absent (e.g. after reset), it falls back to full Dagre automatically.
+      const layout = computeLayoutWithPositions(choices, scenes, endings, opts);
+
+      layout.nodes = layout.nodes.map(n =>
+        n.type === 'choice'
+          ? { ...n, data: { ...n.data, flagsMap: flags, statusMap: statusPoints } }
+          : n
+      );
+      return layout;
+    },
+    [choices, scenes, endings, filterPath, filterChapter, layoutConfig, flags, statusPoints]
   );
+
+  // Persist positions computed by the layout for nodes that didn't have _position.
+  // Uses a ref-based dedup to avoid re-persisting the same nodes across re-renders.
+  const persistedPositionIds = useRef(new Set());
+  useEffect(() => {
+    if (!baseLayout.positionUpdates || baseLayout.positionUpdates.length === 0) return;
+
+    const newUpdates = baseLayout.positionUpdates.filter(u => !persistedPositionIds.current.has(u.id));
+    if (newUpdates.length === 0) return;
+
+    for (const update of newUpdates) {
+      updateNodePosition(update.id, update.type, update.position);
+      persistedPositionIds.current.add(update.id);
+    }
+  }, [baseLayout.positionUpdates, updateNodePosition]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
+  const hasInitialFitRef = useRef(false);
+  const lastFitKeyRef = useRef('');
+
   useEffect(() => {
+    const viewportBefore = !sim.isRunning ? getViewport() : null;
+
+    const fitKey = `${layoutConfig.rankdir}|${layoutConfig.nodesep}|${layoutConfig.ranksep}|${layoutVersion}`;
+    const shouldFit = !hasInitialFitRef.current || lastFitKeyRef.current !== fitKey;
+
     setNodes(baseLayout.nodes);
     setEdges(baseLayout.edges);
+
     if (!sim.isRunning) {
-      setTimeout(() => fitView({ duration: 400, padding: 0.2 }), 50);
+      // Restore camera position after re-layout caused by editor saves.
+      // We skip restore if we're performing an explicit fitView (shouldFit).
+      if (viewportBefore && !shouldFit) {
+        requestAnimationFrame(() => {
+          setViewport(viewportBefore);
+        });
+      }
     }
-  }, [baseLayout, setNodes, setEdges, sim.isRunning, fitView]);
+
+    if (shouldFit) {
+      requestAnimationFrame(() => {
+        fitView({ padding: 0.2, duration: 400 });
+        hasInitialFitRef.current = true;
+        lastFitKeyRef.current = fitKey;
+      });
+    }
+  }, [baseLayout, fitView, layoutConfig, layoutVersion, getViewport, setViewport, sim.isRunning]);
 
   useEffect(() => {
     setNodes((currentNodes) => currentNodes.map((node) => {
@@ -84,13 +149,51 @@ function RouteViewerInner({ onNodeEdit, sim }) {
       }
       return node;
     }));
-  }, [sim.isRunning, sim.currentNodeId, sim.visitedNodeIds, staticUnreachable, scenes, choices, endings, sim.passesRequires, setNodes]);
+  }, [sim, sim.isRunning, sim.currentNodeId, sim.visitedNodeIds, staticUnreachable, scenes, choices, endings, sim.passesRequires, setNodes]);
+
+  const ghostedNodeIds = useMemo(() => {
+    return new Set(baseLayout.nodes.filter(n => n.data.isGhosted).map(n => n.id));
+  }, [baseLayout.nodes]);
+
+  // Build a set of "source→target" keys from the tracedPath for fast edge matching
+  const tracedEdgeKeys = useMemo(() => {
+    if (!tracedPath || tracedPath.length < 2) return null;
+    const keys = new Set();
+    for (let i = 0; i < tracedPath.length - 1; i++) {
+      keys.add(`${tracedPath[i]}→${tracedPath[i + 1]}`);
+    }
+    return keys;
+  }, [tracedPath]);
 
   useEffect(() => {
     setEdges((currentEdges) => currentEdges.map((edge) => {
+      const isGhostedEdge = ghostedNodeIds.has(edge.source) || ghostedNodeIds.has(edge.target);
+      const defaultOpacity = isGhostedEdge ? 0.08 : 0.6;
+
       if (!sim.isRunning) {
-        if (edge.animated || edge.style?.stroke !== '#666') {
-          return { ...edge, animated: false, style: { stroke: '#666', strokeWidth: 1, opacity: 0.6 } };
+        // Traced path highlighting (when not simulating)
+        if (tracedEdgeKeys) {
+          const edgeKey = `${edge.source}→${edge.target}`;
+          const isOnPath = tracedEdgeKeys.has(edgeKey);
+          const stroke = isOnPath ? '#d4a017' : '#4a6a73';
+          const strokeWidth = isOnPath ? 2.5 : 1.5;
+          const opacity = isGhostedEdge ? 0.08 : (isOnPath ? 1 : 0.15);
+          const zIndex = isOnPath ? 10 : 0;
+
+          if (
+            edge.style?.stroke !== stroke ||
+            edge.style?.strokeWidth !== strokeWidth ||
+            edge.style?.opacity !== opacity ||
+            edge.zIndex !== zIndex ||
+            edge.animated
+          ) {
+            return { ...edge, animated: false, zIndex, style: { stroke, strokeWidth, opacity } };
+          }
+          return edge;
+        }
+
+        if (edge.animated || edge.style?.stroke !== '#4a6a73' || edge.style?.opacity !== defaultOpacity) {
+          return { ...edge, animated: false, style: { stroke: '#4a6a73', strokeWidth: 1.5, opacity: defaultOpacity } };
         }
         return edge;
       }
@@ -100,25 +203,25 @@ function RouteViewerInner({ onNodeEdit, sim }) {
       const isBlocked = staticUnreachable.has(edge.target);
       const isActive = edge.source === sim.currentNodeId; // Edge leading out from current node
 
-      let stroke = '#666';
-      let strokeWidth = 1;
+      let stroke = '#4a6a73';
+      let strokeWidth = 1.5;
       let strokeDasharray = 'none';
       let animated = false;
-      let opacity = 0.5;
+      let opacity = isGhostedEdge ? 0.08 : 0.5;
 
       if (isTaken) {
         stroke = '#1d9e75'; // taken/visited
         strokeWidth = 2;
-        opacity = 1;
+        opacity = isGhostedEdge ? 0.08 : 1;
       } else if (isActive) {
         stroke = 'rgba(0, 209, 255, 0.5)'; // active
         strokeWidth = 2;
         strokeDasharray = '4 4';
         animated = true;
-        opacity = 1;
+        opacity = isGhostedEdge ? 0.08 : 1;
       } else if (isBlocked) {
         stroke = '#252525'; // blocked/unreachable
-        strokeWidth = 1;
+        strokeWidth = 1.5;
         strokeDasharray = '4 4';
       }
 
@@ -139,7 +242,7 @@ function RouteViewerInner({ onNodeEdit, sim }) {
       }
       return edge;
     }));
-  }, [sim.isRunning, sim.takenEdgeIds, sim.currentNodeId, staticUnreachable, setEdges]);
+  }, [sim.isRunning, sim.takenEdgeIds, sim.currentNodeId, staticUnreachable, setEdges, ghostedNodeIds, tracedEdgeKeys]);
 
   const prevNodeRef = useRef(null);
   useEffect(() => {
@@ -154,9 +257,117 @@ function RouteViewerInner({ onNodeEdit, sim }) {
     }
   }, [sim.currentNodeId, cameraFollow, nodes, setCenter]);
 
+  // Handle focusNodeTrigger from EditorContext
+  const { focusNodeTrigger } = useEditorData();
+  const { clearFocusNode } = useEditorActions();
+  useEffect(() => {
+    if (!focusNodeTrigger || !focusNodeTrigger.nodeId) return;
+    const node = nodes.find(n => n.id === focusNodeTrigger.nodeId);
+    if (node) {
+      const x = node.position.x + 120;
+      const y = node.position.y + 50;
+      setCenter(x, y, { zoom: 1.2, duration: 800 });
+      // Reset trigger after a slight delay to allow animation to start
+      setTimeout(clearFocusNode, 100);
+    }
+  }, [focusNodeTrigger, nodes, setCenter, clearFocusNode]);
+
   const handleNodeClick = useCallback((_event, node) => {
     if (onNodeEdit) onNodeEdit(node.id, node.type);
   }, [onNodeEdit]);
+
+  // --- onNodeDragStop: persist position to state ---
+  const handleNodeDragStop = useCallback((_event, node) => {
+    updateNodePosition(node.id, node.type, node.position);
+  }, [updateNodePosition]);
+
+  // --- Reset Layout handler ---
+  const handleResetLayout = useCallback(() => {
+    // Clear the dedup set so new Dagre positions get persisted
+    persistedPositionIds.current.clear();
+    resetAllPositions();
+    // Bump layout version to trigger a fitView after the Dagre pass
+    setLayoutVersion(v => v + 1);
+  }, [resetAllPositions]);
+
+  const handleConnect = useCallback(
+    (params) => {
+      const { source, target, sourceHandle } = params || {};
+      if (!source || !target || !sourceHandle) return;
+
+      // Choice option => option.next
+      if (choices[source]) {
+        const choice = choices[source];
+        const optIndex = (choice.options || []).findIndex((o) => String(o.id) === String(sourceHandle));
+        if (optIndex < 0) return;
+
+        const existingOpt = choice.options[optIndex];
+        const targetValue = source === target ? '' : target;
+        const nextArr = Array.isArray(existingOpt.next) ? existingOpt.next : [];
+        // Find an entry with empty target or add a new one
+        let updated = false;
+        const newNext = nextArr.map(entry => {
+          if (!updated && !entry.target) {
+            updated = true;
+            return { ...entry, target: targetValue };
+          }
+          return entry;
+        });
+        if (!updated && targetValue) {
+          newNext.push({ _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, requires: [], target: targetValue });
+        }
+        updateChoiceOption(source, optIndex, { ...existingOpt, next: newNext });
+        return;
+      }
+
+      // Scene next entry => nextEntry.target
+      if (scenes[source]) {
+        const scene = scenes[source];
+        const nextIndex = (scene.next || []).findIndex((nxt) => String(nxt._id) === String(sourceHandle));
+        if (nextIndex < 0) return;
+
+        const existingNext = scene.next[nextIndex];
+        const targetValue = source === target ? '' : target; // self-edge => null/empty so no edge is drawn
+        const newNext = [...(scene.next || [])];
+        newNext[nextIndex] = { ...existingNext, target: targetValue };
+        updateScene(source, { next: newNext });
+      }
+    },
+    [choices, scenes, updateChoiceOption, updateScene]
+  );
+
+  const handleEdgesDelete = useCallback(
+    (edgesToDelete) => {
+      if (!Array.isArray(edgesToDelete) || edgesToDelete.length === 0) return;
+
+      edgesToDelete.forEach((edge) => {
+        const { source, sourceHandle } = edge || {};
+        if (!source || !sourceHandle) return;
+
+        if (choices[source]) {
+          const choice = choices[source];
+          const optIndex = (choice.options || []).findIndex((o) => String(o.id) === String(sourceHandle));
+          if (optIndex < 0) return;
+
+          const existingOpt = choice.options[optIndex];
+          updateChoiceOption(source, optIndex, { ...existingOpt, next: null });
+          return;
+        }
+
+        if (scenes[source]) {
+          const scene = scenes[source];
+          const nextIndex = (scene.next || []).findIndex((nxt) => String(nxt._id) === String(sourceHandle));
+          if (nextIndex < 0) return;
+
+          const existingNext = scene.next[nextIndex];
+          const newNext = [...(scene.next || [])];
+          newNext[nextIndex] = { ...existingNext, target: '' };
+          updateScene(source, { next: newNext });
+        }
+      });
+    },
+    [choices, scenes, updateChoiceOption, updateScene]
+  );
 
   const pathOptions = Object.values(paths);
   const chapterOptions = Object.values(chapters);
@@ -192,8 +403,8 @@ function RouteViewerInner({ onNodeEdit, sim }) {
                 <div>
                   <label style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Direction</label>
                   <div className="flex rounded-md overflow-hidden" style={{ border: '1px solid var(--color-border-row)' }}>
-                    <button onClick={() => setLayoutConfig(c => ({...c, rankdir: 'TB'}))} className="flex-1 py-1 transition-colors" style={{ fontSize: 11, fontWeight: layoutConfig.rankdir === 'TB' ? 600 : 400, background: layoutConfig.rankdir === 'TB' ? 'var(--color-accent-primary)' : 'var(--color-surface-card-low)', color: layoutConfig.rankdir === 'TB' ? '#0a1a1f' : 'var(--color-text-muted)', border: 'none', cursor: 'pointer' }}>Top-Bottom</button>
-                    <button onClick={() => setLayoutConfig(c => ({...c, rankdir: 'LR'}))} className="flex-1 py-1 transition-colors" style={{ fontSize: 11, fontWeight: layoutConfig.rankdir === 'LR' ? 600 : 400, background: layoutConfig.rankdir === 'LR' ? 'var(--color-accent-primary)' : 'var(--color-surface-card-low)', color: layoutConfig.rankdir === 'LR' ? '#0a1a1f' : 'var(--color-text-muted)', border: 'none', cursor: 'pointer' }}>Left-Right</button>
+                    <button onClick={() => setLayoutConfig(c => ({ ...c, rankdir: 'TB' }))} className="flex-1 py-1 transition-colors" style={{ fontSize: 11, fontWeight: layoutConfig.rankdir === 'TB' ? 600 : 400, background: layoutConfig.rankdir === 'TB' ? 'var(--color-accent-primary)' : 'var(--color-surface-card-low)', color: layoutConfig.rankdir === 'TB' ? '#0a1a1f' : 'var(--color-text-muted)', border: 'none', cursor: 'pointer' }}>Top-Bottom</button>
+                    <button onClick={() => setLayoutConfig(c => ({ ...c, rankdir: 'LR' }))} className="flex-1 py-1 transition-colors" style={{ fontSize: 11, fontWeight: layoutConfig.rankdir === 'LR' ? 600 : 400, background: layoutConfig.rankdir === 'LR' ? 'var(--color-accent-primary)' : 'var(--color-surface-card-low)', color: layoutConfig.rankdir === 'LR' ? '#0a1a1f' : 'var(--color-text-muted)', border: 'none', cursor: 'pointer' }}>Left-Right</button>
                   </div>
                 </div>
                 <div>
@@ -201,18 +412,22 @@ function RouteViewerInner({ onNodeEdit, sim }) {
                     <label style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Node Spacing</label>
                     <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--color-accent-primary)' }}>{layoutConfig.nodesep}</span>
                   </div>
-                  <input type="range" min="20" max="300" step="10" value={layoutConfig.nodesep} onChange={(e) => setLayoutConfig(c => ({...c, nodesep: Number(e.target.value)}))} className="w-full h-1.5 rounded-lg appearance-none cursor-pointer" style={{ background: 'var(--color-surface-card-low)', accentColor: 'var(--color-accent-primary)' }} />
+                  <input type="range" min="20" max="300" step="10" value={layoutConfig.nodesep} onChange={(e) => setLayoutConfig(c => ({ ...c, nodesep: Number(e.target.value) }))} className="w-full h-1.5 rounded-lg appearance-none cursor-pointer" style={{ background: 'var(--color-surface-card-low)', accentColor: 'var(--color-accent-primary)' }} />
                 </div>
                 <div>
                   <div className="flex justify-between items-end mb-1">
                     <label style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Rank Spacing</label>
                     <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--color-accent-primary)' }}>{layoutConfig.ranksep}</span>
                   </div>
-                  <input type="range" min="50" max="500" step="10" value={layoutConfig.ranksep} onChange={(e) => setLayoutConfig(c => ({...c, ranksep: Number(e.target.value)}))} className="w-full h-1.5 rounded-lg appearance-none cursor-pointer" style={{ background: 'var(--color-surface-card-low)', accentColor: 'var(--color-accent-primary)' }} />
+                  <input type="range" min="50" max="500" step="10" value={layoutConfig.ranksep} onChange={(e) => setLayoutConfig(c => ({ ...c, ranksep: Number(e.target.value) }))} className="w-full h-1.5 rounded-lg appearance-none cursor-pointer" style={{ background: 'var(--color-surface-card-low)', accentColor: 'var(--color-accent-primary)' }} />
                 </div>
               </div>
             )}
           </div>
+          {/* Reset Layout button */}
+          <button onClick={handleResetLayout} className="flex items-center gap-1" style={toggleBtnStyle(false)} title="Re-run auto-layout on entire graph">
+            <LayoutGrid className="w-3.5 h-3.5" /> Reset Layout
+          </button>
           {staticAnalysis.warnings.length > 0 && (
             <button onClick={() => setShowWarnings(prev => !prev)} className="flex items-center gap-1" style={toggleBtnStyle(showWarnings)} title="Show unreachable node warnings">
               <AlertTriangle className="w-3.5 h-3.5" style={{ color: 'var(--color-accent-terminal)' }} />
@@ -249,13 +464,19 @@ function RouteViewerInner({ onNodeEdit, sim }) {
             onEdgesChange={onEdgesChange}
             nodeTypes={nodeTypes}
             onNodeClick={handleNodeClick}
-            fitView
+            onNodeDragStop={handleNodeDragStop}
+            onConnect={handleConnect}
+            onEdgesDelete={handleEdgesDelete}
+            onMove={resetSpawnOffset}
             minZoom={0.1}
             maxZoom={2}
-            defaultEdgeOptions={{ type: 'smoothstep' }}
+            nodeDragThreshold={2}
+            defaultEdgeOptions={{ type: 'smoothstep', pathOptions: { borderRadius: 32 } }}
             proOptions={{ hideAttribution: true }}
+            snapToGrid={true}
+            snapGrid={[24, 24]}
           >
-            <Controls showInteractive={false} className="!rounded-lg !overflow-hidden" style={{ background: 'var(--color-surface-elevated)', border: '1px solid var(--color-border-card)' }} />
+            <Background variant="lines" gap={24} size={1} color="rgba(255,255,255,0.04)" />
             <MiniMap
               nodeStrokeWidth={3}
               nodeColor={(node) => {
@@ -275,7 +496,6 @@ function RouteViewerInner({ onNodeEdit, sim }) {
           </ReactFlow>
         </div>
 
-        {/* Static Warnings Panel */}
         {showWarnings && staticAnalysis.warnings.length > 0 && (
           <div className="absolute top-16 left-4 max-w-sm max-h-80 overflow-y-auto z-50 p-4 rounded-lg" style={{ background: 'var(--color-surface-elevated)', border: '1px solid rgba(200,119,10,0.3)' }}>
             <div className="flex items-center justify-between mb-3">
@@ -297,15 +517,20 @@ function RouteViewerInner({ onNodeEdit, sim }) {
             </div>
           </div>
         )}
+
+        {/* Fit View Button */}
+        <button onClick={() => fitView({ duration: 400, padding: 0.1 })} className="absolute bottom-4 left-4 z-50 flex items-center justify-center" style={{ background: 'var(--color-surface-elevated)', border: '1px solid var(--color-border-subtle)', borderRadius: 6, color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500, padding: '4px 8px', cursor: 'pointer' }}>
+          ⊡ Fit view
+        </button>
       </div>
     </div>
   );
 }
 
-export default function RouteViewer({ onNodeEdit, sim }) {
+export default function RouteViewer({ onNodeEdit, sim, routeViewerRef, tracedPath }) {
   return (
     <ReactFlowProvider>
-      <RouteViewerInner onNodeEdit={onNodeEdit} sim={sim} />
+      <RouteViewerInner onNodeEdit={onNodeEdit} sim={sim} routeViewerRef={routeViewerRef} tracedPath={tracedPath} />
     </ReactFlowProvider>
   );
 }

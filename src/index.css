@@ -3,7 +3,7 @@
 
 @theme {
   /* ── Surfaces ── */
-  --color-surface-canvas:     #0a0a0a;
+  --color-surface-canvas:     #161616;
   --color-surface-workspace:  #0a0a0a;
   --color-surface-panel:      #1e1d1d;
   --color-surface-card:       #2e2e2e;
@@ -90,10 +90,20 @@
     0% { background-color: rgba(171,249,0,0.12); }
     100% { background-color: transparent; }
   }
+  @keyframes flash-flag-on {
+    0% { background-color: rgba(171,249,0,0.08); }
+    100% { background-color: transparent; }
+  }
+  @keyframes flash-flag-off {
+    0% { background-color: rgba(255,107,107,0.08); }
+    100% { background-color: transparent; }
+  }
   @keyframes flash-status {
     0% { background-color: rgba(0,209,255,0.1); }
     100% { background-color: transparent; }
   }
   .flash-flag { animation: flash-flag 0.6s ease-out; }
+  .flash-flag-on { animation: flash-flag-on 0.3s ease-out; }
+  .flash-flag-off { animation: flash-flag-off 0.3s ease-out; }
   .flash-status { animation: flash-status 0.6s ease-out; }
 }

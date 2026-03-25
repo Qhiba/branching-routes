@@ -95,7 +95,7 @@ export default function ConditionEditor({ conditions = [], onChange }) {
                        } else {
                           updateCondition(idx, { ...cond, min: Number(e.target.value) });
                        }
-                    }} className="w-12 bg-transparent focus:outline-none text-right"
+                    }} className="w-16 bg-transparent focus:outline-none text-center"
                        style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--color-accent-primary)' }}
                     />
                  </div>
@@ -108,7 +108,7 @@ export default function ConditionEditor({ conditions = [], onChange }) {
                        } else {
                           updateCondition(idx, { ...cond, max: Number(e.target.value) });
                        }
-                    }} className="w-12 bg-transparent focus:outline-none text-right"
+                    }} className="w-16 bg-transparent focus:outline-none text-center"
                        style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--color-accent-primary)' }}
                     />
                  </div>

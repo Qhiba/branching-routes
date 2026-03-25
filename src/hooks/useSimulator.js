@@ -52,7 +52,7 @@ export default function useSimulator() {
       });
       (step.statusPushed || []).forEach((sm) => {
         const spDef = statusPoints && statusPoints[sm.status];
-        const minVal = spDef && spDef.minValue !== undefined ? spDef.minValue : 0;
+        const minVal = spDef && spDef.minValue !== undefined ? spDef.minValue : -999999;
         baseline.status[sm.status] = Math.max(
           minVal,
           (baseline.status[sm.status] || 0) + sm.amount
@@ -145,8 +145,18 @@ export default function useSimulator() {
     (choiceObj, optIndex) => {
       const opt = choiceObj.options[optIndex];
       if (!passesRequires(opt.requires)) return;
+
+      const nextArr = Array.isArray(opt.next)
+        ? opt.next
+        : opt.next
+          ? [{ requires: [], target: opt.next }]
+          : [];
+
+      const validRoute = nextArr.find(entry => passesRequires(entry.requires || []));
+      const target = validRoute ? validRoute.target : null;
+
       traverseNext(
-        opt.next || null,
+        target || null,
         opt.flags_set || [],
         opt.status_set || [],
         optIndex
@@ -224,15 +234,31 @@ export default function useSimulator() {
         const scene = scenes[from.nodeId];
         if (scene.next) {
           const routeIdx = scene.next.findIndex((r) => r.target === to.nodeId);
-          if (routeIdx >= 0) set.add(`${from.nodeId}-next-${routeIdx}`);
+          if (routeIdx >= 0) {
+            const route = scene.next[routeIdx];
+            const routeIdPart = route?._id || routeIdx;
+            set.add(`${from.nodeId}-next-${routeIdPart}`);
+          }
         }
       }
       // Choice edges: sourceId-opt-optIdx
       if (from.type === 'choice' && choices[from.nodeId]) {
         const choice = choices[from.nodeId];
         if (choice.options) {
-          const optIdx = choice.options.findIndex((o) => o.next === to.nodeId);
-          if (optIdx >= 0) set.add(`${from.nodeId}-opt-${optIdx}`);
+          for (let optIdx = 0; optIdx < choice.options.length; optIdx++) {
+            const opt = choice.options[optIdx];
+            const nextArr = Array.isArray(opt.next)
+              ? opt.next
+              : opt.next
+                ? [{ requires: [], target: opt.next }]
+                : [];
+            const matchIdx = nextArr.findIndex(entry => entry.target === to.nodeId);
+            if (matchIdx >= 0) {
+              const optIdPart = opt?.id || optIdx;
+              set.add(`${choice.id}-opt-${optIdPart}`);
+              break;
+            }
+          }
         }
       }
     }

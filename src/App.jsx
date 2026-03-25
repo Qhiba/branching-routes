@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import RouteViewer from './components/routeviewer/RouteViewer';
 import { useEditor } from './context/EditorContext';
 import useSimulator from './hooks/useSimulator';
@@ -6,12 +6,51 @@ import ErrorBoundary from './components/shared/ErrorBoundary';
 import NavBar from './components/layout/NavBar';
 import LeftSidebar from './components/layout/LeftSidebar';
 import RightSidebar from './components/layout/RightSidebar';
+import EditModal from './components/modals/EditModal';
+import { buildDependencyGraph } from './utils/dependencyGraph';
+import { traceRoute } from './utils/routeTracer';
 
 function App() {
-  const { flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, loadData } = useEditor();
+  const { flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, loadData, clearData } = useEditor();
   const sim = useSimulator();
   const [activeNavItem, setActiveNavItem] = React.useState(null);
   const [activeEditId, setActiveEditId] = React.useState(null);
+  const [backtrackTargetId, setBacktrackTargetId] = React.useState(null);
+  const [tracedPath, setTracedPath] = React.useState(null);
+
+  // ── Route trace computation ──
+  const routeTraceResult = useMemo(() => {
+    if (!backtrackTargetId || !entryNode) return null;
+    const graph = buildDependencyGraph(flags, statusPoints, choices, scenes, endings);
+    return traceRoute(backtrackTargetId, entryNode, graph.adjacency, choices, scenes, endings, flags, statusPoints);
+  }, [backtrackTargetId, entryNode, flags, statusPoints, choices, scenes, endings]);
+
+  const handleHighlightPath = useCallback((rawPath) => {
+    setTracedPath(rawPath);
+  }, []);
+
+  const handleClearBacktrack = useCallback(() => {
+    setBacktrackTargetId(null);
+    setTracedPath(null);
+  }, []);
+
+  // ── Modal state (Part 3) ──
+  const [editModal, setEditModal] = React.useState({ open: false, entityType: null, entityId: null, initialPosition: null });
+  const routeViewerRef = React.useRef(null);
+
+  const openModal = useCallback((entityType, entityId, initialPosition = null) => {
+    let pos = initialPosition;
+    // If we're creating a new node and no position was specified,
+    // grab the current viewport center from the canvas.
+    if (!entityId && !pos && routeViewerRef.current?.getViewportCenter) {
+      pos = routeViewerRef.current.getViewportCenter();
+    }
+    setEditModal({ open: true, entityType, entityId, initialPosition: pos });
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setEditModal({ open: false, entityType: null, entityId: null, initialPosition: null });
+  }, []);
 
   const handleNavChange = (item) => {
     setActiveNavItem(item);
@@ -23,6 +62,29 @@ function App() {
     setActiveNavItem(navMap[type.toLowerCase()] || 'scenes');
     setActiveEditId(id);
   };
+
+  // ── E key shortcut: open modal for the currently selected node ──
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if typing in an input/textarea/select
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (editModal.open) return; // already showing a modal
+
+      if (e.key === 'e' || e.key === 'E') {
+        if (!activeEditId) return;
+        // Determine entity type from activeNavItem
+        const typeMap = { scenes: 'scene', choices: 'choice', endings: 'ending' };
+        const entityType = typeMap[activeNavItem];
+        if (entityType) {
+          e.preventDefault();
+          openModal(entityType, activeEditId);
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [activeEditId, activeNavItem, editModal.open, openModal]);
 
   const handleExport = () => {
     if (!entryNode) {
@@ -161,8 +223,31 @@ function App() {
         </span>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <button style={{ background: 'none', border: '1px solid var(--color-border-ghost)', borderRadius: 6, color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500, padding: '4px 10px', cursor: 'pointer', transition: 'border-color 0.15s, color 0.15s' }}>
-            Validate
+          <button 
+            onClick={clearData}
+            style={{ 
+              background: 'none', 
+              border: '1px solid var(--color-border-ghost)', 
+              borderRadius: 6, 
+              color: 'var(--color-text-secondary)', 
+              fontSize: 11, 
+              fontWeight: 500, 
+              padding: '4px 10px', 
+              cursor: 'pointer', 
+              transition: 'all 0.15s' 
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,107,107,0.3)';
+              e.currentTarget.style.color = 'var(--color-accent-error)';
+              e.currentTarget.style.background = 'rgba(255,107,107,0.05)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'var(--color-border-ghost)';
+              e.currentTarget.style.color = 'var(--color-text-secondary)';
+              e.currentTarget.style.background = 'none';
+            }}
+          >
+            Reset Project
           </button>
           <label className="cursor-pointer" style={{ background: 'none', border: '1px solid var(--color-border-ghost)', borderRadius: 6, color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500, padding: '4px 10px', transition: 'border-color 0.15s, color 0.15s' }}>
             Import
@@ -187,26 +272,46 @@ function App() {
       <div className="flex flex-1 overflow-hidden">
         
         {/* Left Sidebar */}
-        <LeftSidebar 
-          activeNavItem={activeNavItem} 
-          onNavChange={handleNavChange} 
+        <LeftSidebar
+          activeNavItem={activeNavItem}
+          onNavChange={handleNavChange}
           activeEditId={activeEditId}
           onSetEditId={setActiveEditId}
           onClearEdit={() => setActiveEditId(null)}
           sim={sim}
+          onOpenModal={openModal}
+          backtrackTargetId={backtrackTargetId}
+          onClearBacktrack={handleClearBacktrack}
+          routeTraceResult={routeTraceResult}
+          onHighlightPath={handleHighlightPath}
+          tracedPath={tracedPath}
         />
 
         {/* Center Canvas */}
         <main className="flex-1 overflow-auto relative w-full h-full" style={{ background: 'var(--color-surface-workspace)' }}>
           <ErrorBoundary>
-             <RouteViewer onNodeEdit={handleNodeEdit} sim={sim} />
+             <RouteViewer onNodeEdit={handleNodeEdit} sim={sim} routeViewerRef={routeViewerRef} tracedPath={tracedPath} />
           </ErrorBoundary>
         </main>
 
         {/* Right Sidebar */}
-        <RightSidebar sim={sim} />
+        <RightSidebar 
+          sim={sim} 
+          activeEditId={activeEditId}
+          isSimulating={sim?.isRunning || false}
+          onBacktrack={setBacktrackTargetId}
+        />
 
       </div>
+
+      {/* ═══ Edit Modal ═══ */}
+      <EditModal
+        open={editModal.open}
+        entityType={editModal.entityType}
+        entityId={editModal.entityId}
+        initialPosition={editModal.initialPosition}
+        onClose={closeModal}
+      />
     </div>
   );
 }

@@ -20,6 +20,34 @@ const generateId = (prefix, collection) => {
 
 const sanitizeName = (name) => name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
+// Migrate option next from string/null to conditional array format
+const migrateOptionNext = (choices) => {
+  if (!choices || typeof choices !== 'object') return choices;
+  const result = { ...choices };
+  let anyChanged = false;
+  for (const [chId, choice] of Object.entries(result)) {
+    if (!choice.options || !Array.isArray(choice.options)) continue;
+    let choiceChanged = false;
+    const newOptions = choice.options.map(opt => {
+      if (opt.next !== null && opt.next !== undefined && !Array.isArray(opt.next)) {
+        choiceChanged = true;
+        anyChanged = true;
+        return { ...opt, next: [{ requires: [], target: opt.next }] };
+      }
+      if (opt.next === null || opt.next === undefined) {
+        choiceChanged = true;
+        anyChanged = true;
+        return { ...opt, next: [] };
+      }
+      return opt;
+    });
+    if (choiceChanged) {
+      result[chId] = { ...choice, options: newOptions };
+    }
+  }
+  return anyChanged ? result : choices;
+};
+
 // Sanitize all entity names in a collection
 const sanitizeCollection = (collection) => {
   if (!collection || typeof collection !== 'object') return collection;
@@ -57,6 +85,7 @@ export function EditorProvider({ children }) {
   const [quests, setQuests] = useState({});
   const [endings, setEndings] = useState({});
   const [entryNode, setEntryNode] = useState(null);
+  const [focusNodeTrigger, setFocusNodeTrigger] = useState(null);
 
   // --- Hydrate state from IndexedDB on mount ---
   useEffect(() => {
@@ -65,7 +94,7 @@ export function EditorProvider({ children }) {
       .then(saved => {
         if (cancelled || !saved) return;
         if (saved.flags) setFlags(saved.flags);
-        if (saved.choices) setChoices(saved.choices);
+        if (saved.choices) setChoices(migrateOptionNext(saved.choices));
         if (saved.scenes) setScenes(saved.scenes);
         if (saved.paths) setPaths(saved.paths);
         if (saved.chapters) setChapters(saved.chapters);
@@ -89,6 +118,8 @@ export function EditorProvider({ children }) {
   const pathsRef = useRef(paths);
   const chaptersRef = useRef(chapters);
   const questsRef = useRef(quests);
+  const spawnOffsetRef = useRef(0);
+  const SPAWN_OFFSET = 24;
   useEffect(() => { flagsRef.current = flags; }, [flags]);
   useEffect(() => { choicesRef.current = choices; }, [choices]);
   useEffect(() => { scenesRef.current = scenes; }, [scenes]);
@@ -129,6 +160,12 @@ export function EditorProvider({ children }) {
       if (choice.options) choice.options.forEach(opt => {
         if (opt.flags_set) opt.flags_set.forEach(f => referencedFlags.add(f));
         if (opt.requires) opt.requires.forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
+        if (opt.next) {
+          const nextArr = Array.isArray(opt.next) ? opt.next : (opt.next ? [{ requires: [], target: opt.next }] : []);
+          nextArr.forEach(entry => {
+            if (entry.requires) entry.requires.forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
+          });
+        }
       });
       referencedFlags.forEach(fId => {
         if (map[fId]) map[fId].choices.push(choice.id);
@@ -166,6 +203,12 @@ export function EditorProvider({ children }) {
       if (choice.options) choice.options.forEach(opt => {
         if (opt.status_set) opt.status_set.forEach(f => referencedStatus.add(f.status));
         if (opt.requires) opt.requires.forEach(r => { if (r.status) referencedStatus.add(r.status); });
+        if (opt.next) {
+          const nextArr = Array.isArray(opt.next) ? opt.next : (opt.next ? [{ requires: [], target: opt.next }] : []);
+          nextArr.forEach(entry => {
+            if (entry.requires) entry.requires.forEach(r => { if (r.status) referencedStatus.add(r.status); });
+          });
+        }
       });
       referencedStatus.forEach(spId => {
         if (map[spId]) map[spId].choices.push(choice.id);
@@ -236,8 +279,14 @@ export function EditorProvider({ children }) {
         const newOptions = (choice.options || []).map(opt => {
           const newReqs = (opt.requires || []).filter(r => r.flag !== id);
           const newFlagsSet = (opt.flags_set || []).filter(f => f !== id);
+          const nextArr = Array.isArray(opt.next) ? opt.next : (opt.next ? [{ requires: [], target: opt.next }] : []);
+          const newNext = nextArr.map(entry => ({
+            ...entry,
+            requires: (entry.requires || []).filter(r => r.flag !== id)
+          }));
           if (newReqs.length !== (opt.requires || []).length || newFlagsSet.length !== (opt.flags_set || []).length) itemDirty = true;
-          return { ...opt, requires: newReqs, flags_set: newFlagsSet };
+          if (newNext.some((e, i) => e.requires.length !== (nextArr[i]?.requires || []).length)) itemDirty = true;
+          return { ...opt, requires: newReqs, flags_set: newFlagsSet, next: newNext };
         });
         if (itemDirty) {
           newChoices[chId] = { ...choice, requires: newChoiceReqs, options: newOptions };
@@ -307,6 +356,14 @@ export function EditorProvider({ children }) {
       }
       return changed ? next : prev;
     });
+    setEndings(prev => {
+      let changed = false;
+      const next = { ...prev };
+      for (const k in next) {
+        if (next[k].path === id) { next[k] = { ...next[k], path: null }; changed = true; }
+      }
+      return changed ? next : prev;
+    });
   }, []);
 
   // --- Chapters ---
@@ -345,12 +402,20 @@ export function EditorProvider({ children }) {
       }
       return changed ? next : prev;
     });
+    setEndings(prev => {
+      let changed = false;
+      const next = { ...prev };
+      for (const k in next) {
+        if (next[k].chapter === id) { next[k] = { ...next[k], chapter: null }; changed = true; }
+      }
+      return changed ? next : prev;
+    });
   }, []);
 
   // --- Status Points ---
-  const addStatusPoint = useCallback((name, value = 0) => {
+  const addStatusPoint = useCallback((name, value = 0, minValue = -999999) => {
     const id = generateId('SP', statusPointsRef.current);
-    setStatusPoints(prev => ({ ...prev, [id]: { id, name: sanitizeName(name), value: Number(value), minValue: 0 } }));
+    setStatusPoints(prev => ({ ...prev, [id]: { id, name: sanitizeName(name), value: Number(value), minValue: Number(minValue) } }));
     return id;
   }, []);
 
@@ -384,8 +449,14 @@ export function EditorProvider({ children }) {
         const newOptions = (choice.options || []).map(opt => {
           const newReqs = (opt.requires || []).filter(r => r.status !== id);
           const newStatusSet = (opt.status_set || []).filter(s => s.status !== id);
+          const nextArr = Array.isArray(opt.next) ? opt.next : (opt.next ? [{ requires: [], target: opt.next }] : []);
+          const newNext = nextArr.map(entry => ({
+            ...entry,
+            requires: (entry.requires || []).filter(r => r.status !== id)
+          }));
           if (newReqs.length !== (opt.requires || []).length || newStatusSet.length !== (opt.status_set || []).length) itemDirty = true;
-          return { ...opt, requires: newReqs, status_set: newStatusSet };
+          if (newNext.some((e, i) => e.requires.length !== (nextArr[i]?.requires || []).length)) itemDirty = true;
+          return { ...opt, requires: newReqs, status_set: newStatusSet, next: newNext };
         });
         if (itemDirty) {
           newChoices[chId] = { ...choice, requires: newChoiceReqs, options: newOptions };
@@ -458,20 +529,75 @@ export function EditorProvider({ children }) {
   }, []);
 
   // --- Endings ---
-  const addEnding = useCallback((name = "new_ending") => {
+  const addEnding = useCallback((name = "New Ending", initialPosition = null) => {
     const id = generateId('E', endingsRef.current);
-    setEndings(prev => ({ ...prev, [id]: { id, name: sanitizeName(name), requires: [] } }));
+    const _position = initialPosition ? {
+      x: Math.round(initialPosition.x + (spawnOffsetRef.current % 5) * SPAWN_OFFSET),
+      y: Math.round(initialPosition.y + (spawnOffsetRef.current % 5) * SPAWN_OFFSET)
+    } : undefined;
+
+    if (initialPosition) spawnOffsetRef.current += 1;
+
+    setEndings(prev => ({ ...prev, [id]: { id, name, requires: [], path: null, chapter: null, _position } }));
     return id;
+  }, []);
+
+  // --- Node Position Storage ---
+  const updateNodePosition = useCallback((id, entityType, position) => {
+    const posData = { x: Math.round(position.x), y: Math.round(position.y) };
+    if (entityType === 'scene') {
+      setScenes(prev => {
+        if (!prev[id]) return prev;
+        return { ...prev, [id]: { ...prev[id], _position: posData } };
+      });
+    } else if (entityType === 'choice') {
+      setChoices(prev => {
+        if (!prev[id]) return prev;
+        return { ...prev, [id]: { ...prev[id], _position: posData } };
+      });
+    } else if (entityType === 'ending') {
+      setEndings(prev => {
+        if (!prev[id]) return prev;
+        return { ...prev, [id]: { ...prev[id], _position: posData } };
+      });
+    }
+  }, []);
+
+  const resetAllPositions = useCallback(() => {
+    setScenes(prev => {
+      const next = {};
+      for (const [k, v] of Object.entries(prev)) {
+        const { _position, ...rest } = v;
+        next[k] = rest;
+      }
+      return next;
+    });
+    setChoices(prev => {
+      const next = {};
+      for (const [k, v] of Object.entries(prev)) {
+        const { _position, ...rest } = v;
+        next[k] = rest;
+      }
+      return next;
+    });
+    setEndings(prev => {
+      const next = {};
+      for (const [k, v] of Object.entries(prev)) {
+        const { _position, ...rest } = v;
+        next[k] = rest;
+      }
+      return next;
+    });
+  }, []);
+
+  const resetSpawnOffset = useCallback(() => {
+    spawnOffsetRef.current = 0;
   }, []);
 
   const updateEnding = useCallback((id, updates) => {
     setEndings(prev => {
       if (!prev[id]) return prev;
-      // Enforce sanitizeName on name updates (#13)
-      const sanitized = updates.name !== undefined
-        ? { ...updates, name: sanitizeName(updates.name) }
-        : updates;
-      return { ...prev, [id]: { ...prev[id], ...sanitized } };
+      return { ...prev, [id]: { ...prev[id], ...updates } };
     });
   }, []);
 
@@ -479,7 +605,10 @@ export function EditorProvider({ children }) {
     const currentScenes = scenesRef.current;
     const currentChoices = choicesRef.current;
     const referencingScenes = Object.values(currentScenes).filter(s => s.next && s.next.some(route => route.target === id)).map(s => s.id);
-    const referencingChoices = Object.values(currentChoices).filter(c => c.options && c.options.some(opt => opt.next === id)).map(c => c.id);
+    const referencingChoices = Object.values(currentChoices).filter(c => c.options && c.options.some(opt => {
+      const nextArr = Array.isArray(opt.next) ? opt.next : (opt.next ? [{ requires: [], target: opt.next }] : []);
+      return nextArr.some(entry => entry.target === id);
+    })).map(c => c.id);
 
     if (referencingScenes.length > 0 || referencingChoices.length > 0) {
       const allRefs = [...referencingScenes, ...referencingChoices].join(', ');
@@ -495,11 +624,18 @@ export function EditorProvider({ children }) {
   }, []);
 
   // --- Choices ---
-  const addChoice = useCallback((text = "New Choice") => {
+  const addChoice = useCallback((text = "New Choice", initialPosition = null) => {
     const id = generateId('CH', choicesRef.current);
+    const _position = initialPosition ? {
+      x: Math.round(initialPosition.x + (spawnOffsetRef.current % 5) * SPAWN_OFFSET),
+      y: Math.round(initialPosition.y + (spawnOffsetRef.current % 5) * SPAWN_OFFSET)
+    } : undefined;
+
+    if (initialPosition) spawnOffsetRef.current += 1;
+
     setChoices(prev => ({
       ...prev,
-      [id]: { id, text, chapter: null, path: null, requires: [], options: [] }
+      [id]: { id, text, chapter: null, path: null, requires: [], options: [], _position }
     }));
     return id;
   }, []);
@@ -520,7 +656,7 @@ export function EditorProvider({ children }) {
         ...prev,
         [choiceId]: {
           ...choice,
-          options: [...(choice.options || []), { id: optId, label: optionLabel, requires: [], flags_set: [], status_set: [], next: null }]
+          options: [...(choice.options || []), { id: optId, label: optionLabel, requires: [], flags_set: [], status_set: [], next: [] }]
         }
       };
     });
@@ -549,7 +685,10 @@ export function EditorProvider({ children }) {
     const currentScenes = scenesRef.current;
     const currentChoices = choicesRef.current;
     const referencingScenes = Object.values(currentScenes).filter(s => s.next && s.next.some(route => route.target === id)).map(s => s.id);
-    const referencingChoices = Object.values(currentChoices).filter(c => c.options && c.options.some(opt => opt.next === id)).map(c => c.id);
+    const referencingChoices = Object.values(currentChoices).filter(c => c.options && c.options.some(opt => {
+      const nextArr = Array.isArray(opt.next) ? opt.next : (opt.next ? [{ requires: [], target: opt.next }] : []);
+      return nextArr.some(entry => entry.target === id);
+    })).map(c => c.id);
     
     if (referencingScenes.length > 0 || referencingChoices.length > 0) {
       const allRefs = [...referencingScenes, ...referencingChoices].join(', ');
@@ -567,11 +706,18 @@ export function EditorProvider({ children }) {
   }, []);
 
   // --- Scenes ---
-  const addScene = useCallback((name = "New Scene", description = "") => {
+  const addScene = useCallback((name = "New Scene", description = "", initialPosition = null) => {
     const id = generateId('S', scenesRef.current);
+    const _position = initialPosition ? {
+      x: Math.round(initialPosition.x + (spawnOffsetRef.current % 5) * SPAWN_OFFSET),
+      y: Math.round(initialPosition.y + (spawnOffsetRef.current % 5) * SPAWN_OFFSET)
+    } : undefined;
+
+    if (initialPosition) spawnOffsetRef.current += 1;
+
     setScenes(prev => ({
       ...prev,
-      [id]: { id, name, description, chapter: null, path: null, requires: [], next: [] }
+      [id]: { id, name, description, variants: [], chapter: null, path: null, requires: [], next: [], _position }
     }));
     return id;
   }, []);
@@ -587,7 +733,10 @@ export function EditorProvider({ children }) {
     const currentScenes = scenesRef.current;
     const currentChoices = choicesRef.current;
     const referencingScenes = Object.values(currentScenes).filter(s => s.next && s.next.some(route => route.target === id)).map(s => s.id);
-    const referencingChoices = Object.values(currentChoices).filter(c => c.options && c.options.some(opt => opt.next === id)).map(c => c.id);
+    const referencingChoices = Object.values(currentChoices).filter(c => c.options && c.options.some(opt => {
+      const nextArr = Array.isArray(opt.next) ? opt.next : (opt.next ? [{ requires: [], target: opt.next }] : []);
+      return nextArr.some(entry => entry.target === id);
+    })).map(c => c.id);
     
     if (referencingScenes.length > 0 || referencingChoices.length > 0) {
       const allRefs = [...referencingScenes, ...referencingChoices].join(', ');
@@ -604,19 +753,27 @@ export function EditorProvider({ children }) {
     });
   }, []);
 
+  const focusNode = useCallback((id) => {
+    setFocusNodeTrigger({ nodeId: id, timestamp: Date.now() });
+  }, []);
+
+  const clearFocusNode = useCallback(() => {
+    setFocusNodeTrigger(null);
+  }, []);
+
   // --- Load / Clear ---
   const loadData = useCallback(({ metadata, flags: f, choices: c, scenes: s, paths: p, chapters: ch, status: sp, quests: q, endings: e }) => {
     if (metadata && metadata.entry_node) setEntryNode(metadata.entry_node);
     else setEntryNode(null);
     // Sanitize entity names on import (#12)
     if (f) setFlags(sanitizeCollection(f));
-    if (c) setChoices(c);
+    if (c) setChoices(migrateOptionNext(c));
     if (s) setScenes(s);
     if (p) setPaths(sanitizeCollection(p));
     if (ch) setChapters(sanitizeCollection(ch));
     if (sp) setStatusPoints(sanitizeCollection(sp));
     if (q) setQuests(sanitizeCollection(q));
-    if (e) setEndings(sanitizeCollection(e));
+    if (e) setEndings(e);
   }, []);
 
   const clearData = useCallback(() => {
@@ -637,8 +794,8 @@ export function EditorProvider({ children }) {
   // --- Split contexts (#6): data is reactive, actions are stable ---
   const dataValue = useMemo(() => ({
     flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode,
-    isLoading
-  }), [flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, isLoading]);
+    isLoading, focusNodeTrigger
+  }), [flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, isLoading, focusNodeTrigger]);
 
   const actionsValue = useMemo(() => ({
     getFlagReferenceMap, getStatusReferenceMap, getDependencyGraph,
@@ -651,7 +808,8 @@ export function EditorProvider({ children }) {
     addStatusPoint, updateStatusPoint, deleteStatusPoint,
     addChoice, updateChoice, addChoiceOption, updateChoiceOption, deleteChoiceOption, deleteChoice,
     addScene, updateScene, deleteScene,
-    loadData, clearData
+    updateNodePosition, resetAllPositions, resetSpawnOffset,
+    loadData, clearData, focusNode, clearFocusNode
   }), [
     getFlagReferenceMap, getStatusReferenceMap, getDependencyGraph,
     setEntryNode,
@@ -663,7 +821,8 @@ export function EditorProvider({ children }) {
     addStatusPoint, updateStatusPoint, deleteStatusPoint,
     addChoice, updateChoice, addChoiceOption, updateChoiceOption, deleteChoiceOption, deleteChoice,
     addScene, updateScene, deleteScene,
-    loadData, clearData
+    updateNodePosition, resetAllPositions, resetSpawnOffset,
+    loadData, clearData, focusNode, clearFocusNode
   ]);
 
   return (

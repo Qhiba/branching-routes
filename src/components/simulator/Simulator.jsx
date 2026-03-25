@@ -348,6 +348,14 @@ export default function Simulator() {
 
   /* ─── §2.3 Active Simulation: Scene Display ─── */
   const renderSceneDisplay = (sceneObj) => {
+    const baseDescription = sceneObj.description || '';
+    const variants = sceneObj.variants || [];
+    const matchingVariant = variants.find((v) => passesRequires(v?.requires || []));
+    const resolvedDescription =
+      matchingVariant?.text
+        ? `${baseDescription}${baseDescription ? '\n' : ''}${matchingVariant.text}`
+        : baseDescription;
+
     // Find the next resolution
     const nextArr = sceneObj.next || [];
     const validRoute = nextArr.find(route => passesRequires(route.requires));
@@ -371,7 +379,7 @@ export default function Simulator() {
 
         {/* Description */}
         <p style={{ fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-          {sceneObj.description}
+          {resolvedDescription}
         </p>
 
         {/* Next resolution */}

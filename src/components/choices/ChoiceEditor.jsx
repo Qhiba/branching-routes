@@ -179,11 +179,16 @@ export default function ChoiceEditor() {
                               <span style={{ fontSize: 12, fontWeight: 500, color: opt.label ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}>
                                 {opt.label || `Option ${idx + 1}`}
                               </span>
-                              {!isOptExpanded && opt.next && (
-                                <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
-                                  → {opt.next === null ? 'loop' : opt.next}
-                                </span>
-                              )}
+                              {!isOptExpanded && (() => {
+                                const nextArr = Array.isArray(opt.next) ? opt.next : [];
+                                const hasTargets = nextArr.some(e => e.target);
+                                if (!hasTargets) return null;
+                                return (
+                                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
+                                    → {nextArr.filter(e => e.target).length} target{nextArr.filter(e => e.target).length !== 1 ? 's' : ''}
+                                  </span>
+                                );
+                              })()}
                               <button
                                 onClick={(e) => { e.stopPropagation(); deleteChoiceOption(choice.id, idx); }}
                                 className="p-1 rounded transition-colors ml-auto"
@@ -237,14 +242,85 @@ export default function ChoiceEditor() {
                               </div>
 
                               <div>
-                                <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Next →</label>
-                                <SearchableDropdown
-                                  value={opt.next || null}
-                                  onChange={(val) => updateChoiceOption(choice.id, idx, { ...opt, next: val || null })}
-                                  options={dropdownOptions}
-                                  placeholder="Loop (disable this option)"
-                                  showFilters={true}
-                                />
+                                <div className="flex items-center justify-between mb-2">
+                                  <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Next targets</label>
+                                  <button
+                                    onClick={() => {
+                                      const nextArr = Array.isArray(opt.next) ? opt.next : [];
+                                      updateChoiceOption(choice.id, idx, { ...opt, next: [...nextArr, { _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, requires: [], target: '' }] });
+                                    }}
+                                    style={{ background: 'none', border: '1px solid var(--color-border-ghost)', borderRadius: 6, color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500, padding: '3px 8px', cursor: 'pointer' }}
+                                  >
+                                    + Add target
+                                  </button>
+                                </div>
+                                {(() => {
+                                  const nextArr = Array.isArray(opt.next) ? opt.next : [];
+                                  if (nextArr.length === 0) {
+                                    return (
+                                      <div className="py-2 px-3 text-center rounded-md" style={{ fontSize: 11, color: 'var(--color-text-muted)', background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
+                                        No targets — option loops back
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <div className="space-y-2">
+                                      {nextArr.map((entry, rIdx) => {
+                                        const isFallback = rIdx === nextArr.length - 1 && (!entry.requires || entry.requires.length === 0);
+                                        return (
+                                          <div key={entry._id || rIdx} className="p-2.5 rounded-md relative" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
+                                            <div className="flex items-start gap-2">
+                                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)', marginTop: 4 }}>{rIdx + 1}.</span>
+                                              <div className="flex-1 space-y-2 min-w-0">
+                                                {isFallback ? (
+                                                  <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Fallback · always matches</span>
+                                                ) : (
+                                                  <ConditionEditor
+                                                    conditions={entry.requires || []}
+                                                    onChange={(newReqs) => {
+                                                      const updated = [...nextArr];
+                                                      updated[rIdx] = { ...entry, requires: newReqs };
+                                                      updateChoiceOption(choice.id, idx, { ...opt, next: updated });
+                                                    }}
+                                                  />
+                                                )}
+                                                <div className="flex items-center gap-2">
+                                                  <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>→</span>
+                                                  <SearchableDropdown
+                                                    value={entry.target || null}
+                                                    onChange={(val) => {
+                                                      const updated = [...nextArr];
+                                                      updated[rIdx] = { ...entry, target: val || '' };
+                                                      updateChoiceOption(choice.id, idx, { ...opt, next: updated });
+                                                    }}
+                                                    options={dropdownOptions}
+                                                    placeholder="Select target..."
+                                                    showFilters={true}
+                                                    className="flex-1 min-w-0"
+                                                  />
+                                                </div>
+                                              </div>
+                                              <button
+                                                onClick={() => {
+                                                  const updated = nextArr.filter((_, i) => i !== rIdx);
+                                                  updateChoiceOption(choice.id, idx, { ...opt, next: updated });
+                                                }}
+                                                className="p-1 rounded transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-accent-error)]"
+                                              >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                      {nextArr.length > 0 && nextArr[nextArr.length - 1].requires && nextArr[nextArr.length - 1].requires.length > 0 && (
+                                        <div className="py-2 px-3 mt-1 rounded-md" style={{ fontSize: 11, color: 'var(--color-accent-error)', background: 'rgba(255,107,107,0.06)', border: '1px solid rgba(255,107,107,0.15)' }}>
+                                          ⚠ No fallback — option may loop unexpectedly
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </div>
                             )}
@@ -364,7 +440,7 @@ function StatusSetEditor({ statusSet, onChange, availableStatus }) {
                <div className="flex items-center gap-1 px-2 py-1 rounded-md" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
                  <span style={{ fontSize: 10, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>±</span>
                  <input type="number" value={mod.amount} onChange={e => updateStatusMod(idx, { amount: parseInt(e.target.value,10)||0 })}
-                   className="w-12 bg-transparent focus:outline-none text-right"
+                   className="w-16 bg-transparent focus:outline-none text-center"
                    style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--color-accent-primary)' }}
                  />
                </div>

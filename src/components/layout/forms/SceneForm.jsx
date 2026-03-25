@@ -10,20 +10,21 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
   const isNew = !entityId;
   const existingScene = isNew ? null : scenes[entityId];
 
-  const [draft, setDraft] = useState({ name: '', description: '', path: null, chapter: null, requires: [], next: [] });
+  const [draft, setDraft] = useState({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [] });
 
   useEffect(() => {
     if (existingScene) {
       setDraft({
         name: existingScene.name || '',
         description: existingScene.description || '',
+        variants: existingScene.variants || [],
         path: existingScene.path || null,
         chapter: existingScene.chapter || null,
         requires: existingScene.requires || [],
         next: existingScene.next || []
       });
     } else {
-      setDraft({ name: '', description: '', path: null, chapter: null, requires: [], next: [] });
+      setDraft({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [] });
     }
   }, [existingScene, entityId]);
 
@@ -77,6 +78,22 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
     setDraft({ ...draft, next: newNext });
   };
 
+  const addVariant = () => {
+    const newVariant = { _id: `variant_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, requires: [], text: '' };
+    setDraft({ ...draft, variants: [...(draft.variants || []), newVariant] });
+  };
+
+  const updateVariant = (idx, updates) => {
+    const newVariants = [...(draft.variants || [])];
+    newVariants[idx] = { ...newVariants[idx], ...updates };
+    setDraft({ ...draft, variants: newVariants });
+  };
+
+  const removeVariant = (idx) => {
+    const newVariants = (draft.variants || []).filter((_, i) => i !== idx);
+    setDraft({ ...draft, variants: newVariants });
+  };
+
   return (
     <div className="flex flex-col h-full bg-transparent">
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
@@ -110,6 +127,64 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
             onBlur={(e) => e.target.style.borderColor = 'var(--color-border-row)'}
             placeholder="Scene description..."
           />
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--color-border-ghost)', paddingTop: 16 }}>
+          <div className="flex items-center justify-between mb-3">
+            <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Text Variants
+            </label>
+            <button
+              onClick={addVariant}
+              style={{ background: 'none', border: '1px solid var(--color-border-ghost)', borderRadius: 6, color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500, padding: '3px 8px', cursor: 'pointer' }}
+              title="Add a conditional text variant"
+            >
+              + Add variant
+            </button>
+          </div>
+
+          {(draft.variants || []).length === 0 ? (
+            <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+              No text variants — base description displays as-is.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(draft.variants || []).map((variant, idx) => (
+                <div key={variant._id || idx} className="p-3 rounded-md" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)' }}>Variant {idx + 1}</span>
+                    <button
+                      onClick={() => removeVariant(idx)}
+                      className="p-1 rounded transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-accent-error)]"
+                      title="Remove variant"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <ConditionEditor
+                      conditions={variant.requires || []}
+                      onChange={(newReqs) => updateVariant(idx, { requires: newReqs })}
+                    />
+                  </div>
+
+                  <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>
+                    Variant text
+                  </label>
+                  <textarea
+                    value={variant.text || ''}
+                    onChange={(e) => updateVariant(idx, { text: e.target.value })}
+                    className="w-full px-3 py-2 rounded-md focus:outline-none transition-colors resize-y min-h-[70px]"
+                    style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)', color: 'var(--color-text-secondary)', fontSize: 13, fontFamily: 'var(--font-ui)', lineHeight: 1.5 }}
+                    onFocus={(e) => e.target.style.borderColor = 'var(--color-border-active)'}
+                    onBlur={(e) => e.target.style.borderColor = 'var(--color-border-row)'}
+                    placeholder="Additional text appended when conditions match..."
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* We no longer hide these complex fields when isNew */}
@@ -169,7 +244,7 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
                     <div key={routeKey} className="p-3 rounded-md relative group" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
                       <div className="flex items-start gap-3">
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-muted)', marginTop: 4 }}>{idx + 1}.</span>
-                        <div className="flex-1 space-y-2">
+                        <div className="flex-1 space-y-2 min-w-0">
                           {isFallback ? (
                             <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Fallback · always matches</span>
                           ) : (
@@ -186,7 +261,7 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
                               options={routeOptions.filter(o => o.id !== entityId)}
                               placeholder="Select target..."
                               showFilters={true}
-                              className="flex-1"
+                              className="flex-1 min-w-0"
                             />
                           </div>
                         </div>
