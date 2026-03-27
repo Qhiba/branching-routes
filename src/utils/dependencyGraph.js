@@ -115,44 +115,62 @@ export function buildDependencyGraph(flags, statusPoints, choices, scenes, endin
     }
   }
 
-  // ── Scan scenes ───────────────────────────────────────────────────
-  for (const scene of Object.values(scenes || {})) {
-    // Scene requires → getters
-    if (scene.requires) {
-      for (const req of scene.requires) {
-        if (req.flag && flagGraph[req.flag]) {
-          flagGraph[req.flag].requiredBy.scenes.push({ id: scene.id, context: 'scene_requires' });
-        }
-        if (req.status && statusGraph[req.status]) {
-          statusGraph[req.status].requiredBy.scenes.push({ id: scene.id, context: 'scene_requires' });
-        }
-      }
-    }
-
-    // Scene next routes → getters (route conditions) + navigation edges
-    if (scene.next) {
-      for (let routeIdx = 0; routeIdx < scene.next.length; routeIdx++) {
-        const route = scene.next[routeIdx];
-
-        // Route requires → getters
-        if (route.requires) {
-          for (const req of route.requires) {
-            if (req.flag && flagGraph[req.flag]) {
-              flagGraph[req.flag].requiredBy.scenes.push({ id: scene.id, context: 'scene_next_requires', routeIndex: routeIdx });
-            }
-            if (req.status && statusGraph[req.status]) {
-              statusGraph[req.status].requiredBy.scenes.push({ id: scene.id, context: 'scene_next_requires', routeIndex: routeIdx });
-            }
+    // ── Scan scenes ───────────────────────────────────────────────────
+    for (const scene of Object.values(scenes || {})) {
+      // Scene requires → getters
+      if (scene.requires) {
+        for (const req of scene.requires) {
+          if (req.flag && flagGraph[req.flag]) {
+            flagGraph[req.flag].requiredBy.scenes.push({ id: scene.id, context: 'scene_requires' });
+          }
+          if (req.status && statusGraph[req.status]) {
+            statusGraph[req.status].requiredBy.scenes.push({ id: scene.id, context: 'scene_requires' });
           }
         }
+      }
 
-        // Route target → navigation edge
-        if (route.target) {
-          addEdge(scene.id, route.target);
+      // Scene flags_set → setters
+      if (scene.flags_set) {
+        for (const fId of scene.flags_set) {
+          if (flagGraph[fId]) {
+            flagGraph[fId].setBy.push({ choiceId: scene.id, optionIndex: undefined });
+          }
         }
       }
-    }
-  }
+
+      // Scene status_set → mutators
+      if (scene.status_set) {
+        for (const sm of scene.status_set) {
+          if (statusGraph[sm.status]) {
+            statusGraph[sm.status].mutatedBy.push({ choiceId: scene.id, optionIndex: undefined, amount: sm.amount });
+          }
+        }
+      }
+
+     // Scene next routes → getters (route conditions) + navigation edges
+     if (scene.next) {
+       for (let routeIdx = 0; routeIdx < scene.next.length; routeIdx++) {
+         const route = scene.next[routeIdx];
+
+         // Route requires → getters
+         if (route.requires) {
+           for (const req of route.requires) {
+             if (req.flag && flagGraph[req.flag]) {
+               flagGraph[req.flag].requiredBy.scenes.push({ id: scene.id, context: 'scene_next_requires', routeIndex: routeIdx });
+             }
+             if (req.status && statusGraph[req.status]) {
+               statusGraph[req.status].requiredBy.scenes.push({ id: scene.id, context: 'scene_next_requires', routeIndex: routeIdx });
+             }
+           }
+         }
+
+         // Route target → navigation edge
+         if (route.target) {
+           addEdge(scene.id, route.target);
+         }
+       }
+     }
+   }
 
   // ── Scan endings ──────────────────────────────────────────────────
   for (const ending of Object.values(endings || {})) {

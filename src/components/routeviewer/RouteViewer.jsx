@@ -4,6 +4,7 @@ import {
   MiniMap,
   Background,
   useReactFlow,
+  useViewport,
   ReactFlowProvider,
   useNodesState,
   useEdgesState,
@@ -20,7 +21,27 @@ import { Navigation, Crosshair, X, AlertTriangle, Blocks, Undo2, StopCircle, Lay
 
 const nodeTypes = { scene: SceneNode, choice: ChoiceNode, ending: EndingNode };
 
-function RouteViewerInner({ onNodeEdit, sim, routeViewerRef, tracedPath }) {
+function AxisLine() {
+  const { y, zoom } = useViewport();
+  const lineY = y + (0 * zoom);
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: lineY,
+        left: 0,
+        width: '100%',
+        height: 1,
+        background: 'rgba(255, 255, 255, 0.075)',
+        pointerEvents: 'none',
+        zIndex: 1,
+      }}
+    />
+  );
+}
+
+function RouteViewerInner({ onNodeEdit, sim, routeViewerRef, tracedPath, routeTraceResult }) {
   const { paths, chapters, scenes, choices, endings, flags, statusPoints } = useEditorData();
   const { updateScene, updateChoiceOption, updateNodePosition, resetAllPositions, resetSpawnOffset } = useEditorActions();
   const { setCenter, fitView, getViewport, setViewport, screenToFlowPosition } = useReactFlow();
@@ -68,7 +89,7 @@ function RouteViewerInner({ onNodeEdit, sim, routeViewerRef, tracedPath }) {
       const layout = computeLayoutWithPositions(choices, scenes, endings, opts);
 
       layout.nodes = layout.nodes.map(n =>
-        n.type === 'choice'
+        n.type === 'choice' || n.type === 'scene'
           ? { ...n, data: { ...n.data, flagsMap: flags, statusMap: statusPoints } }
           : n
       );
@@ -144,12 +165,42 @@ function RouteViewerInner({ onNodeEdit, sim, routeViewerRef, tracedPath }) {
           }
         }
       }
-      if (node.data.state !== state) {
-        return { ...node, data: { ...node.data, state } };
+
+      // Compute trace highlight data
+      let traceHighlight = null;
+      if (tracedPath && routeTraceResult && routeTraceResult.paths && routeTraceResult.paths.length > 0) {
+        const isOnPath = tracedPath.includes(node.id);
+        let pickedOptionId = null;
+
+        if (isOnPath && choices[node.id]) {
+          // Find the path whose raw array matches tracedPath (handles multi-path selection)
+          const matchedPath = routeTraceResult.paths.find(
+            p => p.raw && p.raw.length === tracedPath.length && p.raw.every((id, i) => id === tracedPath[i])
+          ) || routeTraceResult.paths[0];
+          const step = matchedPath.annotated.find(s => s.nodeId === node.id);
+          if (step && step.pick) {
+            pickedOptionId = step.pick.optionId;
+          }
+        }
+
+        traceHighlight = { isOnPath, pickedOptionId };
+      }
+
+      const newData = { ...node.data, state };
+      if (traceHighlight !== null) {
+        newData.traceHighlight = traceHighlight;
+      } else if (node.data.traceHighlight) {
+        // Remove traceHighlight if no longer tracing
+        const { traceHighlight: _, ...rest } = node.data;
+        return { ...node, data: { ...rest, state } };
+      }
+
+      if (node.data.state !== state || node.data.traceHighlight !== traceHighlight) {
+        return { ...node, data: newData };
       }
       return node;
     }));
-  }, [sim, sim.isRunning, sim.currentNodeId, sim.visitedNodeIds, staticUnreachable, scenes, choices, endings, sim.passesRequires, setNodes]);
+  }, [sim, sim.isRunning, sim.currentNodeId, sim.visitedNodeIds, staticUnreachable, scenes, choices, endings, sim.passesRequires, tracedPath, routeTraceResult, setNodes]);
 
   const ghostedNodeIds = useMemo(() => {
     return new Set(baseLayout.nodes.filter(n => n.data.isGhosted).map(n => n.id));
@@ -477,6 +528,7 @@ function RouteViewerInner({ onNodeEdit, sim, routeViewerRef, tracedPath }) {
             snapGrid={[24, 24]}
           >
             <Background variant="lines" gap={24} size={1} color="rgba(255,255,255,0.04)" />
+            <AxisLine />
             <MiniMap
               nodeStrokeWidth={3}
               nodeColor={(node) => {
@@ -527,10 +579,10 @@ function RouteViewerInner({ onNodeEdit, sim, routeViewerRef, tracedPath }) {
   );
 }
 
-export default function RouteViewer({ onNodeEdit, sim, routeViewerRef, tracedPath }) {
+export default function RouteViewer({ onNodeEdit, sim, routeViewerRef, tracedPath, routeTraceResult }) {
   return (
     <ReactFlowProvider>
-      <RouteViewerInner onNodeEdit={onNodeEdit} sim={sim} routeViewerRef={routeViewerRef} tracedPath={tracedPath} />
+      <RouteViewerInner onNodeEdit={onNodeEdit} sim={sim} routeViewerRef={routeViewerRef} tracedPath={tracedPath} routeTraceResult={routeTraceResult} />
     </ReactFlowProvider>
   );
 }

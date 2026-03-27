@@ -1,8 +1,24 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { AlertTriangle, Flag, Layers, GitFork, Book, Dumbbell, Award, ListTree, ChevronDown, ChevronUp, CircleDashed, CircleCheck, ArrowLeft, Route, Sparkles } from 'lucide-react';
-import SearchableDropdown from '../shared/SearchableDropdown';
+import { AlertTriangle, Flag, Layers, GitFork, Book, Dumbbell, Award, ListTree, ChevronDown, ChevronUp, CircleDashed, CircleCheck, ArrowLeft, Route, Sparkles, Target, BarChart3, Edit, Trash2, GripVertical } from 'lucide-react';
 import { useEditor } from '../../context/EditorContext';
 import useLongPress from '../../hooks/useLongPress';
+
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 import FlagForm from './forms/FlagForm';
 import StatusForm from './forms/StatusForm';
@@ -15,35 +31,60 @@ import { SceneInspector, ChoiceInspector, EndingInspector } from './NodeInspecto
 
 // Entity types that get the read-only inspector + modal flow
 const INSPECTOR_TYPES = new Set(['scenes', 'choices', 'endings']);
+const REORDERABLE_TYPES = new Set(['flags', 'status', 'choices', 'scenes', 'endings']);
 
-function EntityListItem({ entity, activeColor, onSelect, onFocus }) {
+function SortableEntityListItem({ entity, activeColor, onSelect, onFocus, isReorderable }) {
   const longPressProps = useLongPress(
     () => onFocus(entity.id),
     () => onSelect(entity.id),
     { delay: 600 }
   );
 
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: entity.id, disabled: !isReorderable });
+
   return (
-    <div 
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...(isReorderable ? listeners : {})}
       {...longPressProps}
       className="p-2 rounded cursor-pointer transition-colors flex items-start gap-2 group"
-      style={{ background: 'transparent', border: '1px solid transparent' }}
+      style={{ 
+        background: 'transparent', 
+        border: '1px solid transparent',
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 1000 : 'auto',
+      }}
       onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-card)'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
     >
-        <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: activeColor, padding: '2px 4px', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>
-          {entity.id.slice(0, 6)}
+      {isReorderable && (
+        <div className="flex-shrink-0 text-gray-500 cursor-grab active:cursor-grabbing" style={{ padding: '2px' }}>
+          <GripVertical className="w-3.5 h-3.5" />
         </div>
-        <div className="flex-1 overflow-hidden">
-          <div className="truncate text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>
-            {entity.name || entity.text || 'Unnamed'}
+      )}
+      <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: activeColor, padding: '2px 4px', background: 'rgba(255,255,255,0.05)', borderRadius: 4 }}>
+        {entity.id.slice(0, 6)}
+      </div>
+      <div className="flex-1 overflow-hidden">
+        <div className="truncate text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>
+          {entity.name || entity.text || 'Unnamed'}
+        </div>
+        {entity.text && (
+          <div className="truncate text-[10px]" style={{ color: 'var(--color-text-muted)', marginTop: 2 }}>
+            {entity.text}
           </div>
-          {entity.text && (
-            <div className="truncate text-[10px]" style={{ color: 'var(--color-text-muted)', marginTop: 2 }}>
-              {entity.text}
-            </div>
-          )}
-        </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -86,10 +127,49 @@ function FlagDashRow({ flag, onToggle }) {
 }
 
 export default function LeftSidebar({ activeNavItem, onNavChange, activeEditId, onSetEditId, onClearEdit, sim, onOpenModal, backtrackTargetId, onClearBacktrack, routeTraceResult, onHighlightPath, tracedPath }) {
-  const { flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, setEntryNode, focusNode, deleteScene, deleteChoice, deleteEnding, toggleFlagState } = useEditor();
+  const { flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, setEntryNode, focusNode, deleteScene, deleteChoice, deleteEnding, toggleFlagState, reorderFlags, reorderStatusPoints, reorderChoices, reorderScenes, reorderEndings } = useEditor();
   const [searchTerm, setSearchTerm] = useState("");
   const [isFlagsExpanded, setIsFlagsExpanded] = useState(false);
   const [flagSearchTerm, setFlagSearchTerm] = useState("");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    
+    const isReorderable = REORDERABLE_TYPES.has(activeNavItem);
+    if (!isReorderable) return;
+
+    const getActiveEntities = () => {
+      switch (activeNavItem) {
+        case 'flags': return Object.values(flags || {});
+        case 'status': return Object.values(statusPoints || {});
+        case 'choices': return Object.values(choices || {});
+        case 'scenes': return Object.values(scenes || {});
+        case 'endings': return Object.values(endings || {});
+        default: return [];
+      }
+    };
+
+    const activeEntities = getActiveEntities();
+    const oldIndex = activeEntities.findIndex(e => e.id === active.id);
+    const newIndex = activeEntities.findIndex(e => e.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(activeEntities.map(e => e.id), oldIndex, newIndex);
+
+    switch (activeNavItem) {
+      case 'flags': reorderFlags(newOrder); break;
+      case 'status': reorderStatusPoints(newOrder); break;
+      case 'choices': reorderChoices(newOrder); break;
+      case 'scenes': reorderScenes(newOrder); break;
+      case 'endings': reorderEndings(newOrder); break;
+    }
+  };
 
   const editingEntityId = activeEditId;
   const [isCreatingNew, setIsCreatingNew] = useState(false);
@@ -102,18 +182,6 @@ export default function LeftSidebar({ activeNavItem, onNavChange, activeEditId, 
     setIsCreatingNew(false);
     if (onClearEdit) onClearEdit();
   };
-
-  const entryPointOptions = useMemo(() => [
-    ...Object.values(scenes).map(s => ({ ...s, name: `[Scene] ${s.name}`, type: 'Scene' })),
-    ...Object.values(choices).map(c => ({ ...c, name: `[Choice] ${c.text}`, type: 'Choice' }))
-  ], [scenes, choices]);
-
-  const entryNodeType = useMemo(() => {
-    if (!entryNode) return null;
-    if (scenes[entryNode]) return 'Scene';
-    if (choices[entryNode]) return 'Choice';
-    return null;
-  }, [entryNode, scenes, choices]);
 
   const dashboardItems = [
     { id: 'flags', label: 'Flags', count: Object.keys(flags || {}).length, icon: Flag, color: 'var(--color-accent-variable)' },
@@ -239,12 +307,50 @@ export default function LeftSidebar({ activeNavItem, onNavChange, activeEditId, 
     setSelectedPathIdx(0);
   }, [backtrackTargetId]);
 
-  /* ── Render backtrack results view (annotated route) ── */
-  const renderBacktrackView = () => {
+  /* ── Render requirements summary view ── */
+  const renderRequirementsSummary = () => {
     const targetInfo = getEntityInfo(backtrackTargetId);
     const hasResult = routeTraceResult && routeTraceResult.paths && routeTraceResult.paths.length > 0;
     const currentPath = hasResult ? routeTraceResult.paths[selectedPathIdx] : null;
-    const isHighlighted = tracedPath && currentPath && JSON.stringify(tracedPath) === JSON.stringify(currentPath.raw);
+
+    // Aggregate flags and status from the path
+    const flagsMap = new Map();
+    const statusMap = new Map();
+
+    if (hasResult && currentPath) {
+      currentPath.annotated.forEach(step => {
+        // Aggregate flags set
+        if (step.flagsSet) {
+          step.flagsSet.forEach(flagName => {
+            if (!flagsMap.has(flagName)) {
+              flagsMap.set(flagName, []);
+            }
+            flagsMap.get(flagName).push({
+              nodeId: step.nodeId,
+              nodeName: step.nodeName,
+              nodeType: step.nodeType
+            });
+          });
+        }
+
+        // Aggregate status changes
+        if (step.statusChanges) {
+          step.statusChanges.forEach(sc => {
+            if (!statusMap.has(sc.statusName)) {
+              statusMap.set(sc.statusName, { total: 0, choices: [] });
+            }
+            statusMap.get(sc.statusName).total += sc.amount;
+            if (step.nodeType === 'choice') {
+              statusMap.get(sc.statusName).choices.push({
+                nodeId: step.nodeId,
+                nodeName: step.nodeName,
+                amount: sc.amount
+              });
+            }
+          });
+        }
+      });
+    }
 
     return (
       <>
@@ -262,9 +368,9 @@ export default function LeftSidebar({ activeNavItem, onNavChange, activeEditId, 
           </button>
 
           <div className="mb-2 flex items-center gap-1.5">
-            <Route className="w-3.5 h-3.5" style={{ color: '#d4a017' }} />
+            <Target className="w-3.5 h-3.5" style={{ color: '#d4a017' }} />
             <span style={{ fontSize: 10, fontWeight: 600, color: '#d4a017', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Route to
+              Requirements to reach
             </span>
           </div>
           <div className="flex items-center gap-2 p-2.5 rounded-md" style={{ background: 'var(--color-surface-card)', border: '1px solid var(--color-border-ghost)' }}>
@@ -282,36 +388,7 @@ export default function LeftSidebar({ activeNavItem, onNavChange, activeEditId, 
           </div>
         </div>
 
-        {/* Path selector (if multiple paths) */}
-        {hasResult && routeTraceResult.paths.length > 1 && (
-          <div className="px-4 py-2 border-b flex items-center gap-2" style={{ borderColor: 'var(--color-border-ghost)' }}>
-            <span style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 600 }}>Path:</span>
-            <div className="flex gap-1 flex-wrap">
-              {routeTraceResult.paths.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedPathIdx(idx)}
-                  className="px-2 py-0.5 rounded transition-colors"
-                  style={{
-                    fontSize: 10,
-                    fontWeight: selectedPathIdx === idx ? 600 : 400,
-                    background: selectedPathIdx === idx ? 'rgba(212,160,23,0.15)' : 'var(--color-surface-card-low)',
-                    color: selectedPathIdx === idx ? '#d4a017' : 'var(--color-text-muted)',
-                    border: `1px solid ${selectedPathIdx === idx ? 'rgba(212,160,23,0.3)' : 'var(--color-border-ghost)'}`,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {idx + 1}
-                </button>
-              ))}
-            </div>
-            <span style={{ fontSize: 10, color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
-              {routeTraceResult.paths.length} paths found
-            </span>
-          </div>
-        )}
-
-        {/* Annotated steps */}
+        {/* Content */}
         <div className="flex-1 overflow-y-auto p-3">
           {!hasResult ? (
             <div className="text-center py-8">
@@ -323,157 +400,152 @@ export default function LeftSidebar({ activeNavItem, onNavChange, activeEditId, 
               </div>
             </div>
           ) : (
-            <div className="space-y-1">
-              {currentPath.annotated.map((step, idx) => {
-                const stepInfo = getEntityInfo(step.nodeId);
-                const isLast = idx === currentPath.annotated.length - 1;
-                const typeColor = step.nodeType === 'choice' ? 'var(--color-accent-primary-dim)' : step.nodeType === 'scene' ? 'var(--color-accent-scene)' : step.nodeType === 'ending' ? 'var(--color-accent-terminal)' : 'var(--color-text-muted)';
-
-                return (
-                  <div key={step.nodeId} className="relative">
-                    {/* Step number + node info */}
-                    <div
-                      className="p-2.5 rounded-md transition-colors cursor-pointer"
-                      style={{ background: 'var(--color-surface-card)', border: '1px solid var(--color-border-ghost)' }}
-                      onClick={() => onSetEditId(step.nodeId)}
-                      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
-                      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border-ghost)'}
-                    >
-                      <div className="flex items-start gap-2">
-                        {/* Step number */}
-                        <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'rgba(212,160,23,0.15)', color: '#d4a017', fontSize: 10, fontWeight: 700 }}>
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1 overflow-hidden">
-                          {/* Node type badge + ID */}
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: typeColor, background: `color-mix(in srgb, ${typeColor} 10%, transparent)`, padding: '1px 4px', borderRadius: 3 }}>
-                              {step.nodeType}
-                            </span>
-                            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
-                              {step.nodeId}
-                            </span>
-                          </div>
-                          {/* Node name */}
-                          <div className="truncate text-xs font-medium" style={{ color: 'var(--color-text-primary)', lineHeight: 1.4 }}>
-                            {step.nodeName}
-                          </div>
-
-                          {/* Pick info (which option/route to take) */}
-                          {step.pick && (
-                            <div className="mt-1.5 pl-2" style={{ borderLeft: '2px solid rgba(212,160,23,0.3)' }}>
-                              <div className="flex items-center gap-1">
-                                <span style={{ fontSize: 10, color: '#d4a017' }}>→</span>
-                                <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--color-text-secondary)' }}>
-                                  "{step.pick.label}"
-                                </span>
-                              </div>
-
-                              {/* Flags set */}
-                              {step.flagsSet && step.flagsSet.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {step.flagsSet.map((flagName, fi) => (
-                                    <span key={fi} style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--color-accent-variable)', background: 'rgba(255,255,255,0.05)', padding: '1px 4px', borderRadius: 3 }}>
-                                      sets {flagName}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Status changes */}
-                              {step.statusChanges && step.statusChanges.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {step.statusChanges.map((sc, si) => (
-                                    <span key={si} style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: sc.amount >= 0 ? 'var(--color-accent-primary-dim)' : 'var(--color-accent-error)', background: 'rgba(255,255,255,0.05)', padding: '1px 4px', borderRadius: 3 }}>
-                                      {sc.amount >= 0 ? '+' : ''}{sc.amount} {sc.statusName}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Satisfaction warning */}
-                              {!step.satisfiesNext && (
-                                <div className="flex items-center gap-1 mt-1">
-                                  <AlertTriangle className="w-3 h-3" style={{ color: 'var(--color-accent-error)' }} />
-                                  <span style={{ fontSize: 9, color: 'var(--color-accent-error)' }}>
-                                    Next node's requirements may not be met
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Requires on this node */}
-                          {step.requires && step.requires.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1.5">
-                              <span style={{ fontSize: 9, color: 'var(--color-text-muted)' }}>requires:</span>
-                              {step.requires.map((req, ri) => (
-                                <span key={ri} style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: req.flag ? 'var(--color-accent-variable)' : 'var(--color-accent-primary-dim)', background: 'rgba(255,255,255,0.05)', padding: '1px 4px', borderRadius: 3 }}>
-                                  {req.flag ? `${req.flag}=${String(req.state)}` : `${req.status} ${req.min !== undefined ? `≥${req.min}` : ''}${req.max !== undefined ? `≤${req.max}` : ''}`}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Connector line between steps */}
-                    {!isLast && (
-                      <div className="flex justify-center py-0.5">
-                        <div style={{ width: 1, height: 12, background: 'rgba(212,160,23,0.3)' }} />
-                      </div>
-                    )}
+            <div className="space-y-4">
+              {/* FLAGS NEEDED */}
+              {flagsMap.size > 0 && (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-accent-variable)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                    Flags needed
                   </div>
-                );
-              })}
+                  <div className="space-y-2">
+                    {Array.from(flagsMap.entries()).map(([flagName, setters]) => (
+                      <div key={flagName} className="p-2.5 rounded-md" style={{ background: 'var(--color-surface-card)', border: '1px solid var(--color-border-ghost)' }}>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Flag className="w-3 h-3" style={{ color: 'var(--color-accent-variable)' }} />
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-accent-variable)', fontFamily: 'var(--font-mono)' }}>
+                            {flagName}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginBottom: 6 }}>
+                          Set by:
+                        </div>
+                        <div className="space-y-1">
+                          {setters.map((setter, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+                                {setter.nodeId.slice(0, 6)}
+                              </div>
+                              <div className="flex-1 truncate text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                                {setter.nodeName}
+                              </div>
+                              <span style={{ fontSize: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: setter.nodeType === 'choice' ? 'var(--color-accent-primary-dim)' : setter.nodeType === 'scene' ? 'var(--color-accent-scene)' : 'var(--color-text-muted)', background: 'rgba(255,255,255,0.05)', padding: '1px 3px', borderRadius: 2 }}>
+                                {setter.nodeType}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              {/* Summary */}
-              <div className="mt-3 px-2.5 py-2 rounded-md" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
-                <div style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
-                  Minimum choices: <span style={{ fontWeight: 600, color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                    {currentPath.annotated.filter(s => s.nodeType === 'choice' && s.pick).length}
-                  </span>
+              {/* STATUS NEEDED */}
+              {statusMap.size > 0 && (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-accent-primary-dim)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                    Status needed
+                  </div>
+                  <div className="space-y-2">
+                    {Array.from(statusMap.entries()).map(([statusName, data]) => (
+                      <div key={statusName} className="p-2.5 rounded-md" style={{ background: 'var(--color-surface-card)', border: '1px solid var(--color-border-ghost)' }}>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <BarChart3 className="w-3 h-3" style={{ color: 'var(--color-accent-primary-dim)' }} />
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-accent-primary-dim)', fontFamily: 'var(--font-mono)' }}>
+                            {statusName}
+                          </span>
+                          <span style={{ fontSize: 10, color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
+                            Total: {data.total >= 0 ? '+' : ''}{data.total}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginBottom: 6 }}>
+                          Contributed by {data.choices.length} choice{data.choices.length !== 1 ? 's' : ''}:
+                        </div>
+                        <div className="space-y-1">
+                          {data.choices.map((choice, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)' }}>
+                                {choice.nodeId.slice(0, 6)}
+                              </div>
+                              <div className="flex-1 truncate text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                                {choice.nodeName}
+                              </div>
+                              <span style={{ fontSize: 9, fontWeight: 500, color: choice.amount >= 0 ? 'var(--color-accent-primary-dim)' : 'var(--color-accent-error)' }}>
+                                {choice.amount >= 0 ? '+' : ''}{choice.amount}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 2 }}>
-                  Total steps: <span style={{ fontWeight: 600, color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                    {currentPath.raw.length}
-                  </span>
+              )}
+
+              {/* No requirements */}
+              {flagsMap.size === 0 && statusMap.size === 0 && (
+                <div className="text-center py-8">
+                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+                    No special requirements
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>
+                    This node can be reached without setting flags or modifying status.
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Footer — Highlight path button */}
-        {hasResult && (
-          <div className="flex-shrink-0 px-3 py-3" style={{ borderTop: '1px solid var(--color-border-ghost)' }}>
-            <button
-              onClick={() => {
-                if (isHighlighted) {
-                  onHighlightPath(null);
-                } else {
-                  onHighlightPath(currentPath.raw);
-                }
-              }}
-              className="flex items-center justify-center gap-2 rounded-md transition-colors w-full"
-              style={{
-                background: isHighlighted ? 'rgba(212,160,23,0.2)' : 'rgba(212,160,23,0.1)',
-                color: '#d4a017',
-                border: `1px solid ${isHighlighted ? 'rgba(212,160,23,0.4)' : 'rgba(212,160,23,0.2)'}`,
-                padding: '7px 12px',
-                fontSize: 11,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(212,160,23,0.2)'}
-              onMouseLeave={e => e.currentTarget.style.background = isHighlighted ? 'rgba(212,160,23,0.2)' : 'rgba(212,160,23,0.1)'}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              {isHighlighted ? 'Clear highlight' : 'Highlight path on graph'}
-            </button>
-          </div>
-        )}
+        {/* Footer — Edit/Delete buttons */}
+        <div className="flex-shrink-0 px-3 py-3 border-t flex gap-2" style={{ borderColor: 'var(--color-border-ghost)' }}>
+          <button
+            onClick={() => {
+              const entityType = scenes[backtrackTargetId] ? 'scene' : choices[backtrackTargetId] ? 'choice' : endings[backtrackTargetId] ? 'ending' : 'scene';
+              onOpenModal(entityType, backtrackTargetId);
+            }}
+            className="flex-1 flex items-center justify-center gap-2 rounded-md transition-colors"
+            style={{
+              background: 'var(--color-surface-card)',
+              color: 'var(--color-text-secondary)',
+              border: '1px solid var(--color-border-ghost)',
+              padding: '6px 8px',
+              fontSize: 10,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-border-subtle)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border-ghost)'}
+          >
+            <Edit className="w-3 h-3" />
+            Edit
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm(`Delete ${targetInfo.type} "${targetInfo.name}"?`)) {
+                if (scenes[backtrackTargetId]) deleteScene(backtrackTargetId);
+                else if (choices[backtrackTargetId]) deleteChoice(backtrackTargetId);
+                else if (endings[backtrackTargetId]) deleteEnding(backtrackTargetId);
+                onClearBacktrack();
+              }
+            }}
+            className="flex-1 flex items-center justify-center gap-2 rounded-md transition-colors"
+            style={{
+              background: 'rgba(255,107,107,0.05)',
+              color: 'var(--color-accent-error)',
+              border: '1px solid rgba(255,107,107,0.3)',
+              padding: '6px 8px',
+              fontSize: 10,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,107,107,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,107,107,0.05)'}
+          >
+            <Trash2 className="w-3 h-3" />
+            Delete
+          </button>
+        </div>
       </>
     );
   };
@@ -484,7 +556,7 @@ export default function LeftSidebar({ activeNavItem, onNavChange, activeEditId, 
         <DynamicTracker sim={sim} />
       ) : backtrackTargetId ? (
         <div className="flex-1 flex flex-col overflow-hidden h-full">
-          {renderBacktrackView()}
+          {renderRequirementsSummary()}
         </div>
       ) : activeEditId || isCreatingNew ? (
         <div className="flex-1 flex flex-col overflow-hidden h-full">
@@ -492,30 +564,6 @@ export default function LeftSidebar({ activeNavItem, onNavChange, activeEditId, 
         </div>
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="p-4 border-b flex-shrink-0" style={{ borderColor: 'var(--color-border-ghost)' }}>
-            <div className="mb-1.5 flex items-center gap-1.5" style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-              Entry Node
-              {entryNodeType && (
-                <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: 'rgba(0,209,255,0.08)', color: 'var(--color-accent-primary-dim)', fontWeight: 600, textTransform: 'uppercase' }}>
-                  {entryNodeType}
-                </span>
-              )}
-            </div>
-            <SearchableDropdown
-              value={entryNode || null}
-              onChange={setEntryNode}
-              options={entryPointOptions}
-              placeholder="Set entry node..."
-              showFilters={true}
-            />
-            {!entryNode && (
-              <div className="flex items-center gap-1 mt-1.5 px-1.5 py-1 rounded" style={{ background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.15)' }}>
-                <AlertTriangle className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--color-accent-error)' }} />
-                <span style={{ fontSize: 10, color: 'var(--color-accent-error)' }}>No entry node — export disabled</span>
-              </div>
-            )}
-          </div>
-
           {activeNavItem ? (() => {
             const getActiveEntities = () => {
               switch (activeNavItem) {
@@ -568,9 +616,19 @@ export default function LeftSidebar({ activeNavItem, onNavChange, activeEditId, 
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
-                  {filteredEntities.map(entity => (
-                    <EntityListItem key={entity.id} entity={entity} activeColor={activeColor} onSelect={onSetEditId} onFocus={focusNode} />
-                  ))}
+                  {REORDERABLE_TYPES.has(activeNavItem) ? (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                      <SortableContext items={filteredEntities.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                        {filteredEntities.map(entity => (
+                          <SortableEntityListItem key={entity.id} entity={entity} activeColor={activeColor} onSelect={onSetEditId} onFocus={focusNode} isReorderable={true} />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                  ) : (
+                    filteredEntities.map(entity => (
+                      <SortableEntityListItem key={entity.id} entity={entity} activeColor={activeColor} onSelect={onSetEditId} onFocus={focusNode} isReorderable={false} />
+                    ))
+                  )}
                   {filteredEntities.length === 0 && (
                     <div className="text-center p-4 text-xs italic" style={{ color: 'var(--color-text-muted)' }}>No matches found</div>
                   )}

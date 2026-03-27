@@ -13,7 +13,9 @@ export default function SearchableDropdown({
   placeholder = "Select...",
   showFilters = false,
   className = "",
-  buttonClass = ""
+  buttonClass = "",
+  showIdPrefix = true,
+  warningWhenEmpty = false,
 }) {
   const { paths, chapters } = useEditor();
   const [isOpen, setIsOpen] = useState(false);
@@ -222,9 +224,15 @@ export default function SearchableDropdown({
         aria-label={selectedOption ? `${selectedOption.id} - ${selectedOption.name || selectedOption.text || 'Unnamed'}` : placeholder}
       >
         <span className="truncate pr-2" style={{ fontWeight: 500 }}>
-          {selectedOption ? `${selectedOption.id === LOOP_SENTINEL ? '' : selectedOption.id + ' · '}${selectedOption.name || selectedOption.text || 'Unnamed'}` : placeholder}
+          {selectedOption
+            ? (showIdPrefix && selectedOption.id !== LOOP_SENTINEL
+                ? `${selectedOption.id} · ${selectedOption.name || selectedOption.text || 'Unnamed'}`
+                : selectedOption.name || selectedOption.text || 'Unnamed')
+            : placeholder}
         </span>
-        <ChevronDown className="w-3.5 h-3.5 opacity-50 shrink-0 ml-1" />
+        {warningWhenEmpty && !selectedOption
+          ? <span className="shrink-0 ml-1" style={{ fontSize: 13, color: 'var(--color-accent-error)' }}>⚠</span>
+          : <ChevronDown className="w-3.5 h-3.5 opacity-50 shrink-0 ml-1" />}
       </button>
 
       {isOpen && coords && createPortal(

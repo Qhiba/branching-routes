@@ -3,13 +3,15 @@ import { useEditor } from '../../context/EditorContext';
 import { Trash2 } from 'lucide-react';
 import ConditionEditor from '../shared/ConditionEditor';
 import SearchableDropdown from '../shared/SearchableDropdown';
+import FlagsSetEditor from '../shared/FlagsSetEditor';
+import StatusSetEditor from '../shared/StatusSetEditor';
 
 export default function SceneModalForm({ entityId, initialPosition, onClose }) {
-  const { paths, chapters, scenes, choices, endings, entryNode, setEntryNode, addScene, updateScene } = useEditor();
+  const { paths, chapters, scenes, choices, endings, entryNode, sceneTypes, flags, statusPoints, setEntryNode, addScene, updateScene } = useEditor();
   const isNew = !entityId;
   const existingScene = isNew ? null : scenes[entityId];
 
-  const [draft, setDraft] = useState({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [] });
+  const [draft, setDraft] = useState({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [], type: null, flags_set: [], status_set: [] });
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
@@ -21,10 +23,13 @@ export default function SceneModalForm({ entityId, initialPosition, onClose }) {
         path: existingScene.path || null,
         chapter: existingScene.chapter || null,
         requires: existingScene.requires || [],
-        next: existingScene.next || []
+        next: existingScene.next || [],
+        type: existingScene.type || null,
+        flags_set: existingScene.flags_set || [],
+        status_set: existingScene.status_set || []
       });
     } else {
-      setDraft({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [] });
+      setDraft({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [], type: null, flags_set: [], status_set: [] });
     }
     setIsDirty(false);
   }, [existingScene, entityId]);
@@ -94,6 +99,7 @@ export default function SceneModalForm({ entityId, initialPosition, onClose }) {
     <>
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        {/* 1. Name */}
         <div>
           <label style={labelStyle}>Name</label>
           <input
@@ -107,6 +113,49 @@ export default function SceneModalForm({ entityId, initialPosition, onClose }) {
           />
         </div>
 
+        {/* 2. Type | Path | Chapter */}
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label style={labelStyle}>Type</label>
+            <SearchableDropdown
+              options={sceneTypes.map(t => ({ id: t, name: t }))}
+              value={draft.type}
+              onChange={(val) => updateDraft({ type: val })}
+              placeholder="Select type..."
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Path</label>
+            <select value={draft.path || ''} onChange={(e) => updateDraft({ path: e.target.value || null })}
+              className="w-full rounded-md px-2.5 py-1.5 focus:outline-none transition-colors"
+              style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)', color: 'var(--color-text-secondary)', fontSize: 12 }}
+            >
+              <option value="">No Path</option>
+              {Object.values(paths).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Chapter</label>
+            <select value={draft.chapter || ''} onChange={(e) => updateDraft({ chapter: e.target.value || null })}
+              className="w-full rounded-md px-2.5 py-1.5 focus:outline-none transition-colors"
+              style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)', color: 'var(--color-text-secondary)', fontSize: 12 }}
+            >
+              <option value="">No Chapter</option>
+              {Object.values(chapters).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* 3. Requires */}
+        <div>
+          <label style={labelStyle}>Requires</label>
+          <ConditionEditor
+            conditions={draft.requires}
+            onChange={(newReqs) => updateDraft({ requires: newReqs })}
+          />
+        </div>
+
+        {/* 4. Description */}
         <div>
           <label style={labelStyle}>Description</label>
           <textarea
@@ -119,7 +168,7 @@ export default function SceneModalForm({ entityId, initialPosition, onClose }) {
           />
         </div>
 
-        {/* Text Variants */}
+        {/* 5. Text Variants */}
         <div style={{ borderTop: '1px solid var(--color-border-ghost)', paddingTop: 16 }}>
           <div className="flex items-center justify-between mb-3">
             <label style={{ ...labelStyle, marginBottom: 0 }}>Text Variants</label>
@@ -164,40 +213,27 @@ export default function SceneModalForm({ entityId, initialPosition, onClose }) {
           )}
         </div>
 
-        {/* Path & Chapter */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label style={labelStyle}>Path</label>
-            <select value={draft.path || ''} onChange={(e) => updateDraft({ path: e.target.value || null })}
-              className="w-full rounded-md px-2.5 py-1.5 focus:outline-none transition-colors"
-              style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)', color: 'var(--color-text-secondary)', fontSize: 12 }}
-            >
-              <option value="">No Path</option>
-              {Object.values(paths).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle}>Chapter</label>
-            <select value={draft.chapter || ''} onChange={(e) => updateDraft({ chapter: e.target.value || null })}
-              className="w-full rounded-md px-2.5 py-1.5 focus:outline-none transition-colors"
-              style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)', color: 'var(--color-text-secondary)', fontSize: 12 }}
-            >
-              <option value="">No Chapter</option>
-              {Object.values(chapters).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Requires */}
+        {/* 6. Flags Set */}
         <div>
-          <label style={labelStyle}>Requires</label>
-          <ConditionEditor
-            conditions={draft.requires}
-            onChange={(newReqs) => updateDraft({ requires: newReqs })}
+          <label style={labelStyle}>Flags Set</label>
+          <FlagsSetEditor
+            flagsSet={draft.flags_set || []}
+            onChange={(newFlagsSet) => updateDraft({ flags_set: newFlagsSet })}
+            availableFlags={Object.values(flags)}
           />
         </div>
 
-        {/* Next Targets */}
+        {/* 7. Status Set */}
+        <div>
+          <label style={labelStyle}>Status Set</label>
+          <StatusSetEditor
+            statusSet={draft.status_set || []}
+            onChange={(newStatusSet) => updateDraft({ status_set: newStatusSet })}
+            availableStatus={Object.values(statusPoints)}
+          />
+        </div>
+
+        {/* 8. Next Targets */}
         <div style={{ borderTop: '1px solid var(--color-border-ghost)', paddingTop: 16 }}>
           <div className="flex items-center justify-between mb-3">
             <label style={{ ...labelStyle, marginBottom: 0 }}>Next Targets</label>
@@ -256,7 +292,7 @@ export default function SceneModalForm({ entityId, initialPosition, onClose }) {
           )}
         </div>
 
-        {/* Set Entry Node button (edit mode only) */}
+        {/* 9. Set Entry Node button (edit mode only) */}
         {!isNew && (
           <div className="pt-4 border-t" style={{ borderColor: 'var(--color-border-ghost)' }}>
             <button

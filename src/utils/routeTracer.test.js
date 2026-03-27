@@ -87,18 +87,28 @@ function annotatePath(path, choices, scenes, endings, flags, statusPoints) {
       }
     }
 
-    if (nextNodeId && scene && scene.next) {
-      for (let routeIdx = 0; routeIdx < scene.next.length; routeIdx++) {
-        const route = scene.next[routeIdx];
-        if (route.target === nextNodeId) {
-          step.pick = {
-            routeIndex: routeIdx,
-            label: route.requires && route.requires.length > 0
-              ? `Route ${routeIdx + 1} (conditional)`
-              : `Route ${routeIdx + 1} (fallback)`,
-            requires: route.requires || [],
-          };
-          break;
+    if (scene) {
+      step.flagsSet = (scene.flags_set || []).map(fId => flags?.[fId]?.name || fId);
+      step.flagsSetIds = scene.flags_set || [];
+      step.statusChanges = (scene.status_set || []).map(s => ({
+        status: s.status,
+        statusName: statusPoints?.[s.status]?.name || s.status,
+        amount: s.amount,
+      }));
+
+      if (nextNodeId && scene.next) {
+        for (let routeIdx = 0; routeIdx < scene.next.length; routeIdx++) {
+          const route = scene.next[routeIdx];
+          if (route.target === nextNodeId) {
+            step.pick = {
+              routeIndex: routeIdx,
+              label: route.requires && route.requires.length > 0
+                ? `Route ${routeIdx + 1} (conditional)`
+                : `Route ${routeIdx + 1} (fallback)`,
+              requires: route.requires || [],
+            };
+            break;
+          }
         }
       }
     }
@@ -131,8 +141,8 @@ function annotatePath(path, choices, scenes, endings, flags, statusPoints) {
 // ── Test Fixtures ───────────────────────────────────────────────────
 
 const testFlags = {
-  F001: { id: 'F001', name: 'gave_food', state: false },
-  F002: { id: 'F002', name: 'met_king', state: false }
+  F001: { id: 'F001', name: 'gave_food', state: false, path: null, chapter: null },
+  F002: { id: 'F002', name: 'met_king', state: false, path: 'P001', chapter: null }
 };
 
 const testStatus = {
@@ -158,14 +168,15 @@ const testChoices = {
 
 const testScenes = {
   S001: {
-    id: 'S001', name: 'village',
+    id: 'S001', name: 'village', type: 'dialogue',
     requires: [{ flag: 'F001', state: true }],
+    flags_set: ['F002'], status_set: [{ status: 'SP001', amount: 3 }],
     next: [
       { requires: [{ flag: 'F002', state: true }], target: 'E001' },
       { requires: [], target: 'CH002' }
     ]
   },
-  S002: { id: 'S002', name: 'forest', requires: [], next: [{ requires: [], target: 'CH001' }] }
+  S002: { id: 'S002', name: 'forest', type: null, requires: [], flags_set: [], status_set: [], next: [{ requires: [], target: 'CH001' }] }
 };
 
 const testEndings = {
@@ -289,6 +300,14 @@ assert(annotatedShort[2].pick === null, 'Step 3 has no pick (terminal)');
 // Test satisfiesNext: CH001 sets F001, S001 requires F001=true → should satisfy
 assert(annotatedShort[0].satisfiesNext === true, 'CH001 satisfies S001 requires (F001 set)');
 
+// Step 2: S001 scene-level flags_set and status_set
+assert(annotatedShort[1].flagsSet.length === 1, 'S001 scene sets 1 flag');
+assert(annotatedShort[1].flagsSet[0] === 'met_king', 'S001 scene sets met_king');
+assert(annotatedShort[1].flagsSetIds.includes('F002'), 'S001 scene flagsSetIds includes F002');
+assert(annotatedShort[1].statusChanges.length === 1, 'S001 scene has 1 status change');
+assert(annotatedShort[1].statusChanges[0].amount === 3, 'S001 scene adds +3 status');
+assert(annotatedShort[1].statusChanges[0].statusName === 'strength', 'S001 scene changes strength');
+
 console.log('\n=== annotatePath (longer path: CH001 → S001 → CH002 → E001) ===');
 
 // Annotate the longer path
@@ -297,6 +316,9 @@ assert(annotatedLong.length === 4, `Annotated longer path has 4 steps (got ${ann
 
 // Step 2: S001 picks route 1 (fallback to CH002)
 assert(annotatedLong[1].pick.routeIndex === 1, 'Longer path: S001 picks route index 1 (fallback to CH002)');
+
+// Step 2: S001 scene-level flags in longer path
+assert(annotatedLong[1].flagsSetIds.includes('F002'), 'Longer path: S001 scene sets F002');
 
 // Step 3: CH002 picks "Bow"
 assert(annotatedLong[2].nodeType === 'choice', 'Longer path: Step 3 is a choice');

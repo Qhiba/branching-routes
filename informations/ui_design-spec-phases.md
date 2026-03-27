@@ -22,12 +22,13 @@ The aesthetic is **Dark Engineering Console**: obsidian surfaces, muted neutrals
 
 | Layer | Technology |
 |---|---|
-| Framework | React v19.2.0 |
-| Build Tool | Vite v7.2.4 |
-| Styling | Tailwind CSS v4.1.18 (via `@tailwindcss/vite`) |
-| Icons | Lucide React v0.562.0 |
-| Node Graph (Phase 4 only) | `@xyflow/react` v12.10.0 |
-| Auto Layout (Phase 4 only) | `@dagrejs/dagre` |
+| Framework | React v19.2.4 |
+| Build Tool | Vite v8.0.1 |
+| Styling | Tailwind CSS v4.2.2 (via `@tailwindcss/vite`) |
+| Icons | Lucide React v0.577.0 |
+| Node Graph (Phase 4 only) | `@xyflow/react` v12.10.1 |
+| Auto Layout (Phase 4 only) | `@dagrejs/dagre` v2.0.4 |
+| Drag-and-Drop | `@dnd-kit/core` v6.3.1, `@dnd-kit/sortable` v10.0.0 |
 
 ---
 

@@ -48,6 +48,37 @@ const migrateOptionNext = (choices) => {
   return anyChanged ? result : choices;
 };
 
+// Migrate scene fields: add type, flags_set, status_set if missing
+const migrateSceneFields = (scenes) => {
+  if (!scenes || typeof scenes !== 'object') return scenes;
+  const result = { ...scenes };
+  let anyChanged = false;
+  for (const [scId, scene] of Object.entries(result)) {
+    let dirty = false;
+    const patched = { ...scene };
+    if (patched.type === undefined) { patched.type = null; dirty = true; }
+    if (!Array.isArray(patched.flags_set)) { patched.flags_set = []; dirty = true; }
+    if (!Array.isArray(patched.status_set)) { patched.status_set = []; dirty = true; }
+    if (dirty) { result[scId] = patched; anyChanged = true; }
+  }
+  return anyChanged ? result : scenes;
+};
+
+// Migrate flag fields: add path, chapter if missing
+const migrateFlagFields = (flags) => {
+  if (!flags || typeof flags !== 'object') return flags;
+  const result = { ...flags };
+  let anyChanged = false;
+  for (const [fId, flag] of Object.entries(result)) {
+    let dirty = false;
+    const patched = { ...flag };
+    if (patched.path === undefined) { patched.path = null; dirty = true; }
+    if (patched.chapter === undefined) { patched.chapter = null; dirty = true; }
+    if (dirty) { result[fId] = patched; anyChanged = true; }
+  }
+  return anyChanged ? result : flags;
+};
+
 // Sanitize all entity names in a collection
 const sanitizeCollection = (collection) => {
   if (!collection || typeof collection !== 'object') return collection;
@@ -86,6 +117,7 @@ export function EditorProvider({ children }) {
   const [endings, setEndings] = useState({});
   const [entryNode, setEntryNode] = useState(null);
   const [focusNodeTrigger, setFocusNodeTrigger] = useState(null);
+  const [sceneTypes, setSceneTypes] = useState([]);
 
   // --- Hydrate state from IndexedDB on mount ---
   useEffect(() => {
@@ -93,15 +125,16 @@ export function EditorProvider({ children }) {
     localforage.getItem(STORAGE_KEY)
       .then(saved => {
         if (cancelled || !saved) return;
-        if (saved.flags) setFlags(saved.flags);
+        if (saved.flags) setFlags(migrateFlagFields(saved.flags));
         if (saved.choices) setChoices(migrateOptionNext(saved.choices));
-        if (saved.scenes) setScenes(saved.scenes);
+        if (saved.scenes) setScenes(migrateSceneFields(saved.scenes));
         if (saved.paths) setPaths(saved.paths);
         if (saved.chapters) setChapters(saved.chapters);
         if (saved.statusPoints) setStatusPoints(saved.statusPoints);
         if (saved.quests) setQuests(saved.quests);
         if (saved.endings) setEndings(saved.endings);
         if (saved.entryNode !== undefined) setEntryNode(saved.entryNode);
+        if (saved.sceneTypes) setSceneTypes(saved.sceneTypes);
       })
       .catch(() => { /* IndexedDB unavailable — start fresh */ })
       .finally(() => { if (!cancelled) setIsLoading(false); });
@@ -141,11 +174,11 @@ export function EditorProvider({ children }) {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       localforage.setItem(STORAGE_KEY, {
-        flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode
+        flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, sceneTypes
       }).catch(() => { /* storage error — silent */ });
     }, 500);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [isLoading, flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode]);
+  }, [isLoading, flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, sceneTypes]);
 
   // --- On-Demand reference maps (#7) ---
   const getFlagReferenceMap = useCallback(() => {
@@ -242,8 +275,15 @@ export function EditorProvider({ children }) {
   const addFlag = useCallback((name) => {
     const snakeName = sanitizeName(name);
     const id = generateId('F', flagsRef.current);
-    setFlags(prev => ({ ...prev, [id]: { id, name: snakeName, state: false } }));
+    setFlags(prev => ({ ...prev, [id]: { id, name: snakeName, state: false, path: null, chapter: null } }));
     return id;
+  }, []);
+
+  const updateFlag = useCallback((id, updates) => {
+    setFlags(prev => {
+      if (!prev[id]) return prev;
+      return { ...prev, [id]: { ...prev[id], ...updates } };
+    });
   }, []);
 
   const updateFlagName = useCallback((id, name) => {
@@ -311,13 +351,177 @@ export function EditorProvider({ children }) {
           return { ...nxt, requires: nxtReqs };
         });
 
+        const newFlagsSet = (scene.flags_set || []).filter(f => f !== id);
+        if (newFlagsSet.length !== (scene.flags_set || []).length) itemDirty = true;
+
         if (itemDirty) {
-          newScenes[scId] = { ...scene, requires: newReqs, next: newNext };
+          newScenes[scId] = { ...scene, requires: newReqs, next: newNext, flags_set: newFlagsSet };
           anyChanged = true;
         }
       }
       return anyChanged ? newScenes : prev;
     });
+  }, []);
+
+  // --- Reorder: Deep replace helper ---
+  const replaceIdReferences = (obj, idMap) => {
+    if (!obj) return obj;
+    if (typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(item => replaceIdReferences(item, idMap));
+    const result = { ...obj };
+    for (const key in result) {
+      if (key === 'flag' && idMap[result[key]]) result[key] = idMap[result[key]];
+      else if (key === 'status' && idMap[result[key]]) result[key] = idMap[result[key]];
+      else if (key === 'target' && idMap[result[key]]) result[key] = idMap[result[key]];
+      else if (key === 'flags_set' && Array.isArray(result[key])) result[key] = result[key].map(f => idMap[f] || f);
+      else if (key === 'status_set' && Array.isArray(result[key])) {
+        result[key] = result[key].map(s => {
+          if (s.status && idMap[s.status]) return { ...s, status: idMap[s.status] };
+          return s;
+        });
+      }
+      else result[key] = replaceIdReferences(result[key], idMap);
+    }
+    return result;
+  };
+
+  // --- Reorder Flags ---
+  const reorderFlags = useCallback((newOrderedIds) => {
+    const oldIds = Object.keys(flagsRef.current);
+    if (oldIds.length !== newOrderedIds.length || oldIds.length === 0) return;
+    const idMap = {};
+    const newFlags = {};
+    newOrderedIds.forEach((oldId, index) => {
+      const newId = `F${(index + 1).toString().padStart(3, '0')}`;
+      idMap[oldId] = newId;
+      const oldFlag = flagsRef.current[oldId];
+      if (oldFlag) newFlags[newId] = { ...oldFlag, id: newId };
+    });
+    setFlags(newFlags);
+    const applyMap = (collection) => {
+      const updated = {};
+      for (const [key, item] of Object.entries(collection)) {
+        updated[key] = replaceIdReferences(item, idMap);
+      }
+      return updated;
+    };
+    setChoices(prev => applyMap(prev));
+    setScenes(prev => applyMap(prev));
+    setEndings(prev => applyMap(prev));
+    if (entryNodeRef.current && idMap[entryNodeRef.current]) {
+      setEntryNode(idMap[entryNodeRef.current]);
+    }
+  }, []);
+
+  // --- Reorder StatusPoints ---
+  const reorderStatusPoints = useCallback((newOrderedIds) => {
+    const oldIds = Object.keys(statusPointsRef.current);
+    if (oldIds.length !== newOrderedIds.length || oldIds.length === 0) return;
+    const idMap = {};
+    const newStatusPoints = {};
+    newOrderedIds.forEach((oldId, index) => {
+      const newId = `SP${(index + 1).toString().padStart(3, '0')}`;
+      idMap[oldId] = newId;
+      const oldSP = statusPointsRef.current[oldId];
+      if (oldSP) newStatusPoints[newId] = { ...oldSP, id: newId };
+    });
+    setStatusPoints(newStatusPoints);
+    const applyMap = (collection) => {
+      const updated = {};
+      for (const [key, item] of Object.entries(collection)) {
+        updated[key] = replaceIdReferences(item, idMap);
+      }
+      return updated;
+    };
+    setChoices(prev => applyMap(prev));
+    setScenes(prev => applyMap(prev));
+    setEndings(prev => applyMap(prev));
+    if (entryNodeRef.current && idMap[entryNodeRef.current]) {
+      setEntryNode(idMap[entryNodeRef.current]);
+    }
+  }, []);
+
+  // --- Reorder Choices ---
+  const reorderChoices = useCallback((newOrderedIds) => {
+    const oldIds = Object.keys(choicesRef.current);
+    if (oldIds.length !== newOrderedIds.length || oldIds.length === 0) return;
+    const idMap = {};
+    const newChoices = {};
+    newOrderedIds.forEach((oldId, index) => {
+      const newId = `CH${(index + 1).toString().padStart(3, '0')}`;
+      idMap[oldId] = newId;
+      const oldChoice = choicesRef.current[oldId];
+      if (oldChoice) newChoices[newId] = { ...oldChoice, id: newId };
+    });
+    setChoices(newChoices);
+    const applyMap = (collection) => {
+      const updated = {};
+      for (const [key, item] of Object.entries(collection)) {
+        updated[key] = replaceIdReferences(item, idMap);
+      }
+      return updated;
+    };
+    setChoices(prev => applyMap(prev));
+    setScenes(prev => applyMap(prev));
+    setEndings(prev => applyMap(prev));
+    if (entryNodeRef.current && idMap[entryNodeRef.current]) {
+      setEntryNode(idMap[entryNodeRef.current]);
+    }
+  }, []);
+
+  // --- Reorder Scenes ---
+  const reorderScenes = useCallback((newOrderedIds) => {
+    const oldIds = Object.keys(scenesRef.current);
+    if (oldIds.length !== newOrderedIds.length || oldIds.length === 0) return;
+    const idMap = {};
+    const newScenes = {};
+    newOrderedIds.forEach((oldId, index) => {
+      const newId = `S${(index + 1).toString().padStart(3, '0')}`;
+      idMap[oldId] = newId;
+      const oldScene = scenesRef.current[oldId];
+      if (oldScene) newScenes[newId] = { ...oldScene, id: newId };
+    });
+    setScenes(newScenes);
+    const applyMap = (collection) => {
+      const updated = {};
+      for (const [key, item] of Object.entries(collection)) {
+        updated[key] = replaceIdReferences(item, idMap);
+      }
+      return updated;
+    };
+    setChoices(prev => applyMap(prev));
+    setScenes(prev => applyMap(prev));
+    setEndings(prev => applyMap(prev));
+    if (entryNodeRef.current && idMap[entryNodeRef.current]) {
+      setEntryNode(idMap[entryNodeRef.current]);
+    }
+  }, []);
+
+  // --- Reorder Endings ---
+  const reorderEndings = useCallback((newOrderedIds) => {
+    const oldIds = Object.keys(endingsRef.current);
+    if (oldIds.length !== newOrderedIds.length || oldIds.length === 0) return;
+    const idMap = {};
+    const newEndings = {};
+    newOrderedIds.forEach((oldId, index) => {
+      const newId = `E${(index + 1).toString().padStart(3, '0')}`;
+      idMap[oldId] = newId;
+      const oldEnding = endingsRef.current[oldId];
+      if (oldEnding) newEndings[newId] = { ...oldEnding, id: newId };
+    });
+    setEndings(newEndings);
+    const applyMap = (collection) => {
+      const updated = {};
+      for (const [key, item] of Object.entries(collection)) {
+        updated[key] = replaceIdReferences(item, idMap);
+      }
+      return updated;
+    };
+    setChoices(prev => applyMap(prev));
+    setScenes(prev => applyMap(prev));
+    if (entryNodeRef.current && idMap[entryNodeRef.current]) {
+      setEntryNode(idMap[entryNodeRef.current]);
+    }
   }, []);
 
   // --- Paths ---
@@ -339,6 +543,14 @@ export function EditorProvider({ children }) {
       const p = { ...prev };
       delete p[id];
       return p;
+    });
+    setFlags(prev => {
+      let changed = false;
+      const next = { ...prev };
+      for (const k in next) {
+        if (next[k].path === id) { next[k] = { ...next[k], path: null }; changed = true; }
+      }
+      return changed ? next : prev;
     });
     setChoices(prev => {
       let changed = false;
@@ -385,6 +597,14 @@ export function EditorProvider({ children }) {
       const c = { ...prev };
       delete c[id];
       return c;
+    });
+    setFlags(prev => {
+      let changed = false;
+      const next = { ...prev };
+      for (const k in next) {
+        if (next[k].chapter === id) { next[k] = { ...next[k], chapter: null }; changed = true; }
+      }
+      return changed ? next : prev;
     });
     setChoices(prev => {
       let changed = false;
@@ -481,8 +701,11 @@ export function EditorProvider({ children }) {
           return { ...nxt, requires: nxtReqs };
         });
 
+        const newStatusSet = (scene.status_set || []).filter(s => s.status !== id);
+        if (newStatusSet.length !== (scene.status_set || []).length) itemDirty = true;
+
         if (itemDirty) {
-          newScenes[scId] = { ...scene, requires: newReqs, next: newNext };
+          newScenes[scId] = { ...scene, requires: newReqs, next: newNext, status_set: newStatusSet };
           anyChanged = true;
         }
       }
@@ -717,7 +940,7 @@ export function EditorProvider({ children }) {
 
     setScenes(prev => ({
       ...prev,
-      [id]: { id, name, description, variants: [], chapter: null, path: null, requires: [], next: [], _position }
+      [id]: { id, name, description, variants: [], chapter: null, path: null, requires: [], next: [], type: null, flags_set: [], status_set: [], _position }
     }));
     return id;
   }, []);
@@ -761,19 +984,50 @@ export function EditorProvider({ children }) {
     setFocusNodeTrigger(null);
   }, []);
 
+  // --- Scene Types ---
+  const addSceneType = useCallback((name) => {
+    const sanitized = sanitizeName(name);
+    if (!sanitized) return;
+    setSceneTypes(prev => prev.includes(sanitized) ? prev : [...prev, sanitized]);
+  }, []);
+
+  const removeSceneType = useCallback((name) => {
+    setSceneTypes(prev => prev.filter(t => t !== name));
+    // Clear type from scenes that reference the removed type
+    setScenes(prev => {
+      let changed = false;
+      const next = { ...prev };
+      for (const k in next) {
+        if (next[k].type === name) { next[k] = { ...next[k], type: null }; changed = true; }
+      }
+      return changed ? next : prev;
+    });
+  }, []);
+
+  const setSceneTypesAction = useCallback((arr) => {
+    setSceneTypes(arr);
+  }, []);
+
   // --- Load / Clear ---
   const loadData = useCallback(({ metadata, flags: f, choices: c, scenes: s, paths: p, chapters: ch, status: sp, quests: q, endings: e }) => {
     if (metadata && metadata.entry_node) setEntryNode(metadata.entry_node);
     else setEntryNode(null);
     // Sanitize entity names on import (#12)
-    if (f) setFlags(sanitizeCollection(f));
+    if (f) setFlags(migrateFlagFields(sanitizeCollection(f)));
     if (c) setChoices(migrateOptionNext(c));
-    if (s) setScenes(s);
+    if (s) setScenes(migrateSceneFields(s));
     if (p) setPaths(sanitizeCollection(p));
     if (ch) setChapters(sanitizeCollection(ch));
     if (sp) setStatusPoints(sanitizeCollection(sp));
     if (q) setQuests(sanitizeCollection(q));
     if (e) setEndings(e);
+    // Merge imported scene_types with existing (deduplicate)
+    if (metadata && Array.isArray(metadata.scene_types)) {
+      setSceneTypes(prev => {
+        const merged = new Set([...prev, ...metadata.scene_types.map(t => sanitizeName(t)).filter(Boolean)]);
+        return [...merged];
+      });
+    }
   }, []);
 
   const clearData = useCallback(() => {
@@ -787,6 +1041,7 @@ export function EditorProvider({ children }) {
       setStatusPoints({});
       setQuests({});
       setEndings({});
+      setSceneTypes([]);
       localforage.removeItem(STORAGE_KEY).catch(() => { /* silent */ });
     }
   }, []);
@@ -794,34 +1049,36 @@ export function EditorProvider({ children }) {
   // --- Split contexts (#6): data is reactive, actions are stable ---
   const dataValue = useMemo(() => ({
     flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode,
-    isLoading, focusNodeTrigger
-  }), [flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, isLoading, focusNodeTrigger]);
+    isLoading, focusNodeTrigger, sceneTypes
+  }), [flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, isLoading, focusNodeTrigger, sceneTypes]);
 
   const actionsValue = useMemo(() => ({
     getFlagReferenceMap, getStatusReferenceMap, getDependencyGraph,
     setEntryNode,
-    addFlag, updateFlagName, toggleFlagState, deleteFlag,
+    addFlag, updateFlag, updateFlagName, toggleFlagState, deleteFlag, reorderFlags,
     addPath, updatePathName, deletePath,
     addChapter, updateChapterName, deleteChapter,
     addQuest, updateQuestName, deleteQuest,
-    addEnding, updateEnding, deleteEnding,
-    addStatusPoint, updateStatusPoint, deleteStatusPoint,
-    addChoice, updateChoice, addChoiceOption, updateChoiceOption, deleteChoiceOption, deleteChoice,
-    addScene, updateScene, deleteScene,
+    addEnding, updateEnding, deleteEnding, reorderEndings,
+    addStatusPoint, updateStatusPoint, deleteStatusPoint, reorderStatusPoints,
+    addChoice, updateChoice, addChoiceOption, updateChoiceOption, deleteChoiceOption, deleteChoice, reorderChoices,
+    addScene, updateScene, deleteScene, reorderScenes,
     updateNodePosition, resetAllPositions, resetSpawnOffset,
+    addSceneType, removeSceneType, setSceneTypesAction,
     loadData, clearData, focusNode, clearFocusNode
   }), [
     getFlagReferenceMap, getStatusReferenceMap, getDependencyGraph,
     setEntryNode,
-    addFlag, updateFlagName, toggleFlagState, deleteFlag,
+    addFlag, updateFlag, updateFlagName, toggleFlagState, deleteFlag, reorderFlags,
     addPath, updatePathName, deletePath,
     addChapter, updateChapterName, deleteChapter,
     addQuest, updateQuestName, deleteQuest,
-    addEnding, updateEnding, deleteEnding,
-    addStatusPoint, updateStatusPoint, deleteStatusPoint,
-    addChoice, updateChoice, addChoiceOption, updateChoiceOption, deleteChoiceOption, deleteChoice,
-    addScene, updateScene, deleteScene,
+    addEnding, updateEnding, deleteEnding, reorderEndings,
+    addStatusPoint, updateStatusPoint, deleteStatusPoint, reorderStatusPoints,
+    addChoice, updateChoice, addChoiceOption, updateChoiceOption, deleteChoiceOption, deleteChoice, reorderChoices,
+    addScene, updateScene, deleteScene, reorderScenes,
     updateNodePosition, resetAllPositions, resetSpawnOffset,
+    addSceneType, removeSceneType, setSceneTypesAction,
     loadData, clearData, focusNode, clearFocusNode
   ]);
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useEffect } from 'react';
+import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import RouteViewer from './components/routeviewer/RouteViewer';
 import { useEditor } from './context/EditorContext';
 import useSimulator from './hooks/useSimulator';
@@ -7,16 +7,18 @@ import NavBar from './components/layout/NavBar';
 import LeftSidebar from './components/layout/LeftSidebar';
 import RightSidebar from './components/layout/RightSidebar';
 import EditModal from './components/modals/EditModal';
+import SettingsModal from './components/modals/SettingsModal';
 import { buildDependencyGraph } from './utils/dependencyGraph';
 import { traceRoute } from './utils/routeTracer';
 
 function App() {
-  const { flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, loadData, clearData } = useEditor();
+   const { flags, choices, scenes, paths, chapters, statusPoints, quests, endings, entryNode, sceneTypes, setEntryNode, loadData, clearData } = useEditor();
   const sim = useSimulator();
   const [activeNavItem, setActiveNavItem] = React.useState(null);
   const [activeEditId, setActiveEditId] = React.useState(null);
   const [backtrackTargetId, setBacktrackTargetId] = React.useState(null);
   const [tracedPath, setTracedPath] = React.useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // ── Route trace computation ──
   const routeTraceResult = useMemo(() => {
@@ -97,7 +99,8 @@ function App() {
         version: "1.0",
         created_at: new Date().toISOString().split('T')[0],
         updated_at: new Date().toISOString().split('T')[0],
-        entry_node: entryNode
+        entry_node: entryNode,
+        scene_types: sceneTypes
       },
       path: paths,
       chapter: chapters,
@@ -207,6 +210,19 @@ function App() {
     e.target.value = null;
   };
 
+  // Compute entry node options for dropdown
+  const entryPointOptions = React.useMemo(() => [
+    ...Object.values(scenes).map(s => ({ ...s, name: `[Scene] ${s.name}`, type: 'Scene' })),
+    ...Object.values(choices).map(c => ({ ...c, name: `[Choice] ${c.text}`, type: 'Choice' }))
+  ], [scenes, choices]);
+
+  const entryNodeType = React.useMemo(() => {
+    if (!entryNode) return null;
+    if (scenes[entryNode]) return 'Scene';
+    if (choices[entryNode]) return 'Choice';
+    return null;
+  }, [entryNode, scenes, choices]);
+
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden" style={{ fontFamily: "var(--font-ui)" }}>
       {/* ═══ TOPBAR — 40px ═══ */}
@@ -223,18 +239,18 @@ function App() {
         </span>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <button 
+          <button
             onClick={clearData}
-            style={{ 
-              background: 'none', 
-              border: '1px solid var(--color-border-ghost)', 
-              borderRadius: 6, 
-              color: 'var(--color-text-secondary)', 
-              fontSize: 11, 
-              fontWeight: 500, 
-              padding: '4px 10px', 
-              cursor: 'pointer', 
-              transition: 'all 0.15s' 
+            style={{
+              background: 'none',
+              border: '1px solid var(--color-border-ghost)',
+              borderRadius: 6,
+              color: 'var(--color-text-secondary)',
+              fontSize: 11,
+              fontWeight: 500,
+              padding: '4px 10px',
+              cursor: 'pointer',
+              transition: 'all 0.15s'
             }}
             onMouseEnter={e => {
               e.currentTarget.style.borderColor = 'rgba(255,107,107,0.3)';
@@ -254,6 +270,20 @@ function App() {
             <input type="file" accept=".json" className="hidden" onChange={handleImport} />
           </label>
           <button
+            onClick={() => setSettingsOpen(true)}
+            style={{ background: 'none', border: '1px solid var(--color-border-ghost)', borderRadius: 6, color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500, padding: '4px 10px', cursor: 'pointer', transition: 'border-color 0.15s, color 0.15s' }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'var(--color-accent)';
+              e.currentTarget.style.color = 'var(--color-accent)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'var(--color-border-ghost)';
+              e.currentTarget.style.color = 'var(--color-text-secondary)';
+            }}
+          >
+            Settings
+          </button>
+          <button
             onClick={handleExport}
             disabled={!entryNode}
             className="signature-gradient"
@@ -266,11 +296,18 @@ function App() {
       </header>
 
       {/* ═══ NAV BAR — 36px ═══ */}
-      <NavBar activeNavItem={activeNavItem} onNavChange={handleNavChange} />
+      <NavBar
+        activeNavItem={activeNavItem}
+        onNavChange={handleNavChange}
+        entryNode={entryNode}
+        setEntryNode={setEntryNode}
+        entryPointOptions={entryPointOptions}
+        entryNodeType={entryNodeType}
+      />
 
       {/* ═══ BODY ROW (3-COLUMN LAYOUT) ═══ */}
       <div className="flex flex-1 overflow-hidden">
-        
+
         {/* Left Sidebar */}
         <LeftSidebar
           activeNavItem={activeNavItem}
@@ -290,16 +327,23 @@ function App() {
         {/* Center Canvas */}
         <main className="flex-1 overflow-auto relative w-full h-full" style={{ background: 'var(--color-surface-workspace)' }}>
           <ErrorBoundary>
-             <RouteViewer onNodeEdit={handleNodeEdit} sim={sim} routeViewerRef={routeViewerRef} tracedPath={tracedPath} />
+             <RouteViewer onNodeEdit={handleNodeEdit} sim={sim} routeViewerRef={routeViewerRef} tracedPath={tracedPath} routeTraceResult={routeTraceResult} />
           </ErrorBoundary>
         </main>
 
         {/* Right Sidebar */}
-        <RightSidebar 
-          sim={sim} 
+        <RightSidebar
+          sim={sim}
           activeEditId={activeEditId}
           isSimulating={sim?.isRunning || false}
           onBacktrack={setBacktrackTargetId}
+          backtrackTargetId={backtrackTargetId}
+          onClearBacktrack={handleClearBacktrack}
+          routeTraceResult={routeTraceResult}
+          onHighlightPath={handleHighlightPath}
+          tracedPath={tracedPath}
+          entryNode={entryNode}
+          handleStart={sim?.handleStart}
         />
 
       </div>
@@ -311,6 +355,12 @@ function App() {
         entityId={editModal.entityId}
         initialPosition={editModal.initialPosition}
         onClose={closeModal}
+      />
+
+      {/* ═══ Settings Modal ═══ */}
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
       />
     </div>
   );

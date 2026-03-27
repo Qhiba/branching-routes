@@ -1,152 +1,187 @@
 # Branching Routes - Codebase Features Overview
 
-This document provides a high-level overview of the major React components, context providers, and features implemented across the application architecture, reflecting the Phase 5 Canvas-First UI Overhaul.
+This document provides a high-level overview of the major React components, context providers, and features implemented across the application architecture, reflecting the current Phase 5 Canvas-First UI Overhaul state.
 
 ## Core State & Management
 
 ### `src/context/EditorContext.jsx`
-- **Purpose**: The "Brain" of the editor. This React Context manages the application's entire global state and handles the complete CRUD lifecycle for all narrative entities.
-- **Split Context Architecture**: Utilizes a dual-provider system (`DataContext` and `ActionsContext`) to decouple reactive state from stable callbacks, preventing unnecessary re-renders.
+- **Purpose**: The "Brain" of the editor. Manages the application's entire global state and handles the complete CRUD lifecycle for all narrative entities.
+- **Split Context Architecture**: Uses `useEditorData()` and `useEditorActions()` hooks to decouple reactive state from stable callbacks, preventing unnecessary re-renders.
 - **State Collections Managed**: `flags`, `statusPoints`, `paths`, `chapters`, `choices`, `scenes`, `quests`, `endings`.
-- **Targeted Sanitization**: Enforces strict `snake_case` naming conventions globally across system variables (`Flags`, `Paths`, `Chapters`, `Status Points`, `Quests`) via `sanitizeName`, while explicitly protecting `Scenes`, `Choices`, and `Endings` to support free-form capitalization and spacing.
-- **Global Anchor**: `entryNode` defines the strictly enforced initial node representing where the core game logic begins evaluating.
 - **ID Generation**: Automatically generates sequential, prefix-based IDs (`F`, `CH`, `S`, `P`, `C`, `SP`, `Q`, `E`) for main nodes, and randomized unique string IDs for nested `Choice Options`.
+- **Entry Node**: `entryNode` defines the starting node for the entire narrative.
 - **Dual-Mode Data Protection**: 
-  - **Blocking Deletion**: `Endings`, `Choices`, and `Scenes` are strictly blocked from deletion if referenced as a target elsewhere.
-  - **Cascading Cleanup**: `Flags`, `Paths`, `Chapters`, `Stats`, and `Quests` perform automatic recursive cleanup, removing themselves from all requirements and modifiers upon deletion.
-  - **Debounced Save**: Houses a 500ms debounced `IndexedDB` auto-save engine via `localforage` for persistent, non-blocking asynchronous state storage.
-  - **Dependency Mapping**: Provides on-demand getter functions (`getFlagReferenceMap`, `getStatusReferenceMap`, and `getDependencyGraph`) to track exactly where every entity is utilized across the active project graph.
-- **Save/Load/Reset**: Houses the unified `loadData` parsing function to serialize incoming `JSON`, and `clearData` to instantly baseline the entire project workspace.
+  - **Blocking Deletion**: `Endings`, `Choices`, and `Scenes` are blocked from deletion if referenced as a target elsewhere.
+  - **Cascading Cleanup**: `Flags`, `Paths`, `Chapters`, `StatusPoints`, and `Quests` perform automatic recursive cleanup upon deletion.
+- **Debounced Save**: 500ms debounced `IndexedDB` auto-save via `localforage`.
+- **Dependency Mapping**: Provides `getFlagReferenceMap`, `getStatusReferenceMap`, and `getDependencyGraph` for tracking entity usage.
+- **Migration Functions**: `migrateOptionNext` (legacy string-format next to array-of-routes), `migrateSceneFields` (adds `type`, `flags_set`, `status_set` defaults), `migrateFlagFields` (adds `path`, `chapter` defaults). Applied during IndexedDB hydration and data import.
+- **Scene Types**: Manages a `sceneTypes` string array for project-level scene type definitions. CRUD via `addSceneType`, `removeSceneType`, `setSceneTypesAction`. Cascading cleanup on type removal nullifies referencing scenes.
 
 ### `src/App.jsx`
-- **Purpose**: The main Layout and Routing wrapper application orchestrating the 3-column UI.
-- **Global Layout State**: Manages `activeNavItem` and `activeEditId` to synchronize interactions between the Left Sidebar and the RouteViewer canvas.
-- **Unified JSON Export/Import**: Contains the `handleExport` and `handleImport` mechanisms that serialize all 8 entity nodes into a single `branching-routes.json` file.
-- **Advanced Import Validation**: Performs recursive type-checking, structural integrity verification, and **ID Collision Detection** that prompts users before overwriting local data.
-- **Error Boundary Protection**: The main dynamic stage is wrapped in a React `ErrorBoundary` to gracefully isolate and handle runtime logic failures.
+- **Purpose**: Main application orchestrator with 3-column layout.
+- **State Management**: Manages `activeNavItem`, `activeEditId`, `backtrackTargetId`, `tracedPath` for synchronization between sidebar and canvas.
+- **Unified JSON Export/Import**: Serializes all 8 entity types to `branching-routes.json`.
+- **Advanced Import Validation**: Recursive type-checking, structural integrity, and ID collision detection.
+- **E Key Shortcut**: Opens modal for editing selected canvas node.
+- **Route Tracing**: Integrates `traceRoute` from `routeTracer.js` for backtracking analysis.
 
 ## Core Layout Components (The 3-Column UI)
 
+### `src/components/layout/NavBar.jsx`
+- **Purpose**: Top horizontal navigation with entity type tabs.
+- **Tabs**: Flags, Status, Choices, Scenes, Paths, Chapters, Quests, Endings, Entry Node.
+- **Features**: Entity counts, active tab indicator, entry node selector.
+
 ### `src/components/layout/LeftSidebar.jsx`
-- **Purpose**: High-density contextual command center dynamically transforming based on the active user intent.
-- **Features (4 Modes)**:
-  - **Mode 1 (Dashboard)**: Default view showing total counts of all narrative entities.
-  - **Mode 2 (Entity List)**: Renders searchable, filterable lists of project entities based on the selected NavBar tab. Replaces the legacy `QuickNav` system.
-  - **Mode 3 (Read-Only Inspector & Forms)**: Renders a comprehensive Read-Only Inspector for `Scenes`, `Choices`, and `Endings` (dynamically displaying condition blocks, narrative variants, option sets, and structured two-row next-target layouts). For other entities, dynamically mounts the appropriate inline CRUD form extracted from `src/components/layout/forms/`. Includes un-saved draft discarding guardrails.
-  - **Mode 4 (Live Simulator HUD)**: When a simulation is active, automatically overrides all editing modes to display the `DynamicTracker`, showing live variable and status logic changes.
+- **Purpose**: Dynamic contextual command center.
+- **4 Modes**:
+  - **Dashboard**: Shows entity counts, entry node status.
+  - **Entity List**: Searchable, filterable lists by NavBar selection.
+  - **Forms/Inspector**: CRUD forms for non-canvas entities; read-only inspector for Scenes/Choices/Endings.
+  - **Dynamic Tracker**: During simulation, shows live flag/status changes.
+- **Features**: Unsaved draft guardrails, node selection sync with canvas.
 
 ### `src/components/routeviewer/RouteViewer.jsx`
-- **Purpose**: The permanent central workspace displaying a comprehensive visual node graph mapping the entire structural project logic using `@xyflow/react` (React Flow).
-- **Features**: 
-  - **Interactive Canvas-First Editing**: Clicking any node on the graph instantly signals `App.jsx` to load the corresponding edit form in the Left Sidebar.
-  - **Dynamic Auto-Layout**: Integrates `dagre` to automatically format dense logic trees. Features a "Layout Options" interface giving users real-time control to toggle between Top-to-Bottom or Left-to-Right layout directions, alongside customizable Node/Rank spacing sliders.
-  - **Draggable Workspace**: Employs React Flow's `useNodesState` to ensure logic nodes are draggable and intelligently preserved during active simulation state changes.
-  - **Static Reachability Analysis**: Proactively scans the logic structure for "Mutually Exclusive Conditions", rendering unreachable nodes as fully disabled blockages.
-  - **Live Graph Tracking**: Synchronizes with `useSimulator` to visually represent active plays. Highlights the `currentNodeId`, turns visited routes green, pulses active edges, and utilizes an automatic dynamic camera.
-  - **Custom Nodes (`SceneNode`, `ChoiceNode`, `EndingNode`)**: Visually customized components that support granular state styling (`idle`, `current`, `visited`, `reachable`, `unreachable`, `terminal`). `SceneNode`s feature a 2-line visual preview of narrative content.
+- **Purpose**: Central workspace with visual node graph using `@xyflow/react`.
+- **Features**:
+  - **Interactive Canvas-First Editing**: Click node to edit in sidebar.
+  - **Dynamic Auto-Layout**: `dagre` integration with layout options UI (TB/LR direction, node/rank spacing).
+  - **Graph Filtering**: Filter by Path and/or Chapter.
+  - **Static Reachability Analysis**: Renders unreachable nodes as disabled.
+  - **Live Graph Tracking**: Synchronizes with simulator - current node highlighted, visited routes in green, camera follow.
+  - **Node States**: `idle`, `current`, `visited`, `reachable`, `unreachable`, `terminal`.
+  - **Route Trace Highlighting**: Gold highlight overlay on traced paths.
+  - **Camera Preservation**: Restores viewport after layout recalculation.
+  - **Custom Nodes**: `SceneNode`, `ChoiceNode`, `EndingNode` with state-based styling.
+  - **Edge Connections**: Canvas edge wiring syncs with `next` field.
 
 ### `src/components/layout/RightSidebar.jsx`
-- **Purpose**: Contextual workspace sidebar serving as the permanent home for the Live Simulator.
-- **Features**: 
-  - **Simulator Context**: Safely isolated rendering of the `SimulatorPanel` to allow authors to track simulation history side-by-side with the visual logic logic without cluttering the center canvas.
+- **Purpose**: Simulator and route trace controls.
+- **Features**:
+  - **SimulatorPanel**: Playtest sandbox with start/undo/reset controls.
+  - **Route Trace Panel**: Backtracking results display with path highlighting.
+  - **Filter Controls**: Path and chapter filters.
 
-## Narrative Structure Modules (The Form Engine)
-*(Note: Individual CRUD managers for Flags, Paths, Chapters, Stats, and Quests have been decoupled into dedicated components under `src/components/layout/forms/`. Scenes, Choices, and Endings now utilize a robust Modal-driven editing architecture, leaving the Left Sidebar purely for read-only inspection.)*
+### `src/components/routeviewer/InspectorPanel.jsx`
+- **Purpose**: In-canvas inspector for selected nodes.
+- **Features**: Read-only view of node data, requires display, trace route button, reference count.
 
-### `src/components/layout/forms/PathForm.jsx` & `ChapterForm.jsx`
-- **Purpose**: Defines broad, high-level story branches or specific chapters to group narrative moments.
-- **Features**: 
-  - **Draft State Workflow**: Local tracking of name updates with explicit Save/Cancel logic.
-  - **Global Workspace Filtering**: Paths and Chapters can be used in the `RouteViewer` to filter the graph canvas down to highly specific scopes.
+### `src/components/layout/NodeInspector.jsx`
+- **Purpose**: Read-only inspector panels for Scene, Choice, and Ending entities in the sidebar.
+- **Features**: Displays full entity data (requires, flags_set, status_set, next targets), condition satisfaction badges, reference counts. Synchronized with canvas node selection.
 
-### `src/components/layout/forms/QuestForm.jsx` & `EndingForm.jsx`
-- **Purpose**: Thematic goals and distinct endpoints mapping against closure conditions.
-- **Features**: 
-  - **Condition Matrix (Endings)**: Integrates `ConditionEditor` instances to construct complex Flag and Status requirements a player must meet to achieve the designated ending.
-  - **Requirement Dependency Summary**: Tracks how many active flags lock an ending.
+## Entity Managers (Legacy Tab-Based Editors)
 
-## Logic Variables & Condition Managers
+These components remain for backward compatibility but are largely superseded by the sidebar forms:
+
+### `src/components/flags/FlagManager.jsx`
+### `src/components/status/StatusManager.jsx`
+### `src/components/choices/ChoiceEditor.jsx`
+### `src/components/scenes/SceneEditor.jsx`
+### `src/components/paths/PathManager.jsx`
+### `src/components/chapters/ChapterManager.jsx`
+### `src/components/quests/QuestManager.jsx`
+### `src/components/endings/EndingManager.jsx`
+
+## Sidebar Forms (Phase 5 Architecture)
 
 ### `src/components/layout/forms/FlagForm.jsx`
-- **Purpose**: The definitive editor for boolean conditions (`true`/`false`) tracked over the narrative lifecycle.
-- **Features**: 
-  - **Global State Toggle**: Includes a dedicated testing switch to forcibly flip the flag's global true/false state from within the editor, drastically accelerating simulation debugging.
-  - **Reference Tracking**: Utilizes the global `flagReferenceMap` to monitor exactly how many Scenes and Choices utilize each specific flag, warning the author before deletion.
+- **Features**: Name editing, reference tracking, global state toggle for debugging.
 
 ### `src/components/layout/forms/StatusForm.jsx`
-- **Purpose**: Defines quantitative numeric statistics (`Strength`, `Money`, `Health`) for non-binary narrative tracking.
-- **Features**: 
-  - **Baseline Configuration**: Establishes initial numerical starting values which serve as the anchor point for all Sandbox operations.
-  - **Customizable Floors**: Exposes a `Minimum Value` configuration that securely truncates bounds, gracefully and natively supporting negative minimum ceilings (e.g. allowing relationship statuses to drop below 0).
+- **Features**: Starting value, minimum value (floor) configuration.
 
-## Event Editors (The Core Logic Builders)
+### `src/components/layout/forms/PathForm.jsx` & `ChapterForm.jsx`
+- **Features**: Name editing, global workspace filtering support.
 
-### `src/components/modals/EditModal.jsx` (Modal Editor Flow)
-- **Purpose**: A universal 600px modal shell overlay acting as the sole entry point for editing and creating complex narrative nodes.
-- **Features**:
-  - **Unsaved Changes Guard**: Prevents accidental closure (via clicking outside, Cancel button, or `Escape` key) when drafts differ from global state.
-  - **Keyboard Native Workflow**: Instantly opened by hitting the `E` shortcut when an applicable node is selected on the canvas.
+### `src/components/layout/forms/QuestForm.jsx` & `EndingForm.jsx`
+- **Features**: Name editing, condition matrix for endings.
 
-### `src/components/modals/ChoiceModalForm.jsx`
-- **Purpose**: Design complex player decisions and define immediate narrative consequences.
-- **Features**:
-  - **Dynamic Structuring**: Individual Options configure distinct `next` destination targets uniformly handled via `SearchableDropdowns`, including dedicated support for **Loop-to-Self** logic.
-  - **Modifier Engines**: Every choice option integrates a `FlagsSetEditor` (for flipping boolean states) and a `StatusSetEditor` (for incremental numeric modifications).
-  - **Requirements**: Options support localized boolean or numerical requirements (`min`/`max`) via a nested `ConditionEditor` instance.
+### `src/components/layout/forms/SceneForm.jsx` & `ChoiceForm.jsx`
+- **Features**: Modal-driven editing, draft state workflow.
+
+## Modal Editors
+
+### `src/components/modals/EditModal.jsx`
+- **Purpose**: Universal 600px modal shell for canvas entities.
+- **Features**: Unsaved changes guard, E key shortcut support, initial position from canvas viewport.
 
 ### `src/components/modals/SceneModalForm.jsx`
-- **Purpose**: Creates narrative text sequences mapping directly onto logic variables.
-- **Features**:
-  - **Sequential Logic Engine**: Manages two distinct logic layers: **Visibility Conditions** (determining when a scene is triggered) and **Scene Routing** (governing the destination after completion).
-  - **Rich Text Entry**: Provides a dedicated high-density `textarea` for the core narrative story content, seamlessly bridged to the canvas preview.
-  - **Fallback Routes**: Complex sequencing supports intelligent routing fallbacks when requirements are mutually skipped.
-  - **Narrative Variants**: Supports additive scene variants with isolated conditions mapped via the same constraints engine, enabling dynamic descriptive variations without rebuilding shared logic.
+- **Features**: Name, description, path/chapter, requires conditions, next targets with fallback, narrative variants support.
+
+### `src/components/modals/ChoiceModalForm.jsx`
+- **Features**: Text, path/chapter, requires, options with flags_set, status_set, next targets, localized requirements.
+
+### `src/components/modals/EndingModalForm.jsx`
+- **Features**: Name, requires conditions, terminal indicator.
+
+### `src/components/modals/SettingsModal.jsx`
+- **Purpose**: Project-level configuration panel (Scene Types management).
+- **Features**: Add/remove scene types as string chips, usage count badges, confirmation dialog when removing a type in use. Accessed from the top bar.
 
 ## Utility & Simulation Core
 
 ### `src/hooks/useSimulator.js`
-- **Purpose**: A reusable, decoupled simulation engine that manages the active chronological `historyStack`.
-- **Features**: 
-  - **Derivation-Based State Engine**: Flags and Status points are derived in real-time with an active **Snapshot Caching** system to optimize performance on long logic chains.
-  - **Shared Provider**: Globally executed in `App.jsx` and injected downward to simultaneously power the visual `RouteViewer`, the `RightSidebar` controls, and the `LeftSidebar` HUD.
-
-### `src/utils/` (Core Graph Utilities)
-- **Purpose**: Pure JavaScript utilities responsible for abstract data operations decoupled from React's render cycle.
+- **Purpose**: Reusable simulation engine with history stack.
 - **Features**:
-  - **`dependencyGraph.js`**: Parses the raw JSON logic matrix into a 3-layer Directed Dependency Graph. Crucially separates mutators (`setBy`) from getters (`requiredBy`).
-  - **`reachabilityAnalyzer.js`**: Consumes the dependency graph to statically warn authors against structurally impossible states directly within the graphical viewer.
-  - **`graphLayout.js`**: Translates the raw Scene/Choice/Ending data arrays into calculated coordinates. Extracts nested description properties for UI rendering.
+  - Snapshot caching every 50 steps for performance.
+  - Derivation-based state (flags/status recalculated from history).
+  - Entry node mapping, loop detection, undo support.
+  - Exposes `visitedNodeIds`, `takenEdgeIds`, `currentNodeId`.
+
+### `src/hooks/useLongPress.js`
+- **Purpose**: Long-press interaction hook for touch and mouse input.
+- **Features**: Configurable delay threshold, distinguishes between long-press and tap callbacks. Used in LeftSidebar entity list items.
+
+### `src/utils/graphLayout.js`
+- **Purpose**: Converts editor data to React Flow nodes/edges.
+- **Features**:
+  - `computeLayoutWithPositions()`: Position-aware Dagre layout.
+  - Filter support (path/chapter).
+  - Custom node dimensions (280px width).
+  - Edge handling for choice options and scene next targets.
+
+### `src/utils/dependencyGraph.js`
+- **Purpose**: Builds 3-layer directed dependency graph.
+- **Features**: Flag setters/getters, status mutators/requirements, navigation adjacency (forward/reverse).
+
+### `src/utils/routeTracer.js`
+- **Purpose**: BFS backward traversal for route analysis.
+- **Features**:
+  - `findAllPathsTo()`: Finds all paths from entry to target (max 20 paths, max depth 50).
+  - `annotatePath()`: Annotates path with required options, flags_set, status_set, condition satisfaction.
+  - `traceRoute()`: Unified function used by App.jsx.
+
+### `src/utils/reachabilityAnalyzer.js`
+- **Purpose**: Static analysis of unreachable nodes.
+- **Features**: Detects flags with no setters, mutually exclusive requirements, status points with no mutators.
 
 ### `src/components/routeviewer/SimulatorPanel.jsx`
-- **Purpose**: The active "Playtest Sandbox" controls residing in the Right Sidebar.
-- **Features**: 
-  - **Pre-Flight Initialization**: Maps natively onto the active `entryNode` allowing click-to-start, while supporting custom selection of specific Scenes/Choices.
-  - **Loop & Lock Detection**: Automatically greys out previously selected loop-back options to prevent infinite recursion and ensure player progression.
-  - **History Stack**: Granularly maps backward-compatible tracking of all past navigation steps. Supports explicit "Undo" and manual "Restart" hooks.
+- **Purpose**: Right sidebar playtest controls.
+- **Features**: Start/reset, undo, history display, ending detection, option locking for loops.
 
 ### `src/components/layout/DynamicTracker.jsx`
-- **Purpose**: Integrated HUD replacing normal sidebar views during active simulations.
-- **Features**: 
-  - **Variable Isolation**: Bubbles up locally altered active flags and explicitly adjusted status points directly to the top of the view.
-  - **Reactive Readouts**: Immediately reflects Sandbox modifier mutations in real-time.
+- **Purpose**: HUD showing live flags and status during simulation.
+- **Features**: Real-time updates, compact mode for many variables.
 
 ## Shared System Components
 
 ### `src/components/shared/ConditionEditor.jsx`
-- **Purpose**: Powerful shared requirement-builder UI natively embedded across all major node components.
-- **Features**: 
-  - **Matrix Constraints**: Modularly maps constraints parsing boolean `True/False` (Flags) or numeric matrices (`Min/Max` Status Points) on the same sequential layout.
-  - **Visual Feedback**: Provides immediate contextual styling (Indigo for Flags, Emerald for Status).
+- **Purpose**: Reusable condition builder for flag/status requirements.
+- **Features**: Boolean (flag) and numeric (status min/max) conditions, visual chips.
 
 ### `src/components/shared/SearchableDropdown.jsx`
-- **Purpose**: The primary dropdown mechanism scaled for highly massive narrative pools.
-- **Features**: 
-  - **Virtualization**: Employs `react-virtuoso` for smooth list rendering against hundreds of nodes.
-  - **Search & Highlighting**: Deep string-matching natively integrated over IDs and descriptive text.
-  - **Loop-to-Self Support**: Utilizes specialized sentinel (`__LOOP__`) routing targets for recursive trees.
+- **Purpose**: Virtualized dropdown for large entity lists.
+- **Features**: `react-virtuoso` virtualization, search, loop-to-self via `__LOOP__` sentinel.
 
 ### `src/components/shared/ErrorBoundary.jsx`
-- **Purpose**: A defensive wrapper built natively around the central RouteViewer.
-- **Features**: 
-  - **Graceful Fault Isolation**: Prevents total editor collapse if the custom D3/Flow routing topologies throw an unrecognized parser error.
-  - **Recovery UI**: Provides an active reset state.
+- **Purpose**: Defensive wrapper for canvas isolation.
+- **Features**: Graceful fault isolation, recovery UI.
+
+### `src/components/shared/QuickNav.jsx`
+- **Purpose**: Floating minimap for entity navigation.
+- **Features**: Click to scroll, entity ID list.
+
+### `src/components/shared/DebouncedInput.jsx` & `DebouncedTextarea.jsx`
+- **Purpose**: Debounced form inputs for performance.

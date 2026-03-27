@@ -4,13 +4,15 @@ import { Trash2 } from 'lucide-react';
 import FormFooter from './FormFooter';
 import ConditionEditor from '../../shared/ConditionEditor';
 import SearchableDropdown from '../../shared/SearchableDropdown';
+import FlagsSetEditor from '../../shared/FlagsSetEditor';
+import StatusSetEditor from '../../shared/StatusSetEditor';
 
 export default function SceneForm({ entityId, onSave, onCancel }) {
-  const { paths, chapters, scenes, choices, endings, entryNode, setEntryNode, addScene, updateScene, deleteScene } = useEditor();
+  const { flags, statusPoints, paths, chapters, scenes, choices, endings, entryNode, sceneTypes, setEntryNode, addScene, updateScene, deleteScene } = useEditor();
   const isNew = !entityId;
   const existingScene = isNew ? null : scenes[entityId];
 
-  const [draft, setDraft] = useState({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [] });
+  const [draft, setDraft] = useState({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [], type: null, flags_set: [], status_set: [] });
 
   useEffect(() => {
     if (existingScene) {
@@ -21,10 +23,13 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
         path: existingScene.path || null,
         chapter: existingScene.chapter || null,
         requires: existingScene.requires || [],
-        next: existingScene.next || []
+        next: existingScene.next || [],
+        type: existingScene.type || null,
+        flags_set: existingScene.flags_set || [],
+        status_set: existingScene.status_set || []
       });
     } else {
-      setDraft({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [] });
+      setDraft({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [], type: null, flags_set: [], status_set: [] });
     }
   }, [existingScene, entityId]);
 
@@ -126,6 +131,41 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
             onFocus={(e) => e.target.style.borderColor = 'var(--color-border-active)'}
             onBlur={(e) => e.target.style.borderColor = 'var(--color-border-row)'}
             placeholder="Scene description..."
+          />
+        </div>
+
+        <div>
+          <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>
+            Type
+          </label>
+          <SearchableDropdown
+            options={sceneTypes.reduce((acc, t) => { acc[t] = { id: t, name: t }; return acc; }, {})}
+            value={draft.type}
+            onChange={(val) => setDraft({ ...draft, type: val })}
+            placeholder="Select type..."
+            nullable
+          />
+        </div>
+
+        <div>
+          <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>
+            Flags Set
+          </label>
+          <FlagsSetEditor
+            flagsSet={draft.flags_set || []}
+            onChange={(newFlagsSet) => setDraft({ ...draft, flags_set: newFlagsSet })}
+            availableFlags={Object.values(flags)}
+          />
+        </div>
+
+        <div>
+          <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>
+            Status Set
+          </label>
+          <StatusSetEditor
+            statusSet={draft.status_set || []}
+            onChange={(newStatusSet) => setDraft({ ...draft, status_set: newStatusSet })}
+            availableStatus={Object.values(statusPoints)}
           />
         </div>
 

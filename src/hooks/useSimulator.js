@@ -174,7 +174,11 @@ export default function useSimulator() {
       }
       const validRoute = nextArr.find((route) => passesRequires(route.requires));
       if (validRoute) {
-        traverseNext(validRoute.target, []);
+        traverseNext(
+          validRoute.target,
+          sceneObj.flags_set || [],
+          sceneObj.status_set || []
+        );
       } else {
         alert('Dead End: No available routes pass the current flag conditions.');
       }

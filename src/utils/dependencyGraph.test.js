@@ -3,103 +3,13 @@
  * Run: node src/utils/dependencyGraph.test.js
  */
 
-// Inline the function since this is a standalone Node script (no bundler)
-// We replicate the logic here for testing without ESM/CJS issues.
-
-function buildDependencyGraph(flags, statusPoints, choices, scenes, endings) {
-  const flagGraph = {};
-  for (const flagId of Object.keys(flags || {})) {
-    flagGraph[flagId] = { setBy: [], requiredBy: { choices: [], scenes: [], endings: [] } };
-  }
-
-  const statusGraph = {};
-  for (const spId of Object.keys(statusPoints || {})) {
-    statusGraph[spId] = { mutatedBy: [], requiredBy: { choices: [], scenes: [], endings: [] } };
-  }
-
-  const forward = {};
-  const reverse = {};
-
-  const addEdge = (sourceId, targetId) => {
-    if (!targetId) return;
-    if (!forward[sourceId]) forward[sourceId] = new Set();
-    forward[sourceId].add(targetId);
-    if (!reverse[targetId]) reverse[targetId] = new Set();
-    reverse[targetId].add(sourceId);
-  };
-
-  for (const choice of Object.values(choices || {})) {
-    if (choice.requires) {
-      for (const req of choice.requires) {
-        if (req.flag && flagGraph[req.flag]) flagGraph[req.flag].requiredBy.choices.push({ id: choice.id, context: 'choice_requires' });
-        if (req.status && statusGraph[req.status]) statusGraph[req.status].requiredBy.choices.push({ id: choice.id, context: 'choice_requires' });
-      }
-    }
-    if (choice.options) {
-      for (let optIdx = 0; optIdx < choice.options.length; optIdx++) {
-        const opt = choice.options[optIdx];
-        if (opt.requires) {
-          for (const req of opt.requires) {
-            if (req.flag && flagGraph[req.flag]) flagGraph[req.flag].requiredBy.choices.push({ id: choice.id, context: 'option_requires', optionIndex: optIdx });
-            if (req.status && statusGraph[req.status]) statusGraph[req.status].requiredBy.choices.push({ id: choice.id, context: 'option_requires', optionIndex: optIdx });
-          }
-        }
-        if (opt.flags_set) {
-          for (const fId of opt.flags_set) {
-            if (flagGraph[fId]) flagGraph[fId].setBy.push({ choiceId: choice.id, optionIndex: optIdx });
-          }
-        }
-        if (opt.status_set) {
-          for (const sm of opt.status_set) {
-            if (statusGraph[sm.status]) statusGraph[sm.status].mutatedBy.push({ choiceId: choice.id, optionIndex: optIdx, amount: sm.amount });
-          }
-        }
-        if (opt.next) addEdge(choice.id, opt.next);
-      }
-    }
-  }
-
-  for (const scene of Object.values(scenes || {})) {
-    if (scene.requires) {
-      for (const req of scene.requires) {
-        if (req.flag && flagGraph[req.flag]) flagGraph[req.flag].requiredBy.scenes.push({ id: scene.id, context: 'scene_requires' });
-        if (req.status && statusGraph[req.status]) statusGraph[req.status].requiredBy.scenes.push({ id: scene.id, context: 'scene_requires' });
-      }
-    }
-    if (scene.next) {
-      for (let routeIdx = 0; routeIdx < scene.next.length; routeIdx++) {
-        const route = scene.next[routeIdx];
-        if (route.requires) {
-          for (const req of route.requires) {
-            if (req.flag && flagGraph[req.flag]) flagGraph[req.flag].requiredBy.scenes.push({ id: scene.id, context: 'scene_next_requires', routeIndex: routeIdx });
-            if (req.status && statusGraph[req.status]) statusGraph[req.status].requiredBy.scenes.push({ id: scene.id, context: 'scene_next_requires', routeIndex: routeIdx });
-          }
-        }
-        if (route.target) addEdge(scene.id, route.target);
-      }
-    }
-  }
-
-  for (const ending of Object.values(endings || {})) {
-    if (ending.requires) {
-      for (const req of ending.requires) {
-        if (req.flag && flagGraph[req.flag]) flagGraph[req.flag].requiredBy.endings.push({ id: ending.id });
-        if (req.status && statusGraph[req.status]) statusGraph[req.status].requiredBy.endings.push({ id: ending.id });
-      }
-    }
-  }
-
-  const adjacency = { forward: {}, reverse: {} };
-  for (const [k, v] of Object.entries(forward)) adjacency.forward[k] = [...v];
-  for (const [k, v] of Object.entries(reverse)) adjacency.reverse[k] = [...v];
-
-  return { flags: flagGraph, status: statusGraph, adjacency };
-}
+// Import the actual buildDependencyGraph function
+import { buildDependencyGraph } from './dependencyGraph.js';
 
 // ── Test Fixtures ───────────────────────────────────────────────────
 const testFlags = {
-  F001: { id: 'F001', name: 'gave_food', state: false },
-  F002: { id: 'F002', name: 'met_king', state: false }
+  F001: { id: 'F001', name: 'gave_food', state: false, path: null, chapter: null },
+  F002: { id: 'F002', name: 'met_king', state: false, path: null, chapter: null }
 };
 
 const testStatus = {
@@ -125,14 +35,14 @@ const testChoices = {
 
 const testScenes = {
   S001: {
-    id: 'S001', name: 'village',
+    id: 'S001', name: 'village', type: 'dialogue', flags_set: ['F001'], status_set: [{ status: 'SP001', amount: 1 }],
     requires: [{ flag: 'F001', state: true }],
     next: [
       { requires: [{ flag: 'F002', state: true }], target: 'E001' },
       { requires: [], target: 'CH002' }
     ]
   },
-  S002: { id: 'S002', name: 'forest', requires: [], next: [{ requires: [], target: 'CH001' }] }
+  S002: { id: 'S002', name: 'forest', type: null, flags_set: [], status_set: [{ status: 'SP001', amount: -1 }], requires: [], next: [{ requires: [], target: 'CH001' }] }
 };
 
 const testEndings = {
@@ -154,8 +64,10 @@ function assert(condition, label) {
 }
 
 console.log('\n=== Flag Layer ===');
-assert(graph.flags.F001.setBy.length === 1, 'F001 set by exactly 1 option');
+// F001 is set by 1 option (CH001) + 1 scene (S001)
+assert(graph.flags.F001.setBy.length === 2, 'F001 set by 1 option + 1 scene');
 assert(graph.flags.F001.setBy[0].choiceId === 'CH001' && graph.flags.F001.setBy[0].optionIndex === 0, 'F001 set by CH001 opt 0');
+assert(graph.flags.F001.setBy[1].choiceId === 'S001' && graph.flags.F001.setBy[1].optionIndex === undefined, 'F001 set by S001 scene');
 assert(graph.flags.F002.setBy.length === 1 && graph.flags.F002.setBy[0].choiceId === 'CH002', 'F002 set by CH002 opt 0');
 
 assert(graph.flags.F001.requiredBy.choices.length === 1, 'F001 required by 1 choice (CH002 choice-level)');
@@ -168,8 +80,12 @@ assert(graph.flags.F002.requiredBy.scenes[0].context === 'scene_next_requires', 
 assert(graph.flags.F002.requiredBy.endings.length === 1, 'F002 required by E001');
 
 console.log('\n=== Status Layer ===');
-assert(graph.status.SP001.mutatedBy.length === 1, 'SP001 mutated by 1 option');
-assert(graph.status.SP001.mutatedBy[0].amount === 2, 'SP001 mutation amount is 2');
+// SP001 is mutated by 1 option (CH001 opt 0, amount +2) + 2 scenes (S001 +1, S002 -1)
+assert(graph.status.SP001.mutatedBy.length === 3, 'SP001 mutated by 1 option + 2 scenes');
+assert(graph.status.SP001.mutatedBy[0].amount === 2, 'SP001 mutation amount from CH001 opt 0 is 2');
+assert(graph.status.SP001.mutatedBy[1].choiceId === 'S001' && graph.status.SP001.mutatedBy[1].optionIndex === undefined, 'SP001 mutated by S001 scene');
+assert(graph.status.SP001.mutatedBy[1].amount === 1, 'SP001 mutation amount from S001 scene is 1');
+
 assert(graph.status.SP001.requiredBy.choices.length === 1, 'SP001 required by 1 choice option');
 assert(graph.status.SP001.requiredBy.choices[0].context === 'option_requires', 'SP001 context is option_requires');
 assert(graph.status.SP001.requiredBy.endings.length === 1, 'SP001 required by E001');

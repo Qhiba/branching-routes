@@ -15,8 +15,19 @@ function ChoiceNode({ data, sourcePosition, targetPosition }) {
   const s = STATE_STYLES[data.state] || STATE_STYLES.reachable;
   const options = data.options || [];
 
+  // Trace highlighting
+  let borderStyle = `1px solid ${s.border}`;
+  let opacity = data.isGhosted ? 0.15 : 1;
+  if (data.traceHighlight) {
+    if (data.traceHighlight.isOnPath) {
+      borderStyle = '2px solid #d4a017';
+    } else {
+      opacity = 0.35;
+    }
+  }
+
   return (
-    <div className={`w-[280px] rounded-[10px] relative ${data.isGhosted ? 'opacity-15' : ''}`} style={{ background: s.bg, border: `1px solid ${s.border}`, borderTop: '4px solid var(--color-accent-primary-dim)' }}>
+    <div className="w-[288px] rounded-[10px] relative" style={{ background: s.bg, borderLeft: borderStyle, borderRight: borderStyle, borderBottom: borderStyle, borderTop: '4px solid var(--color-accent-primary-dim)', opacity }}>
       {data.state === 'current' && <div className="absolute -top-[12px] right-2 px-1.5 rounded-full" style={{ background: '#00d1ff', color: '#001e2e', fontSize: 8, fontWeight: 700, letterSpacing: '0.04em' }}>CURRENT</div>}
       {data.state === 'visited' && <div className="absolute -top-[11px] right-2 px-1.5 rounded-full" style={{ background: '#1d9e75', color: '#0a1e1a', fontSize: 8, fontWeight: 700, letterSpacing: '0.04em' }}>VISITED</div>}
       {data.state === 'unreachable' && <div className="absolute -top-[11px] right-2 px-1.5 rounded-full" style={{ background: '#252525', color: '#888', fontSize: 8, fontWeight: 700, letterSpacing: '0.04em' }}>LOCKED</div>}
@@ -56,8 +67,18 @@ function ChoiceNode({ data, sourcePosition, targetPosition }) {
         
         {options.length > 0 && (
           <div className="space-y-1 mt-2">
-            {options.map((opt, i) => (
-              <div key={opt.id || i} className="relative truncate px-2 py-1 rounded" style={{ fontSize: 10, color: 'var(--color-text-secondary)', background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)' }}>
+            {options.map((opt, i) => {
+              let optionStyle = { fontSize: 10, color: 'var(--color-text-secondary)', background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)' };
+              if (data.traceHighlight?.isOnPath) {
+                if (data.traceHighlight.pickedOptionId === opt.id) {
+                  optionStyle.borderLeft = '3px solid #d4a017';
+                  optionStyle.background = 'rgba(212,160,23,0.10)';
+                } else {
+                  optionStyle.opacity = 0.35;
+                }
+              }
+              return (
+                <div key={opt.id || i} className="relative truncate px-2 py-1 rounded" style={optionStyle}>
                 <div className="truncate" style={{ lineHeight: 1.2 }}>
                   {opt.label || `Option ${i + 1}`}
                   {opt.requires && opt.requires.length > 0 && <span className="ml-2" style={{ fontSize: 9, color: 'var(--color-text-muted)' }}>🔒</span>}
@@ -111,7 +132,8 @@ function ChoiceNode({ data, sourcePosition, targetPosition }) {
                   }}
                 />
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
         {options.length === 0 && (

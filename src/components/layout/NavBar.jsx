@@ -1,7 +1,8 @@
 import React from 'react';
 import { Flag, Layers, GitFork, Book, Dumbbell, Award, ListTree } from 'lucide-react';
+import SearchableDropdown from '../shared/SearchableDropdown';
 
-export default function NavBar({ activeNavItem, onNavChange }) {
+export default function NavBar({ activeNavItem, onNavChange, entryNode, setEntryNode, entryPointOptions, entryNodeType }) {
   const navItems = [
     { id: 'flags', name: 'Flags', icon: Flag },
     { id: 'status', name: 'Status', icon: Dumbbell },
@@ -49,6 +50,22 @@ export default function NavBar({ activeNavItem, onNavChange }) {
             </button>
           );
         })}
+      </div>
+      <div className="flex-1"></div>
+      <div className="flex items-center gap-2">
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+          ENTRY NODE
+        </span>
+        <SearchableDropdown
+          value={entryNode || null}
+          onChange={setEntryNode}
+          options={entryPointOptions}
+          placeholder="Set entry node..."
+          showFilters={true}
+          showIdPrefix={false}
+          warningWhenEmpty={true}
+          className="w-[200px]"
+        />
       </div>
     </nav>
   );

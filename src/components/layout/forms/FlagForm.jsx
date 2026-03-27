@@ -2,29 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { useEditor, useEditorActions } from '../../../context/EditorContext';
 import { Trash2, Lock, ToggleLeft, ToggleRight } from 'lucide-react';
 import FormFooter from './FormFooter';
+import SearchableDropdown from '../../shared/SearchableDropdown';
 
 export default function FlagForm({ entityId, onSave, onCancel }) {
-  const { flags, addFlag, updateFlagName, deleteFlag, toggleFlagState } = useEditor();
-  const { getFlagReferenceMap } = useEditorActions();
+  const { flags, paths, chapters, addFlag, updateFlagName, deleteFlag, toggleFlagState } = useEditor();
+  const { updateFlag, getFlagReferenceMap } = useEditorActions();
   const isNew = !entityId;
   const existingFlag = isNew ? null : flags[entityId];
 
-  // Local Draft State
-  const [draft, setDraft] = useState({ name: '' });
+  const [draft, setDraft] = useState({ name: '', path: null, chapter: null });
 
   useEffect(() => {
     if (existingFlag) {
-      setDraft({ name: existingFlag.name || '' });
+      setDraft({ name: existingFlag.name || '', path: existingFlag.path || null, chapter: existingFlag.chapter || null });
     } else {
-      setDraft({ name: '' });
+      setDraft({ name: '', path: null, chapter: null });
     }
   }, [existingFlag, entityId]);
 
   const handleSave = () => {
     if (isNew) {
-      addFlag(draft.name);
+      const newId = addFlag(draft.name);
+      if (draft.path || draft.chapter) {
+        updateFlag(newId, { path: draft.path, chapter: draft.chapter });
+      }
     } else {
       updateFlagName(entityId, draft.name);
+      updateFlag(entityId, { path: draft.path, chapter: draft.chapter });
     }
     onSave();
   };
@@ -71,6 +75,27 @@ export default function FlagForm({ entityId, onSave, onCancel }) {
             autoFocus
           />
         </div>
+
+         <div className="grid grid-cols-2 gap-3">
+           <div>
+             <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Path</label>
+             <SearchableDropdown
+               value={draft.path}
+               onChange={(val) => setDraft({ ...draft, path: val })}
+               placeholder="Select path..."
+               options={Object.values(paths).map(p => ({ id: p.id, name: p.name }))}
+             />
+           </div>
+           <div>
+             <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Chapter</label>
+             <SearchableDropdown
+               value={draft.chapter}
+               onChange={(val) => setDraft({ ...draft, chapter: val })}
+               placeholder="Select chapter..."
+               options={Object.values(chapters).map(c => ({ id: c.id, name: c.name }))}
+             />
+           </div>
+         </div>
         
         {!isNew && (
           <div className="pt-4 mt-6 border-t" style={{ borderColor: 'var(--color-border-ghost)' }}>

@@ -114,7 +114,7 @@ export function annotatePath(path, choices, scenes, endings, flags, statusPoints
         const opt = choice.options[optIdx];
         const targets = getOptionTargets(opt);
         if (targets.includes(nextNodeId)) {
-          step.pick = { label: opt.label || `Option ${optIdx + 1}`, optionIndex: optIdx };
+          step.pick = { label: opt.label || `Option ${optIdx + 1}`, optionIndex: optIdx, optionId: opt.id };
           step.flagsSet = (opt.flags_set || []).map(fId => {
             const flag = flags?.[fId];
             return flag?.name || fId;
@@ -130,19 +130,32 @@ export function annotatePath(path, choices, scenes, endings, flags, statusPoints
       }
     }
 
-    // For scene nodes: find which route leads to the next node
-    if (nextNodeId && scene && scene.next) {
-      for (let routeIdx = 0; routeIdx < scene.next.length; routeIdx++) {
-        const route = scene.next[routeIdx];
-        if (route.target === nextNodeId) {
-          step.pick = {
-            routeIndex: routeIdx,
-            label: route.requires && route.requires.length > 0
-              ? `Route ${routeIdx + 1} (conditional)`
-              : `Route ${routeIdx + 1} (fallback)`,
-            requires: route.requires || [],
-          };
-          break;
+    // For scene nodes: collect scene-level flags_set / status_set, and find route
+    if (scene) {
+      step.flagsSet = (scene.flags_set || []).map(fId => {
+        const flag = flags?.[fId];
+        return flag?.name || fId;
+      });
+      step.flagsSetIds = scene.flags_set || [];
+      step.statusChanges = (scene.status_set || []).map(s => ({
+        status: s.status,
+        statusName: statusPoints?.[s.status]?.name || s.status,
+        amount: s.amount,
+      }));
+
+      if (nextNodeId && scene.next) {
+        for (let routeIdx = 0; routeIdx < scene.next.length; routeIdx++) {
+          const route = scene.next[routeIdx];
+          if (route.target === nextNodeId) {
+            step.pick = {
+              routeIndex: routeIdx,
+              label: route.requires && route.requires.length > 0
+                ? `Route ${routeIdx + 1} (conditional)`
+                : `Route ${routeIdx + 1} (fallback)`,
+              requires: route.requires || [],
+            };
+            break;
+          }
         }
       }
     }

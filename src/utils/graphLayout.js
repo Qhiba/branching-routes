@@ -11,10 +11,10 @@
  */
 import dagre from '@dagrejs/dagre';
 
-const NODE_WIDTH = 280;
-const NODE_HEIGHT_SCENE = 140;
-const NODE_HEIGHT_CHOICE = 150;
-const NODE_HEIGHT_ENDING = 80;
+const NODE_WIDTH = 288;
+const NODE_HEIGHT_SCENE = 144;
+const NODE_HEIGHT_CHOICE = 168;
+const NODE_HEIGHT_ENDING = 72;
 
 /**
  * Get the expected height for a node type.
@@ -63,6 +63,16 @@ function buildNodesAndEdges(choices, scenes, endings, opts = {}) {
         requiresCount: (scene.requires || []).length,
         nextCount: (scene.next || []).length,
         variantsCount: (scene.variants || []).length,
+        variants: (scene.variants || []).map(v => ({
+          _id: v._id,
+          requires: v.requires || [],
+          text: v.text || '',
+        })),
+        type: scene.type || null,
+        flagsSetCount: (scene.flags_set || []).length,
+        statusSetCount: (scene.status_set || []).length,
+        flags_set: scene.flags_set || [],
+        status_set: scene.status_set || [],
         nextEntries: (scene.next || []).map((n, idx) => ({
           _id: n._id || `route_fallback_${idx}`,
           target: n.target,
