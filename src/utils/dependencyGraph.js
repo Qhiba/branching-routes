@@ -10,6 +10,8 @@
  * The function is pure — no React, no side-effects.
  */
 
+import { flattenConditions } from './conditionUtils';
+
 export function buildDependencyGraph(flags, statusPoints, choices, scenes, endings) {
   // ── Layer 1: Flag dependency ──────────────────────────────────────
   const flagGraph = {};
@@ -45,7 +47,7 @@ export function buildDependencyGraph(flags, statusPoints, choices, scenes, endin
   for (const choice of Object.values(choices || {})) {
     // Choice-level requires → getters
     if (choice.requires) {
-      for (const req of choice.requires) {
+      for (const req of flattenConditions(choice.requires)) {
         if (req.flag && flagGraph[req.flag]) {
           flagGraph[req.flag].requiredBy.choices.push({ id: choice.id, context: 'choice_requires' });
         }
@@ -62,7 +64,7 @@ export function buildDependencyGraph(flags, statusPoints, choices, scenes, endin
 
         // Option requires → getters
         if (opt.requires) {
-          for (const req of opt.requires) {
+          for (const req of flattenConditions(opt.requires)) {
             if (req.flag && flagGraph[req.flag]) {
               flagGraph[req.flag].requiredBy.choices.push({ id: choice.id, context: 'option_requires', optionIndex: optIdx });
             }
@@ -101,7 +103,7 @@ export function buildDependencyGraph(flags, statusPoints, choices, scenes, endin
             addEdge(choice.id, entry.target);
           }
           if (entry.requires) {
-            for (const req of entry.requires) {
+            for (const req of flattenConditions(entry.requires)) {
               if (req.flag && flagGraph[req.flag]) {
                 flagGraph[req.flag].requiredBy.choices.push({ id: choice.id, context: 'option_next_requires', optionIndex: optIdx });
               }
@@ -119,7 +121,7 @@ export function buildDependencyGraph(flags, statusPoints, choices, scenes, endin
     for (const scene of Object.values(scenes || {})) {
       // Scene requires → getters
       if (scene.requires) {
-        for (const req of scene.requires) {
+        for (const req of flattenConditions(scene.requires)) {
           if (req.flag && flagGraph[req.flag]) {
             flagGraph[req.flag].requiredBy.scenes.push({ id: scene.id, context: 'scene_requires' });
           }
@@ -154,7 +156,7 @@ export function buildDependencyGraph(flags, statusPoints, choices, scenes, endin
 
          // Route requires → getters
          if (route.requires) {
-           for (const req of route.requires) {
+           for (const req of flattenConditions(route.requires)) {
              if (req.flag && flagGraph[req.flag]) {
                flagGraph[req.flag].requiredBy.scenes.push({ id: scene.id, context: 'scene_next_requires', routeIndex: routeIdx });
              }
@@ -175,7 +177,7 @@ export function buildDependencyGraph(flags, statusPoints, choices, scenes, endin
   // ── Scan endings ──────────────────────────────────────────────────
   for (const ending of Object.values(endings || {})) {
     if (ending.requires) {
-      for (const req of ending.requires) {
+      for (const req of flattenConditions(ending.requires)) {
         if (req.flag && flagGraph[req.flag]) {
           flagGraph[req.flag].requiredBy.endings.push({ id: ending.id });
         }

@@ -6,6 +6,7 @@
  */
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useEditorData } from '../context/EditorContext';
+import { evaluateGroup } from '../utils/conditionUtils';
 
 export default function useSimulator() {
   const { flags, choices, scenes, endings, statusPoints, entryNode } = useEditorData();
@@ -71,18 +72,8 @@ export default function useSimulator() {
   }, [flags, statusPoints, historyStack]);
 
   const passesRequires = useCallback(
-    (requiresArray = []) => {
-      if (!requiresArray || requiresArray.length === 0) return true;
-      return requiresArray.every((req) => {
-        if (req.flag) return activeState.flags[req.flag] === req.state;
-        if (req.status) {
-          const val = activeState.status[req.status];
-          if (req.min !== undefined && val < req.min) return false;
-          if (req.max !== undefined && val > req.max) return false;
-          return true;
-        }
-        return true;
-      });
+    (requires) => {
+      return evaluateGroup(requires, activeState);
     },
     [activeState]
   );

@@ -14,6 +14,7 @@ import '@xyflow/react/dist/style.css';
 import { useEditorData, useEditorActions } from '../../context/EditorContext';
 import { computeLayoutWithPositions } from '../../utils/graphLayout';
 import { analyzeReachability } from '../../utils/reachabilityAnalyzer';
+import { hasConditions } from '../../utils/conditionUtils';
 import SceneNode from './nodes/SceneNode';
 import ChoiceNode from './nodes/ChoiceNode';
 import EndingNode from './nodes/EndingNode';
@@ -159,7 +160,7 @@ function RouteViewerInner({ onNodeEdit, sim, routeViewerRef, tracedPath, routeTr
           state = 'visited';
         } else {
           const entity = scenes[node.id] || choices[node.id] || endings[node.id];
-          if (entity?.requires && entity.requires.length > 0) {
+          if (entity && hasConditions(entity.requires)) {
             const canMeet = sim.passesRequires(entity.requires);
             if (!canMeet) state = 'unreachable';
           }
@@ -365,7 +366,7 @@ function RouteViewerInner({ onNodeEdit, sim, routeViewerRef, tracedPath, routeTr
           return entry;
         });
         if (!updated && targetValue) {
-          newNext.push({ _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, requires: [], target: targetValue });
+          newNext.push({ _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, requires: { operator: 'and', conditions: [] }, target: targetValue });
         }
         updateChoiceOption(source, optIndex, { ...existingOpt, next: newNext });
         return;
@@ -522,7 +523,7 @@ function RouteViewerInner({ onNodeEdit, sim, routeViewerRef, tracedPath, routeTr
             minZoom={0.1}
             maxZoom={2}
             nodeDragThreshold={2}
-            defaultEdgeOptions={{ type: 'smoothstep', pathOptions: { borderRadius: 32 } }}
+            defaultEdgeOptions={{ type: 'smoothstep', pathOptions: { borderRadius: 32 }, markerEnd: { type: 'arrowclosed', width: 16, height: 16, color: '#4a6a73' } }}
             proOptions={{ hideAttribution: true }}
             snapToGrid={true}
             snapGrid={[24, 24]}

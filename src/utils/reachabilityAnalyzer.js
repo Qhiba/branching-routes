@@ -19,6 +19,7 @@
  *      that could accumulate to the required threshold
  */
 import { buildDependencyGraph } from './dependencyGraph';
+import { flattenConditions, hasConditions } from './conditionUtils';
 
 /**
  * Analyze the full project graph and return IDs of structurally
@@ -71,9 +72,10 @@ export function analyzeReachability(flags, statusPoints, choices, scenes, ending
 
   // Analyze each entity with requires
   const checkEntity = (entity, entityType) => {
-    if (!entity.requires || entity.requires.length === 0) return;
+    if (!hasConditions(entity.requires)) return;
 
-    const requiredTrueFlags = entity.requires
+    const flatReqs = flattenConditions(entity.requires);
+    const requiredTrueFlags = flatReqs
       .filter(r => r.flag && r.state === true)
       .map(r => r.flag);
 
@@ -104,7 +106,7 @@ export function analyzeReachability(flags, statusPoints, choices, scenes, ending
     }
 
     // Check 3: Status point requirements — verify at least one setter exists
-    const statusReqs = entity.requires.filter(r => r.status);
+    const statusReqs = flatReqs.filter(r => r.status);
     for (const req of statusReqs) {
       const statusData = graph.status[req.status];
       if (!statusData || statusData.mutatedBy.length === 0) {

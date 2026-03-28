@@ -6,6 +6,7 @@ import QuickNav from '../shared/QuickNav';
 import SearchableDropdown from '../shared/SearchableDropdown';
 import DebouncedInput from '../shared/DebouncedInput';
 import DebouncedTextarea from '../shared/DebouncedTextarea';
+import { hasConditions } from '../../utils/conditionUtils';
 
 export default function SceneEditor() {
   const { flags, statusPoints, paths, chapters, scenes, choices, endings, entryNode, setEntryNode, addScene, updateScene, deleteScene } = useEditor();
@@ -159,7 +160,7 @@ export default function SceneEditor() {
                         <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Next targets · first match wins</label>
                       </div>
                       <button
-                        onClick={() => updateScene(scene.id, { next: [...(scene.next || []), { _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, target: '', requires: [] }] })}
+                        onClick={() => updateScene(scene.id, { next: [...(scene.next || []), { _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, target: '', requires: { operator: 'and', conditions: [] } }] })}
                         style={{ background: 'none', border: '1px solid var(--color-border-ghost)', borderRadius: 6, color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500, padding: '3px 8px', cursor: 'pointer' }}
                       >
                         + Add target
@@ -174,7 +175,7 @@ export default function SceneEditor() {
                       <div className="space-y-2">
                         {scene.next.map((route, idx) => {
                           const routeKey = route._id || `route-fallback-${idx}`;
-                          const isFallback = idx === scene.next.length - 1 && (!route.requires || route.requires.length === 0);
+                          const isFallback = idx === scene.next.length - 1 && !hasConditions(route.requires);
                           return (
                           <div key={routeKey} className="p-3 rounded-md relative group" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
                             <div className="flex items-start gap-3">
@@ -224,7 +225,7 @@ export default function SceneEditor() {
                           </div>
                           );
                         })}
-                        {scene.next.length > 0 && scene.next[scene.next.length - 1].requires && scene.next[scene.next.length - 1].requires.length > 0 && (
+                        {scene.next.length > 0 && hasConditions(scene.next[scene.next.length - 1].requires) && (
                           <div className="py-2 px-3 rounded-md" style={{ fontSize: 11, color: 'var(--color-accent-error)', background: 'rgba(255,107,107,0.06)', border: '1px solid rgba(255,107,107,0.15)' }}>
                             ⚠ No fallback — scene may get stuck
                           </div>

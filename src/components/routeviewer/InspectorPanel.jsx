@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Award } from 'lucide-react';
+import { hasConditions, flattenConditions } from '../../utils/conditionUtils';
 
 export default function InspectorPanel({ node, onClose, onTraceRoute }) {
   if (!node) return null;
@@ -34,11 +35,11 @@ export default function InspectorPanel({ node, onClose, onTraceRoute }) {
 
       <div className="flex-1 overflow-y-auto">
         {/* Sections */}
-        {node.requires && node.requires.length > 0 && (
+        {hasConditions(node.requires) && (
           <div className="py-2.5">
             <h3 style={{ fontSize: 10, fontWeight: 600, fontFamily: 'var(--font-display)', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 13px 5px' }}>Requires</h3>
             <div className="flex flex-wrap gap-1.5" style={{ padding: '0 13px 10px' }}>
-              {node.requires.map((req, i) => (
+              {flattenConditions(node.requires).map((req, i) => (
                 <span key={i} className="px-2 py-0.5 rounded" style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--color-text-secondary)', background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)' }}>
                   {req.flag ? `${req.flag}=${String(req.state)}` : `${req.status} ${req.min !== undefined ? `≥${req.min}` : ''}${req.max !== undefined ? `≤${req.max}` : ''}`}
                 </span>
@@ -58,10 +59,10 @@ export default function InspectorPanel({ node, onClose, onTraceRoute }) {
                      <span className="truncate" style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-secondary)' }}>{opt.label || `Option ${i + 1}`}</span>
                      <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 500, color: 'var(--color-accent-primary-dim)' }}>→ {opt.next || 'loop'}</span>
                   </div>
-                  {opt.requires && opt.requires.length > 0 && (
+                  {hasConditions(opt.requires) && (
                     <div className="px-2 py-1 flex flex-wrap gap-1">
                       <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>if</span>
-                      {opt.requires.map((req, j) => (
+                      {flattenConditions(opt.requires).map((req, j) => (
                          <span key={j} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: req.flag ? 'var(--color-accent-variable)' : 'var(--color-accent-primary-dim)' }}>
                            {req.flag ? `${req.flag}=${String(req.state)}` : `${req.status} ${req.min !== undefined ? `≥${req.min}` : ''}${req.max !== undefined ? `≤${req.max}` : ''}`}
                          </span>
@@ -99,11 +100,11 @@ export default function InspectorPanel({ node, onClose, onTraceRoute }) {
               {node.next.map((route, i) => (
                 <div key={i} className="px-2.5 py-1.5 rounded-md flex justify-between items-center" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
                   <div className="flex gap-2 items-center truncate">
-                    {route.requires && route.requires.length > 0 ? (
+                    {hasConditions(route.requires) ? (
                       <div className="flex items-center gap-1 truncate">
                         <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>if</span>
                         <div className="truncate text-xs flex gap-1">
-                           {route.requires.map((req, j) => (
+                           {flattenConditions(route.requires).map((req, j) => (
                              <span key={j} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: req.flag ? 'var(--color-accent-variable)' : 'var(--color-accent-primary-dim)' }}>
                                {req.flag ? `${req.flag}=${String(req.state)}` : `${req.status} ${req.min !== undefined ? `≥${req.min}` : ''}${req.max !== undefined ? `≤${req.max}` : ''}`}
                              </span>

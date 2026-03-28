@@ -6,13 +6,14 @@ import ConditionEditor from '../../shared/ConditionEditor';
 import SearchableDropdown from '../../shared/SearchableDropdown';
 import FlagsSetEditor from '../../shared/FlagsSetEditor';
 import StatusSetEditor from '../../shared/StatusSetEditor';
+import { hasConditions } from '../../../utils/conditionUtils';
 
 export default function ChoiceForm({ entityId, onSave, onCancel }) {
   const { flags, statusPoints, paths, chapters, choices, scenes, endings, entryNode, setEntryNode, addChoice, updateChoice, deleteChoice } = useEditor();
   const isNew = !entityId;
   const existingChoice = isNew ? null : choices[entityId];
 
-  const [draft, setDraft] = useState({ text: '', path: null, chapter: null, requires: [], options: [] });
+  const [draft, setDraft] = useState({ text: '', path: null, chapter: null, requires: { operator: 'and', conditions: [] }, options: [] });
   const [expandedOptions, setExpandedOptions] = useState(new Set());
 
   useEffect(() => {
@@ -25,7 +26,7 @@ export default function ChoiceForm({ entityId, onSave, onCancel }) {
         options: existingChoice.options || [] 
       });
     } else {
-      setDraft({ text: '', path: null, chapter: null, requires: [], options: [] });
+      setDraft({ text: '', path: null, chapter: null, requires: { operator: 'and', conditions: [] }, options: [] });
     }
   }, [existingChoice, entityId]);
 
@@ -77,7 +78,7 @@ export default function ChoiceForm({ entityId, onSave, onCancel }) {
     const optId = `opt_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
     setDraft({
       ...draft,
-      options: [...draft.options, { id: optId, label: 'New Option', requires: [], flags_set: [], status_set: [], next: [] }]
+      options: [...draft.options, { id: optId, label: 'New Option', requires: { operator: 'and', conditions: [] }, flags_set: [], status_set: [], next: [] }]
     });
   };
 
@@ -229,7 +230,7 @@ export default function ChoiceForm({ entityId, onSave, onCancel }) {
                             <button
                               onClick={() => {
                                 const nextArr = Array.isArray(opt.next) ? opt.next : [];
-                                internalUpdateOption(idx, { ...opt, next: [...nextArr, { _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, requires: [], target: '' }] });
+                                internalUpdateOption(idx, { ...opt, next: [...nextArr, { _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, requires: { operator: 'and', conditions: [] }, target: '' }] });
                               }}
                               style={{ background: 'none', border: '1px solid var(--color-border-ghost)', borderRadius: 6, color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500, padding: '3px 8px', cursor: 'pointer' }}
                             >
@@ -248,7 +249,7 @@ export default function ChoiceForm({ entityId, onSave, onCancel }) {
                             return (
                               <div className="space-y-2">
                                 {nextArr.map((entry, rIdx) => {
-                                  const isFallback = rIdx === nextArr.length - 1 && (!entry.requires || entry.requires.length === 0);
+                                  const isFallback = rIdx === nextArr.length - 1 && !hasConditions(entry.requires);
                                   return (
                                     <div key={entry._id || rIdx} className="p-2.5 rounded-md relative" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
                                       <div className="flex items-start gap-2">
@@ -295,7 +296,7 @@ export default function ChoiceForm({ entityId, onSave, onCancel }) {
                                     </div>
                                   );
                                 })}
-                                {nextArr.length > 0 && nextArr[nextArr.length - 1].requires && nextArr[nextArr.length - 1].requires.length > 0 && (
+                                {nextArr.length > 0 && hasConditions(nextArr[nextArr.length - 1].requires) && (
                                   <div className="py-2 px-3 mt-1 rounded-md" style={{ fontSize: 11, color: 'var(--color-accent-error)', background: 'rgba(255,107,107,0.06)', border: '1px solid rgba(255,107,107,0.15)' }}>
                                     ⚠ No fallback — option may loop unexpectedly
                                   </div>

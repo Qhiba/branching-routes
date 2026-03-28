@@ -21,6 +21,8 @@
  * @param {{ forward: Object<string, string[]>, reverse: Object<string, string[]> }} adjacency
  * @returns {string[][]}
  */
+import { flattenConditions } from './conditionUtils';
+
 export function findAllPathsTo(targetId, entryNodeId, adjacency) {
   if (!targetId || !entryNodeId || !adjacency) return [];
   if (targetId === entryNodeId) return [[entryNodeId]];
@@ -149,7 +151,7 @@ export function annotatePath(path, choices, scenes, endings, flags, statusPoints
           if (route.target === nextNodeId) {
             step.pick = {
               routeIndex: routeIdx,
-              label: route.requires && route.requires.length > 0
+              label: hasConditions(route.requires)
                 ? `Route ${routeIdx + 1} (conditional)`
                 : `Route ${routeIdx + 1} (fallback)`,
               requires: route.requires || [],
@@ -163,7 +165,8 @@ export function annotatePath(path, choices, scenes, endings, flags, statusPoints
     // Check if the next node's requires are satisfiable given flags set so far
     if (nextNodeId) {
       const nextEntity = choices?.[nextNodeId] || scenes?.[nextNodeId] || endings?.[nextNodeId];
-      if (nextEntity?.requires && nextEntity.requires.length > 0) {
+      const flatReqs = flattenConditions(nextEntity?.requires);
+      if (flatReqs.length > 0) {
         // Collect all flag IDs set along the path up to and including this step
         const flagIdsSetSoFar = new Set();
         for (const prevStep of steps) {
@@ -171,7 +174,7 @@ export function annotatePath(path, choices, scenes, endings, flags, statusPoints
         }
         for (const fId of (step.flagsSetIds || [])) flagIdsSetSoFar.add(fId);
 
-        step.satisfiesNext = nextEntity.requires.every(req => {
+        step.satisfiesNext = flatReqs.every(req => {
           if (req.flag) {
             if (req.state === true) return flagIdsSetSoFar.has(req.flag);
             if (req.state === false) return !flagIdsSetSoFar.has(req.flag);

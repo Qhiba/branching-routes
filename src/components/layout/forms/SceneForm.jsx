@@ -6,13 +6,14 @@ import ConditionEditor from '../../shared/ConditionEditor';
 import SearchableDropdown from '../../shared/SearchableDropdown';
 import FlagsSetEditor from '../../shared/FlagsSetEditor';
 import StatusSetEditor from '../../shared/StatusSetEditor';
+import { hasConditions } from '../../../utils/conditionUtils';
 
 export default function SceneForm({ entityId, onSave, onCancel }) {
   const { flags, statusPoints, paths, chapters, scenes, choices, endings, entryNode, sceneTypes, setEntryNode, addScene, updateScene, deleteScene } = useEditor();
   const isNew = !entityId;
   const existingScene = isNew ? null : scenes[entityId];
 
-  const [draft, setDraft] = useState({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [], type: null, flags_set: [], status_set: [] });
+  const [draft, setDraft] = useState({ name: '', description: '', variants: [], path: null, chapter: null, requires: { operator: 'and', conditions: [] }, next: [], type: null, flags_set: [], status_set: [] });
 
   useEffect(() => {
     if (existingScene) {
@@ -29,7 +30,7 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
         status_set: existingScene.status_set || []
       });
     } else {
-      setDraft({ name: '', description: '', variants: [], path: null, chapter: null, requires: [], next: [], type: null, flags_set: [], status_set: [] });
+      setDraft({ name: '', description: '', variants: [], path: null, chapter: null, requires: { operator: 'and', conditions: [] }, next: [], type: null, flags_set: [], status_set: [] });
     }
   }, [existingScene, entityId]);
 
@@ -68,7 +69,7 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
   const addRoute = () => {
     setDraft({
       ...draft,
-      next: [...draft.next, { _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, target: '', requires: [] }]
+      next: [...draft.next, { _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, target: '', requires: { operator: 'and', conditions: [] } }]
     });
   };
 
@@ -84,7 +85,7 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
   };
 
   const addVariant = () => {
-    const newVariant = { _id: `variant_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, requires: [], text: '' };
+    const newVariant = { _id: `variant_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, requires: { operator: 'and', conditions: [] }, text: '' };
     setDraft({ ...draft, variants: [...(draft.variants || []), newVariant] });
   };
 
@@ -278,7 +279,7 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
                 <div className="space-y-2">
                   {draft.next.map((route, idx) => {
                     const routeKey = route._id || `draft-route-${idx}`;
-                    const isFallback = idx === draft.next.length - 1 && (!route.requires || route.requires.length === 0);
+                     const isFallback = idx === draft.next.length - 1 && !hasConditions(route.requires);
 
                     return (
                     <div key={routeKey} className="p-3 rounded-md relative group" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
@@ -316,7 +317,7 @@ export default function SceneForm({ entityId, onSave, onCancel }) {
                     );
                   })}
                   
-                  {draft.next.length > 0 && draft.next[draft.next.length - 1].requires && draft.next[draft.next.length - 1].requires.length > 0 && (
+                   {draft.next.length > 0 && hasConditions(draft.next[draft.next.length - 1].requires) && (
                     <div className="py-2 px-3 mt-2 rounded-md" style={{ fontSize: 11, color: 'var(--color-accent-error)', background: 'rgba(255,107,107,0.06)', border: '1px solid rgba(255,107,107,0.15)' }}>
                       ⚠ No fallback — scene may get stuck
                     </div>

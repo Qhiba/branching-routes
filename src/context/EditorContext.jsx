@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import localforage from 'localforage';
 import { buildDependencyGraph } from '../utils/dependencyGraph';
+import { normalizeRequires, flattenConditions, filterConditions } from '../utils/conditionUtils';
 
 const STORAGE_KEY = 'branching-routes-data';
 
@@ -79,6 +80,93 @@ const migrateFlagFields = (flags) => {
   return anyChanged ? result : flags;
 };
 
+// Migrate requires from flat array to group structure
+const migrateRequires = (obj) => {
+  if (!obj) return { operator: 'and', conditions: [] };
+  if (Array.isArray(obj)) return { operator: 'and', conditions: obj };
+  if (obj.operator === 'and' || obj.operator === 'or') return obj;
+  return { operator: 'and', conditions: [] };
+};
+
+// Deep-migrate all requires fields in choices (choice.requires, opt.requires, entry.requires)
+const migrateChoiceRequires = (choices) => {
+  if (!choices || typeof choices !== 'object') return choices;
+  const result = { ...choices };
+  let anyChanged = false;
+  for (const [chId, choice] of Object.entries(result)) {
+    let dirty = false;
+    const patched = { ...choice };
+    if (Array.isArray(patched.requires)) { patched.requires = migrateRequires(patched.requires); dirty = true; }
+    else if (!patched.requires) { patched.requires = migrateRequires(null); dirty = true; }
+    if (patched.options) {
+      patched.options = patched.options.map(opt => {
+        let optDirty = false;
+        const newOpt = { ...opt };
+        if (Array.isArray(newOpt.requires)) { newOpt.requires = migrateRequires(newOpt.requires); optDirty = true; }
+        else if (!newOpt.requires) { newOpt.requires = migrateRequires(null); optDirty = true; }
+        if (newOpt.next) {
+          newOpt.next = newOpt.next.map(entry => {
+            let entryDirty = false;
+            const newEntry = { ...entry };
+            if (Array.isArray(newEntry.requires)) { newEntry.requires = migrateRequires(newEntry.requires); entryDirty = true; }
+            else if (!newEntry.requires) { newEntry.requires = migrateRequires(null); entryDirty = true; }
+            return entryDirty ? newEntry : entry;
+          });
+        }
+        return optDirty ? newOpt : opt;
+      });
+    }
+    if (dirty) { result[chId] = patched; anyChanged = true; }
+  }
+  return anyChanged ? result : choices;
+};
+
+// Deep-migrate all requires fields in scenes (scene.requires, variant.requires, route.requires)
+const migrateSceneRequires = (scenes) => {
+  if (!scenes || typeof scenes !== 'object') return scenes;
+  const result = { ...scenes };
+  let anyChanged = false;
+  for (const [scId, scene] of Object.entries(result)) {
+    let dirty = false;
+    const patched = { ...scene };
+    if (Array.isArray(patched.requires)) { patched.requires = migrateRequires(patched.requires); dirty = true; }
+    else if (!patched.requires) { patched.requires = migrateRequires(null); dirty = true; }
+    if (patched.variants) {
+      patched.variants = patched.variants.map(v => {
+        if (Array.isArray(v.requires)) { dirty = true; return { ...v, requires: migrateRequires(v.requires) }; }
+        if (!v.requires) { dirty = true; return { ...v, requires: migrateRequires(null) }; }
+        return v;
+      });
+    }
+    if (patched.next) {
+      patched.next = patched.next.map(route => {
+        if (Array.isArray(route.requires)) { dirty = true; return { ...route, requires: migrateRequires(route.requires) }; }
+        if (!route.requires) { dirty = true; return { ...route, requires: migrateRequires(null) }; }
+        return route;
+      });
+    }
+    if (dirty) { result[scId] = patched; anyChanged = true; }
+  }
+  return anyChanged ? result : scenes;
+};
+
+// Deep-migrate all requires fields in endings
+const migrateEndingRequires = (endings) => {
+  if (!endings || typeof endings !== 'object') return endings;
+  const result = { ...endings };
+  let anyChanged = false;
+  for (const [eId, ending] of Object.entries(result)) {
+    if (Array.isArray(ending.requires)) {
+      result[eId] = { ...ending, requires: migrateRequires(ending.requires) };
+      anyChanged = true;
+    } else if (!ending.requires) {
+      result[eId] = { ...ending, requires: migrateRequires(null) };
+      anyChanged = true;
+    }
+  }
+  return anyChanged ? result : endings;
+};
+
 // Sanitize all entity names in a collection
 const sanitizeCollection = (collection) => {
   if (!collection || typeof collection !== 'object') return collection;
@@ -126,13 +214,13 @@ export function EditorProvider({ children }) {
       .then(saved => {
         if (cancelled || !saved) return;
         if (saved.flags) setFlags(migrateFlagFields(saved.flags));
-        if (saved.choices) setChoices(migrateOptionNext(saved.choices));
-        if (saved.scenes) setScenes(migrateSceneFields(saved.scenes));
+        if (saved.choices) setChoices(migrateChoiceRequires(migrateOptionNext(saved.choices)));
+        if (saved.scenes) setScenes(migrateSceneRequires(migrateSceneFields(saved.scenes)));
         if (saved.paths) setPaths(saved.paths);
         if (saved.chapters) setChapters(saved.chapters);
         if (saved.statusPoints) setStatusPoints(saved.statusPoints);
         if (saved.quests) setQuests(saved.quests);
-        if (saved.endings) setEndings(saved.endings);
+        if (saved.endings) setEndings(migrateEndingRequires(saved.endings));
         if (saved.entryNode !== undefined) setEntryNode(saved.entryNode);
         if (saved.sceneTypes) setSceneTypes(saved.sceneTypes);
       })
@@ -189,14 +277,14 @@ export function EditorProvider({ children }) {
     }
     Object.values(choicesRef.current).forEach(choice => {
       const referencedFlags = new Set();
-      if (choice.requires) choice.requires.forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
+      flattenConditions(choice.requires).forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
       if (choice.options) choice.options.forEach(opt => {
         if (opt.flags_set) opt.flags_set.forEach(f => referencedFlags.add(f));
-        if (opt.requires) opt.requires.forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
+        flattenConditions(opt.requires).forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
         if (opt.next) {
           const nextArr = Array.isArray(opt.next) ? opt.next : (opt.next ? [{ requires: [], target: opt.next }] : []);
           nextArr.forEach(entry => {
-            if (entry.requires) entry.requires.forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
+            flattenConditions(entry.requires).forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
           });
         }
       });
@@ -206,9 +294,9 @@ export function EditorProvider({ children }) {
     });
     Object.values(scenesRef.current).forEach(scene => {
       const referencedFlags = new Set();
-      if (scene.requires) scene.requires.forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
+      flattenConditions(scene.requires).forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
       if (scene.next) scene.next.forEach(n => {
-        if (n.requires) n.requires.forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
+        flattenConditions(n.requires).forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
       });
       referencedFlags.forEach(fId => {
         if (map[fId]) map[fId].scenes.push(scene.id);
@@ -216,7 +304,7 @@ export function EditorProvider({ children }) {
     });
     Object.values(endingsRef.current).forEach(ending => {
       const referencedFlags = new Set();
-      if (ending.requires) ending.requires.forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
+      flattenConditions(ending.requires).forEach(r => { if (r.flag) referencedFlags.add(r.flag); });
       referencedFlags.forEach(fId => {
         if (map[fId]) map[fId].endings.push(ending.id);
       });
@@ -232,14 +320,14 @@ export function EditorProvider({ children }) {
     }
     Object.values(choicesRef.current).forEach(choice => {
       const referencedStatus = new Set();
-      if (choice.requires) choice.requires.forEach(r => { if (r.status) referencedStatus.add(r.status); });
+      flattenConditions(choice.requires).forEach(r => { if (r.status) referencedStatus.add(r.status); });
       if (choice.options) choice.options.forEach(opt => {
         if (opt.status_set) opt.status_set.forEach(f => referencedStatus.add(f.status));
-        if (opt.requires) opt.requires.forEach(r => { if (r.status) referencedStatus.add(r.status); });
+        flattenConditions(opt.requires).forEach(r => { if (r.status) referencedStatus.add(r.status); });
         if (opt.next) {
           const nextArr = Array.isArray(opt.next) ? opt.next : (opt.next ? [{ requires: [], target: opt.next }] : []);
           nextArr.forEach(entry => {
-            if (entry.requires) entry.requires.forEach(r => { if (r.status) referencedStatus.add(r.status); });
+            flattenConditions(entry.requires).forEach(r => { if (r.status) referencedStatus.add(r.status); });
           });
         }
       });
@@ -249,9 +337,9 @@ export function EditorProvider({ children }) {
     });
     Object.values(scenesRef.current).forEach(scene => {
       const referencedStatus = new Set();
-      if (scene.requires) scene.requires.forEach(r => { if (r.status) referencedStatus.add(r.status); });
+      flattenConditions(scene.requires).forEach(r => { if (r.status) referencedStatus.add(r.status); });
       if (scene.next) scene.next.forEach(n => {
-        if (n.requires) n.requires.forEach(r => { if (r.status) referencedStatus.add(r.status); });
+        flattenConditions(n.requires).forEach(r => { if (r.status) referencedStatus.add(r.status); });
       });
       referencedStatus.forEach(spId => {
         if (map[spId]) map[spId].scenes.push(scene.id);
@@ -307,25 +395,27 @@ export function EditorProvider({ children }) {
       return newFlags;
     });
 
+    const filterFlag = (reqs) => filterConditions(reqs, r => r.flag === id);
+
     setChoices(prev => {
       const newChoices = { ...prev };
       let anyChanged = false;
       for (const chId in newChoices) {
         let itemDirty = false;
         const choice = newChoices[chId];
-        const newChoiceReqs = (choice.requires || []).filter(r => r.flag !== id);
-        if (newChoiceReqs.length !== (choice.requires || []).length) itemDirty = true;
+        const newChoiceReqs = filterFlag(choice.requires);
+        if (JSON.stringify(newChoiceReqs) !== JSON.stringify(choice.requires)) itemDirty = true;
 
         const newOptions = (choice.options || []).map(opt => {
-          const newReqs = (opt.requires || []).filter(r => r.flag !== id);
+          const newReqs = filterFlag(opt.requires);
           const newFlagsSet = (opt.flags_set || []).filter(f => f !== id);
           const nextArr = Array.isArray(opt.next) ? opt.next : (opt.next ? [{ requires: [], target: opt.next }] : []);
           const newNext = nextArr.map(entry => ({
             ...entry,
-            requires: (entry.requires || []).filter(r => r.flag !== id)
+            requires: filterFlag(entry.requires)
           }));
-          if (newReqs.length !== (opt.requires || []).length || newFlagsSet.length !== (opt.flags_set || []).length) itemDirty = true;
-          if (newNext.some((e, i) => e.requires.length !== (nextArr[i]?.requires || []).length)) itemDirty = true;
+          if (JSON.stringify(newReqs) !== JSON.stringify(opt.requires) || newFlagsSet.length !== (opt.flags_set || []).length) itemDirty = true;
+          if (newNext.some((e, i) => JSON.stringify(e.requires) !== JSON.stringify(nextArr[i]?.requires))) itemDirty = true;
           return { ...opt, requires: newReqs, flags_set: newFlagsSet, next: newNext };
         });
         if (itemDirty) {
@@ -342,12 +432,12 @@ export function EditorProvider({ children }) {
       for (const scId in newScenes) {
         let itemDirty = false;
         const scene = newScenes[scId];
-        const newReqs = (scene.requires || []).filter(r => r.flag !== id);
-        if (newReqs.length !== (scene.requires || []).length) itemDirty = true;
+        const newReqs = filterFlag(scene.requires);
+        if (JSON.stringify(newReqs) !== JSON.stringify(scene.requires)) itemDirty = true;
         
         const newNext = (scene.next || []).map(nxt => {
-          const nxtReqs = (nxt.requires || []).filter(r => r.flag !== id);
-          if (nxtReqs.length !== (nxt.requires || []).length) itemDirty = true;
+          const nxtReqs = filterFlag(nxt.requires);
+          if (JSON.stringify(nxtReqs) !== JSON.stringify(nxt.requires)) itemDirty = true;
           return { ...nxt, requires: nxtReqs };
         });
 
@@ -657,25 +747,27 @@ export function EditorProvider({ children }) {
       return s;
     });
 
+    const filterStatus = (reqs) => filterConditions(reqs, r => r.status === id);
+
     setChoices(prev => {
       const newChoices = { ...prev };
       let anyChanged = false;
       for (const chId in newChoices) {
         let itemDirty = false;
         const choice = newChoices[chId];
-        const newChoiceReqs = (choice.requires || []).filter(r => r.status !== id);
-        if (newChoiceReqs.length !== (choice.requires || []).length) itemDirty = true;
+        const newChoiceReqs = filterStatus(choice.requires);
+        if (JSON.stringify(newChoiceReqs) !== JSON.stringify(choice.requires)) itemDirty = true;
 
         const newOptions = (choice.options || []).map(opt => {
-          const newReqs = (opt.requires || []).filter(r => r.status !== id);
+          const newReqs = filterStatus(opt.requires);
           const newStatusSet = (opt.status_set || []).filter(s => s.status !== id);
           const nextArr = Array.isArray(opt.next) ? opt.next : (opt.next ? [{ requires: [], target: opt.next }] : []);
           const newNext = nextArr.map(entry => ({
             ...entry,
-            requires: (entry.requires || []).filter(r => r.status !== id)
+            requires: filterStatus(entry.requires)
           }));
-          if (newReqs.length !== (opt.requires || []).length || newStatusSet.length !== (opt.status_set || []).length) itemDirty = true;
-          if (newNext.some((e, i) => e.requires.length !== (nextArr[i]?.requires || []).length)) itemDirty = true;
+          if (JSON.stringify(newReqs) !== JSON.stringify(opt.requires) || newStatusSet.length !== (opt.status_set || []).length) itemDirty = true;
+          if (newNext.some((e, i) => JSON.stringify(e.requires) !== JSON.stringify(nextArr[i]?.requires))) itemDirty = true;
           return { ...opt, requires: newReqs, status_set: newStatusSet, next: newNext };
         });
         if (itemDirty) {
@@ -692,12 +784,12 @@ export function EditorProvider({ children }) {
       for (const scId in newScenes) {
         let itemDirty = false;
         const scene = newScenes[scId];
-        const newReqs = (scene.requires || []).filter(r => r.status !== id);
-        if (newReqs.length !== (scene.requires || []).length) itemDirty = true;
+        const newReqs = filterStatus(scene.requires);
+        if (JSON.stringify(newReqs) !== JSON.stringify(scene.requires)) itemDirty = true;
         
         const newNext = (scene.next || []).map(nxt => {
-          const nxtReqs = (nxt.requires || []).filter(r => r.status !== id);
-          if (nxtReqs.length !== (nxt.requires || []).length) itemDirty = true;
+          const nxtReqs = filterStatus(nxt.requires);
+          if (JSON.stringify(nxtReqs) !== JSON.stringify(nxt.requires)) itemDirty = true;
           return { ...nxt, requires: nxtReqs };
         });
 
@@ -761,7 +853,7 @@ export function EditorProvider({ children }) {
 
     if (initialPosition) spawnOffsetRef.current += 1;
 
-    setEndings(prev => ({ ...prev, [id]: { id, name, requires: [], path: null, chapter: null, _position } }));
+    setEndings(prev => ({ ...prev, [id]: { id, name, requires: { operator: 'and', conditions: [] }, path: null, chapter: null, _position } }));
     return id;
   }, []);
 
@@ -858,7 +950,7 @@ export function EditorProvider({ children }) {
 
     setChoices(prev => ({
       ...prev,
-      [id]: { id, text, chapter: null, path: null, requires: [], options: [], _position }
+      [id]: { id, text, chapter: null, path: null, requires: { operator: 'and', conditions: [] }, options: [], _position }
     }));
     return id;
   }, []);
@@ -879,7 +971,7 @@ export function EditorProvider({ children }) {
         ...prev,
         [choiceId]: {
           ...choice,
-          options: [...(choice.options || []), { id: optId, label: optionLabel, requires: [], flags_set: [], status_set: [], next: [] }]
+          options: [...(choice.options || []), { id: optId, label: optionLabel, requires: { operator: 'and', conditions: [] }, flags_set: [], status_set: [], next: [] }]
         }
       };
     });
@@ -940,7 +1032,7 @@ export function EditorProvider({ children }) {
 
     setScenes(prev => ({
       ...prev,
-      [id]: { id, name, description, variants: [], chapter: null, path: null, requires: [], next: [], type: null, flags_set: [], status_set: [], _position }
+      [id]: { id, name, description, variants: [], chapter: null, path: null, requires: { operator: 'and', conditions: [] }, next: [], type: null, flags_set: [], status_set: [], _position }
     }));
     return id;
   }, []);
@@ -1014,13 +1106,13 @@ export function EditorProvider({ children }) {
     else setEntryNode(null);
     // Sanitize entity names on import (#12)
     if (f) setFlags(migrateFlagFields(sanitizeCollection(f)));
-    if (c) setChoices(migrateOptionNext(c));
-    if (s) setScenes(migrateSceneFields(s));
+    if (c) setChoices(migrateChoiceRequires(migrateOptionNext(c)));
+    if (s) setScenes(migrateSceneRequires(migrateSceneFields(s)));
     if (p) setPaths(sanitizeCollection(p));
     if (ch) setChapters(sanitizeCollection(ch));
     if (sp) setStatusPoints(sanitizeCollection(sp));
     if (q) setQuests(sanitizeCollection(q));
-    if (e) setEndings(e);
+    if (e) setEndings(migrateEndingRequires(e));
     // Merge imported scene_types with existing (deduplicate)
     if (metadata && Array.isArray(metadata.scene_types)) {
       setSceneTypes(prev => {

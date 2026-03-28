@@ -10,6 +10,7 @@
  *    only Dagre-layouts nodes that have no _position yet
  */
 import dagre from '@dagrejs/dagre';
+import { flattenConditions } from './conditionUtils';
 
 const NODE_WIDTH = 288;
 const NODE_HEIGHT_SCENE = 144;
@@ -60,7 +61,7 @@ function buildNodesAndEdges(choices, scenes, endings, opts = {}) {
         label: scene.name,
         description: scene.description,
         requires: scene.requires || [],
-        requiresCount: (scene.requires || []).length,
+        requiresCount: flattenConditions(scene.requires).length,
         nextCount: (scene.next || []).length,
         variantsCount: (scene.variants || []).length,
         variants: (scene.variants || []).map(v => ({
@@ -129,7 +130,7 @@ function buildNodesAndEdges(choices, scenes, endings, opts = {}) {
         id: ending.id,
         label: ending.name,
         requires: ending.requires || [],
-        requiresCount: (ending.requires || []).length,
+        requiresCount: flattenConditions(ending.requires).length,
         state: 'reachable',
         isGhosted,
       },

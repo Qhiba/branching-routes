@@ -9,13 +9,13 @@ export default function EndingForm({ entityId, onSave, onCancel }) {
   const isNew = !entityId;
   const existingEnding = isNew ? null : endings[entityId];
 
-  const [draft, setDraft] = useState({ name: '', requires: [], path: null, chapter: null });
+  const [draft, setDraft] = useState({ name: '', requires: { operator: 'and', conditions: [] }, path: null, chapter: null });
 
   useEffect(() => {
     if (existingEnding) {
       setDraft({ name: existingEnding.name || '', requires: existingEnding.requires || [], path: existingEnding.path || null, chapter: existingEnding.chapter || null });
     } else {
-      setDraft({ name: '', requires: [], path: null, chapter: null });
+      setDraft({ name: '', requires: { operator: 'and', conditions: [] }, path: null, chapter: null });
     }
   }, [existingEnding, entityId]);
 

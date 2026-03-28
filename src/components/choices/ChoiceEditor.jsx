@@ -5,6 +5,7 @@ import ConditionEditor from '../shared/ConditionEditor';
 import QuickNav from '../shared/QuickNav';
 import SearchableDropdown from '../shared/SearchableDropdown';
 import DebouncedInput from '../shared/DebouncedInput';
+import { hasConditions } from '../../utils/conditionUtils';
 
 export default function ChoiceEditor() {
   const { flags, statusPoints, paths, chapters, choices, scenes, endings, entryNode, setEntryNode, addChoice, updateChoice, addChoiceOption, updateChoiceOption, deleteChoiceOption, deleteChoice } = useEditor();
@@ -247,7 +248,7 @@ export default function ChoiceEditor() {
                                   <button
                                     onClick={() => {
                                       const nextArr = Array.isArray(opt.next) ? opt.next : [];
-                                      updateChoiceOption(choice.id, idx, { ...opt, next: [...nextArr, { _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, requires: [], target: '' }] });
+                                      updateChoiceOption(choice.id, idx, { ...opt, next: [...nextArr, { _id: `route_${Date.now()}_${Math.random().toString(36).substr(2,4)}`, requires: { operator: 'and', conditions: [] }, target: '' }] });
                                     }}
                                     style={{ background: 'none', border: '1px solid var(--color-border-ghost)', borderRadius: 6, color: 'var(--color-text-secondary)', fontSize: 11, fontWeight: 500, padding: '3px 8px', cursor: 'pointer' }}
                                   >
@@ -266,7 +267,7 @@ export default function ChoiceEditor() {
                                   return (
                                     <div className="space-y-2">
                                       {nextArr.map((entry, rIdx) => {
-                                        const isFallback = rIdx === nextArr.length - 1 && (!entry.requires || entry.requires.length === 0);
+                                        const isFallback = rIdx === nextArr.length - 1 && !hasConditions(entry.requires);
                                         return (
                                           <div key={entry._id || rIdx} className="p-2.5 rounded-md relative" style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)' }}>
                                             <div className="flex items-start gap-2">
@@ -313,7 +314,7 @@ export default function ChoiceEditor() {
                                           </div>
                                         );
                                       })}
-                                      {nextArr.length > 0 && nextArr[nextArr.length - 1].requires && nextArr[nextArr.length - 1].requires.length > 0 && (
+                                      {nextArr.length > 0 && hasConditions(nextArr[nextArr.length - 1].requires) && (
                                         <div className="py-2 px-3 mt-1 rounded-md" style={{ fontSize: 11, color: 'var(--color-accent-error)', background: 'rgba(255,107,107,0.06)', border: '1px solid rgba(255,107,107,0.15)' }}>
                                           ⚠ No fallback — option may loop unexpectedly
                                         </div>

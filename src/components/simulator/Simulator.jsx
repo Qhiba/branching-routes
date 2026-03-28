@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { Play, RotateCcw, Undo2, ArrowRight, Flag, CheckCircle2, XCircle, Dumbbell, Diamond, X } from 'lucide-react';
 import SearchableDropdown from '../shared/SearchableDropdown';
 import useSimulator from '../../hooks/useSimulator';
+import { hasConditions, flattenConditions } from '../../utils/conditionUtils';
 
 /**
  * Simulator — Phase 2 Simulation Sandbox
@@ -181,12 +182,12 @@ export default function Simulator() {
           </div>
 
           {/* Condition list */}
-          {endingObj.requires && endingObj.requires.length > 0 && (
+          {hasConditions(endingObj.requires) && (
             <div className="w-full text-left space-y-1.5" style={{ marginTop: 16 }}>
               <h4 style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
                 All conditions met:
               </h4>
-              {endingObj.requires.map((req, i) => {
+              {flattenConditions(endingObj.requires).map((req, i) => {
                 const met = req.flag
                   ? activeState.flags[req.flag] === req.state
                   : (() => {

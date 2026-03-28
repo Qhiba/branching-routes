@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { hasConditions, flattenConditions } from '../../../utils/conditionUtils';
 
 // §4.4 STATE_STYLES table
 const STATE_STYLES = {
@@ -58,10 +59,10 @@ function SceneNode({ data, sourcePosition, targetPosition }) {
       <div style={{ padding: '4px 12px 9px' }}>
         <h3 className="truncate" style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: s.text, lineHeight: 1.3, textDecoration: s.lineThrough ? 'line-through' : 'none' }}>{data.label}</h3>
 
-        {data.requires && data.requires.length > 0 && (
+        {hasConditions(data.requires) && (
           <div className="flex flex-wrap gap-1.5 mt-2" style={{ fontSize: 9, fontFamily: 'var(--font-mono)' }}>
             <span style={{ color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Req</span>
-            {data.requires.slice(0, 3).map((req, idx) => {
+            {flattenConditions(data.requires).slice(0, 3).map((req, idx) => {
               const text = req.flag
                 ? `${req.flag}=${String(req.state)}`
                 : `${req.status}${req.min !== undefined ? `>=${req.min}` : ''}${req.max !== undefined ? `<=${req.max}` : ''}`;
@@ -71,9 +72,9 @@ function SceneNode({ data, sourcePosition, targetPosition }) {
                 </span>
               );
             })}
-            {data.requires.length > 3 && (
+            {flattenConditions(data.requires).length > 3 && (
               <span style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)', color: 'var(--color-text-muted)', padding: '1px 5px', borderRadius: 4 }}>
-                +{data.requires.length - 3} more
+                +{flattenConditions(data.requires).length - 3} more
               </span>
             )}
           </div>
@@ -91,10 +92,10 @@ function SceneNode({ data, sourcePosition, targetPosition }) {
               <div key={variant._id || vIdx} className="px-2 py-1 rounded" style={{ fontSize: 10, color: 'var(--color-text-secondary)', background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)' }}>
                 <div className="flex items-center gap-1.5" style={{ lineHeight: 1.2 }}>
                   <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>V{vIdx + 1}</span>
-                  {variant.requires && variant.requires.length > 0 && (
+                  {hasConditions(variant.requires) && (
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
                       if{' '}
-                      {variant.requires.map((req, j) => (
+                      {flattenConditions(variant.requires).map((req, j) => (
                         <span key={j} style={{ paddingRight: 4 }}>
                           {req.flag
                             ? `${req.flag}=${String(req.state)}`

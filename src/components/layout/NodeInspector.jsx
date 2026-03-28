@@ -1,6 +1,7 @@
 import React from 'react';
 import { useEditor } from '../../context/EditorContext';
 import { Pencil, Trash2, Diamond } from 'lucide-react';
+import { hasConditions, normalizeRequires, isLeafCondition, isConditionGroup } from '../../utils/conditionUtils';
 
 /**
  * Resolve helpers — convert IDs to human-readable names.
@@ -22,28 +23,69 @@ function useLookups() {
   return { flagName, statusName, pathName, chapterName, targetName };
 }
 
-/* ─── Shared ConditionChips ─── */
-function ConditionChips({ requires, flagName, statusName }) {
-  if (!requires || requires.length === 0) return null;
+/* ─── Single condition chip ─── */
+function CondChip({ req, flagName, statusName }) {
+  const label = req.flag !== undefined
+    ? `${flagName(req.flag)} = ${String(req.state)}`
+    : `${statusName(req.status)}${req.min !== undefined ? ` ≥ ${req.min}` : ''}${req.max !== undefined ? ` ≤ ${req.max}` : ''}`;
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {requires.map((req, idx) => {
-        const isFlag = req.flag !== undefined;
-        const label = isFlag
-          ? `${flagName(req.flag)} = ${String(req.state)}`
-          : `${statusName(req.status)}${req.min !== undefined ? ` ≥ ${req.min}` : ''}${req.max !== undefined ? ` ≤ ${req.max}` : ''}`;
-        return (
-          <span key={idx} style={{
-            fontSize: 10, fontFamily: 'var(--font-mono)', padding: '2px 7px', borderRadius: 4,
-            background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)',
-            color: 'var(--color-text-secondary)', whiteSpace: 'nowrap'
-          }}>
-            {label}
-          </span>
-        );
-      })}
-    </div>
+    <span style={{
+      fontSize: 10, fontFamily: 'var(--font-mono)', padding: '2px 7px', borderRadius: 4,
+      background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)',
+      color: 'var(--color-text-secondary)', whiteSpace: 'nowrap'
+    }}>
+      {label}
+    </span>
   );
+}
+
+/* ─── Operator pill (AND / OR) ─── */
+function OpPill({ op }) {
+  const isOr = op === 'or';
+  return (
+    <span style={{
+      fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700,
+      padding: '1px 5px', borderRadius: 3,
+      background: isOr ? 'rgba(251,191,36,0.12)' : 'rgba(0,209,255,0.1)',
+      border: `1px solid ${isOr ? 'rgba(251,191,36,0.3)' : 'rgba(0,209,255,0.2)'}`,
+      color: isOr ? 'rgb(251,191,36)' : 'var(--color-accent-primary-dim)',
+      letterSpacing: '0.05em',
+    }}>
+      {isOr ? 'OR' : 'AND'}
+    </span>
+  );
+}
+
+/* ─── Recursive group renderer ─── */
+function GroupDisplay({ group, flagName, statusName }) {
+  const { operator, conditions } = group;
+  const items = [];
+  conditions.forEach((item, idx) => {
+    if (idx > 0) {
+      items.push(<OpPill key={`op-${idx}`} op={operator} />);
+    }
+    if (isLeafCondition(item)) {
+      items.push(<CondChip key={idx} req={item} flagName={flagName} statusName={statusName} />);
+    } else if (isConditionGroup(item)) {
+      // Wrap sub-group in parens if parent is OR (to clarify grouping)
+      items.push(
+        <span key={idx} className="flex items-center gap-1 flex-wrap" style={{
+          padding: '2px 5px', borderRadius: 4,
+          border: '1px dashed var(--color-border-ghost)',
+        }}>
+          <GroupDisplay group={item} flagName={flagName} statusName={statusName} />
+        </span>
+      );
+    }
+  });
+  return <div className="flex items-center gap-1.5 flex-wrap">{items}</div>;
+}
+
+/* ─── Shared ConditionDisplay ─── */
+function ConditionDisplay({ requires, flagName, statusName }) {
+  if (!hasConditions(requires)) return null;
+  const group = normalizeRequires(requires);
+  return <GroupDisplay group={group} flagName={flagName} statusName={statusName} />;
 }
 
 /* ─── Section divider ─── */
@@ -136,10 +178,10 @@ export function SceneInspector({ entityId, onEdit, onDelete }) {
               {scene.variants.map((v, i) => (
                 <div key={v._id || i} style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)', borderRadius: 6, padding: '6px 8px' }}>
                   <div className="mb-1" style={{ fontSize: 10 }}>
-                    {v.requires && v.requires.length > 0 ? (
+                    {hasConditions(v.requires) ? (
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span style={{ color: 'var(--color-text-muted)' }}>if</span>
-                        <ConditionChips requires={v.requires} flagName={flagName} statusName={statusName} />
+                        <ConditionDisplay requires={v.requires} flagName={flagName} statusName={statusName} />
                       </div>
                     ) : (
                       <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>always</span>
@@ -157,8 +199,8 @@ export function SceneInspector({ entityId, onEdit, onDelete }) {
         {/* Requires */}
         <Divider />
         <SectionLabel>Requires</SectionLabel>
-        {scene.requires && scene.requires.length > 0 ? (
-          <ConditionChips requires={scene.requires} flagName={flagName} statusName={statusName} />
+        {hasConditions(scene.requires) ? (
+          <ConditionDisplay requires={scene.requires} flagName={flagName} statusName={statusName} />
         ) : (
           <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No conditions</div>
         )}
@@ -169,7 +211,7 @@ export function SceneInspector({ entityId, onEdit, onDelete }) {
         {scene.next && scene.next.length > 0 ? (
           <div className="flex flex-col gap-1">
             {scene.next.map((route, idx) => {
-              const isFallback = idx === scene.next.length - 1 && (!route.requires || route.requires.length === 0);
+              const isFallback = idx === scene.next.length - 1 && !hasConditions(route.requires);
               return (
                 <div key={route._id || idx} style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-ghost)', borderRadius: 6, padding: '6px 8px' }}>
                   <div className="flex items-center gap-1.5 flex-wrap mb-1">
@@ -178,7 +220,7 @@ export function SceneInspector({ entityId, onEdit, onDelete }) {
                     ) : (
                       <>
                         <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10, color: 'var(--color-text-muted)' }}>if</span>
-                        <ConditionChips requires={route.requires} flagName={flagName} statusName={statusName} />
+                        <ConditionDisplay requires={route.requires} flagName={flagName} statusName={statusName} />
                       </>
                     )}
                   </div>
@@ -233,8 +275,8 @@ export function ChoiceInspector({ entityId, onEdit, onDelete }) {
         {/* Requires */}
         <Divider />
         <SectionLabel>Requires</SectionLabel>
-        {choice.requires && choice.requires.length > 0 ? (
-          <ConditionChips requires={choice.requires} flagName={flagName} statusName={statusName} />
+        {hasConditions(choice.requires) ? (
+          <ConditionDisplay requires={choice.requires} flagName={flagName} statusName={statusName} />
         ) : (
           <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No conditions</div>
         )}
@@ -271,7 +313,7 @@ export function ChoiceInspector({ entityId, onEdit, onDelete }) {
                   if (nextArr.length === 0) return null;
                   return nextArr.map((entry, rIdx) => (
                     <div key={rIdx} style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 2 }}>
-                      {entry.requires && entry.requires.length > 0 && (
+                      {hasConditions(entry.requires) && (
                         <span style={{ fontStyle: 'italic', marginRight: 4 }}>if met → </span>
                       )}
                       <span style={{ color: 'var(--color-text-secondary)' }}>{targetName(entry.target || '—')}</span>
@@ -324,8 +366,8 @@ export function EndingInspector({ entityId, onEdit, onDelete }) {
 
         <Divider />
         <SectionLabel>Requires</SectionLabel>
-        {ending.requires && ending.requires.length > 0 ? (
-          <ConditionChips requires={ending.requires} flagName={flagName} statusName={statusName} />
+        {hasConditions(ending.requires) ? (
+          <ConditionDisplay requires={ending.requires} flagName={flagName} statusName={statusName} />
         ) : (
           <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontStyle: 'italic' }}>No conditions</div>
         )}

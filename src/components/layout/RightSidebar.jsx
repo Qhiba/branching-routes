@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GitBranch, Play, AlertTriangle, X, Route } from 'lucide-react';
 import SimulatorPanel from '../routeviewer/SimulatorPanel';
 import SearchableDropdown from '../shared/SearchableDropdown';
+import { hasConditions, flattenConditions } from '../../utils/conditionUtils';
 
 export default function RightSidebar({
   sim,
@@ -317,10 +318,10 @@ export default function RightSidebar({
                           )}
 
                           {/* Requires on this node */}
-                          {step.requires && step.requires.length > 0 && (
+                          {hasConditions(step.requires) && (
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               <span style={{ fontSize: 9, color: 'var(--color-text-muted)' }}>requires:</span>
-                              {step.requires.map((req, ri) => (
+                              {flattenConditions(step.requires).map((req, ri) => (
                                 <span key={ri} style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: req.flag ? 'var(--color-accent-variable)' : 'var(--color-accent-primary-dim)', background: 'rgba(255,255,255,0.05)', padding: '1px 4px', borderRadius: 3 }}>
                                   {req.flag ? `${req.flag}=${String(req.state)}` : `${req.status} ${req.min !== undefined ? `≥${req.min}` : ''}${req.max !== undefined ? `≤${req.max}` : ''}`}
                                 </span>

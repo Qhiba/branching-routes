@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { hasConditions, flattenConditions } from '../../../utils/conditionUtils';
 
 // §4.4 STATE_STYLES table
 const STATE_STYLES = {
@@ -42,10 +43,10 @@ function EndingNode({ data, targetPosition }) {
       <div style={{ padding: '4px 12px 9px' }}>
         <h3 className="truncate capitalize" style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: s.text, lineHeight: 1.3, textDecoration: s.lineThrough ? 'line-through' : 'none' }}>{(data.label || '').replace(/_/g, ' ')}</h3>
 
-        {data.requires && data.requires.length > 0 && (
+        {hasConditions(data.requires) && (
           <div className="flex flex-wrap gap-1.5 mt-2" style={{ fontSize: 9, fontFamily: 'var(--font-mono)' }}>
             <span style={{ color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Req</span>
-            {data.requires.slice(0, 3).map((req, idx) => {
+            {flattenConditions(data.requires).slice(0, 3).map((req, idx) => {
               const t = req.flag
                 ? `${req.flag}=${String(req.state)}`
                 : `${req.status}${req.min !== undefined ? `>=${req.min}` : ''}${req.max !== undefined ? `<=${req.max}` : ''}`;
@@ -55,9 +56,9 @@ function EndingNode({ data, targetPosition }) {
                 </span>
               );
             })}
-            {data.requires.length > 3 && (
+            {flattenConditions(data.requires).length > 3 && (
               <span style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)', color: 'var(--color-text-muted)', padding: '1px 5px', borderRadius: 4 }}>
-                +{data.requires.length - 3} more
+                +{flattenConditions(data.requires).length - 3} more
               </span>
             )}
           </div>

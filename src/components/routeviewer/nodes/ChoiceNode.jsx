@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { hasConditions, flattenConditions } from '../../../utils/conditionUtils';
 
 // §4.4 STATE_STYLES table
 const STATE_STYLES = {
@@ -44,10 +45,10 @@ function ChoiceNode({ data, sourcePosition, targetPosition }) {
       <div style={{ padding: '4px 12px 9px' }}>
         <h3 className="truncate" style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 500, color: s.text, lineHeight: 1.3, marginBottom: 6, textDecoration: s.lineThrough ? 'line-through' : 'none' }}>{data.label}</h3>
 
-        {data.requires && data.requires.length > 0 && (
+        {hasConditions(data.requires) && (
           <div className="flex flex-wrap gap-1.5 mb-2" style={{ fontSize: 9, fontFamily: 'var(--font-mono)' }}>
             <span style={{ color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Req</span>
-            {data.requires.slice(0, 3).map((req, idx) => {
+            {flattenConditions(data.requires).slice(0, 3).map((req, idx) => {
               const text = req.flag
                 ? `${req.flag}=${String(req.state)}`
                 : `${req.status}${req.min !== undefined ? `>=${req.min}` : ''}${req.max !== undefined ? `<=${req.max}` : ''}`;
@@ -57,9 +58,9 @@ function ChoiceNode({ data, sourcePosition, targetPosition }) {
                 </span>
               );
             })}
-            {data.requires.length > 3 && (
+            {flattenConditions(data.requires).length > 3 && (
               <span style={{ background: 'var(--color-surface-card-low)', border: '1px solid var(--color-border-row)', color: 'var(--color-text-muted)', padding: '1px 5px', borderRadius: 4 }}>
-                +{data.requires.length - 3} more
+                +{flattenConditions(data.requires).length - 3} more
               </span>
             )}
           </div>
@@ -81,14 +82,14 @@ function ChoiceNode({ data, sourcePosition, targetPosition }) {
                 <div key={opt.id || i} className="relative truncate px-2 py-1 rounded" style={optionStyle}>
                 <div className="truncate" style={{ lineHeight: 1.2 }}>
                   {opt.label || `Option ${i + 1}`}
-                  {opt.requires && opt.requires.length > 0 && <span className="ml-2" style={{ fontSize: 9, color: 'var(--color-text-muted)' }}>🔒</span>}
+                  {hasConditions(opt.requires) && <span className="ml-2" style={{ fontSize: 9, color: 'var(--color-text-muted)' }}>🔒</span>}
                 </div>
 
-                {(opt.requires && opt.requires.length > 0) || ((opt.flags_set && opt.flags_set.length > 0) || (opt.status_set && opt.status_set.length > 0)) ? (
+                {(hasConditions(opt.requires)) || ((opt.flags_set && opt.flags_set.length > 0) || (opt.status_set && opt.status_set.length > 0)) ? (
                   <div className="mt-1" style={{ fontSize: 9, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', lineHeight: 1.2 }}>
-                    {opt.requires && opt.requires.length > 0 && (
+                    {hasConditions(opt.requires) && (
                       <span style={{ whiteSpace: 'nowrap' }}>
-                        if {opt.requires.slice(0, 2).map((req, j) => {
+                        if {flattenConditions(opt.requires).slice(0, 2).map((req, j) => {
                           const t = req.flag
                             ? `${req.flag}=${String(req.state)}`
                             : `${req.status}${req.min !== undefined ? `>=${req.min}` : ''}${req.max !== undefined ? `<=${req.max}` : ''}`;
@@ -98,7 +99,7 @@ function ChoiceNode({ data, sourcePosition, targetPosition }) {
                             </span>
                           );
                         })}
-                        {opt.requires.length > 2 && <span>+{opt.requires.length - 2}</span>}
+                        {flattenConditions(opt.requires).length > 2 && <span>+{flattenConditions(opt.requires).length - 2}</span>}
                       </span>
                     )}
                     {opt.flags_set?.map(flagId => (
