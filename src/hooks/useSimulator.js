@@ -250,7 +250,7 @@ export default function useSimulator() {
             const matchIdx = nextArr.findIndex(entry => entry.target === to.nodeId);
             if (matchIdx >= 0) {
               const optIdPart = opt?.id || optIdx;
-              set.add(`${choice.id}-opt-${optIdPart}`);
+              set.add(`${choice.id}-opt-${optIdPart}-${to.nodeId}`);
               break;
             }
           }

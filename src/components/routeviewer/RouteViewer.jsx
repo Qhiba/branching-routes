@@ -402,7 +402,7 @@ function RouteViewerInner({ onNodeEdit, sim, routeViewerRef, tracedPath, routeTr
           if (optIndex < 0) return;
 
           const existingOpt = choice.options[optIndex];
-          updateChoiceOption(source, optIndex, { ...existingOpt, next: null });
+          updateChoiceOption(source, optIndex, { ...existingOpt, next: [] });
           return;
         }
 
