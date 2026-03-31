@@ -2,7 +2,7 @@
 
 ## Immediate Concerns
 
-### IC1. Choice edge IDs mismatch between `graphLayout.js` and `useSimulator.js`
+### IC1. ✅ RESOLVED - RESOLVED Choice edge IDs mismatch between `graphLayout.js` and `useSimulator.js`
 - **The concern**: As detailed in F5: `graphLayout.js` generates edge IDs with format `${choiceId}-opt-${optIdPart}-${targetId}`, but `useSimulator.js` constructs taken-edge IDs as `${choiceId}-opt-${optIdPart}` (without the target suffix). These will never match, meaning choice-edge "taken" highlighting during simulation is silently broken.
 - **Why it must be resolved first**: This is a user-visible bug in the core simulation visualization feature. Every simulation run shows incorrect edge states for choice transitions, undermining trust in the tool's primary purpose.
 - **Suggested work type**: **Hotfix** — align the edge ID format in one of the two files.
@@ -64,7 +64,7 @@
 - **Impact**: Misleading UI, user confusion
 - **Likelihood**: Low (edge case)
 
-### F5. `graphLayout.js` — Edge ID format is tightly coupled to `useSimulator.js` taken-edge detection
+### F5. ✅ RESOLVED - `graphLayout.js` — Edge ID format is tightly coupled to `useSimulator.js` taken-edge detection
 - **Location**: `graphLayout.js` edge generation (~lines 142–196), `useSimulator.js` `takenEdgeIds` computation (~lines 221–261)
 - **Why it is fragile**: The edge IDs are constructed as `${sourceId}-next-${routeIdPart}` for scenes and `${choiceId}-opt-${optIdPart}-${targetId}` for choices in `graphLayout.js`. The simulator's `takenEdgeIds` constructs them as `${sourceId}-next-${routeIdPart}` and `${choiceId}-opt-${optIdPart}`. These two formats **don't match** for choice edges — `graphLayout` appends `-${entry.target}` but `useSimulator` does not. This means taken-edge highlighting for choice edges may fail to highlight.
 - **What specifically could break**: Choice option edges may never display the "taken" visual style during simulation.
@@ -364,7 +364,7 @@
 
 | Risk | Priority | Impact | Likelihood | Mitigation Status |
 |------|----------|--------|------------|-------------------|
-| Choice edge ID mismatch | HIGH | HIGH | Certain | Not started |
+| Choice edge ID mismatch | HIGH | HIGH | Certain | ✅ RESOLVED |
 | Edge deletion corruption | HIGH | HIGH | High | ✅ RESOLVED |
 | Silent IndexedDB errors | MEDIUM | MEDIUM | Medium | Not started |
 | Import validation | MEDIUM | MEDIUM | Medium | Not started |

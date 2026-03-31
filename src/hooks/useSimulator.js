@@ -109,7 +109,7 @@ export default function useSimulator() {
       setCurrentNodeId(targetId);
       setHistoryStack((prev) => [
         ...prev,
-        { nodeId: targetId, type, flagsPushed: flagsToPush, statusPushed: statusToPush },
+        { nodeId: targetId, type, flagsPushed: flagsToPush, statusPushed: statusToPush, optionIndex: optIndex },
       ]);
     },
     [currentNodeId, scenes, choices, endings]
@@ -231,29 +231,18 @@ export default function useSimulator() {
           const routeIdx = scene.next.findIndex((r) => r.target === to.nodeId);
           if (routeIdx >= 0) {
             const route = scene.next[routeIdx];
-            const routeIdPart = route?._id || routeIdx;
+            const routeIdPart = route?._id || `route_fallback_${routeIdx}`;
             set.add(`${from.nodeId}-next-${routeIdPart}`);
           }
         }
       }
-      // Choice edges: sourceId-opt-optIdx
-      if (from.type === 'choice' && choices[from.nodeId]) {
+      // Choice edges: use stored optionIndex to identify the correct option
+      if (from.type === 'choice' && choices[from.nodeId] && to.optionIndex != null) {
         const choice = choices[from.nodeId];
-        if (choice.options) {
-          for (let optIdx = 0; optIdx < choice.options.length; optIdx++) {
-            const opt = choice.options[optIdx];
-            const nextArr = Array.isArray(opt.next)
-              ? opt.next
-              : opt.next
-                ? [{ requires: [], target: opt.next }]
-                : [];
-            const matchIdx = nextArr.findIndex(entry => entry.target === to.nodeId);
-            if (matchIdx >= 0) {
-              const optIdPart = opt?.id || optIdx;
-              set.add(`${choice.id}-opt-${optIdPart}-${to.nodeId}`);
-              break;
-            }
-          }
+        const opt = choice.options?.[to.optionIndex];
+        if (opt) {
+          const optIdPart = opt.id || `opt_fallback_${to.optionIndex}`;
+          set.add(`${choice.id}-opt-${optIdPart}-${to.nodeId}`);
         }
       }
     }
