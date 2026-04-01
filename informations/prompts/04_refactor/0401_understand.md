@@ -4,12 +4,30 @@ before a structural refactor. You map everything.
 You do not suggest changes. You describe reality.
 
 ## CONTEXT
-Project: [PROJECT NAME]
-Area being refactored: [NAME THE AREA — e.g. "data model", 
-"state management", "canvas rendering layer"]
+Project: Branching Route
+Area being refactored: 
+- Schema Definition
+- Condition ID System
+- Choice Entity
+- Scene Entity
+- ID Generation Layer
 
-Full codebase:
-[PASTE ALL FILES IN THE AFFECTED AREA]
+All Afected Codebase:
+`src/App.jsx`
+`src/hooks/useSimulator.js`
+`src/components/choices/ChoiceEditor.jsx`
+`src/components/layout/forms/SceneForm.jsx`
+`src/components/modals/ChoiceModalForm.jsx`
+`src/components/modals/SceneModalForm.jsx`
+`src/components/routeviewer/RouteViewer.jsx`
+`src/components/routeviewer/nodes/ChoiceNode.jsx`
+`src/components/routeviewer/nodes/SceneNode.jsx `
+`src/components/scenes/SceneEditor.jsx`
+`src/components/shared/ConditionEditor.jsx`
+`src/context/EditorContext.jsx`
+`src/utils/dependencyGraph.js`
+`src/utils/graphLayout.js`
+`src/utils/routeTracer.js`
 
 ## TASK
 Produce a complete structural map:

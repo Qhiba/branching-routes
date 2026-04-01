@@ -1,0 +1,45 @@
+D:\Projects\Web\branching-routes
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+├── public
+|  └── favicon.svg
+├── README.md
+├── src
+|  ├── App.jsx
+|  ├── components
+|  |  ├── chapters
+|  |  ├── choices
+|  |  ├── endings
+|  |  ├── flags
+|  |  ├── layout
+|  |  ├── modals
+|  |  ├── paths
+|  |  ├── quests
+|  |  ├── routeviewer
+|  |  ├── scenes
+|  |  ├── shared
+|  |  ├── simulator
+|  |  └── status
+|  ├── context
+|  |  └── EditorContext.jsx
+|  ├── hooks
+|  |  ├── useLongPress.js
+|  |  └── useSimulator.js
+|  ├── index.css
+|  ├── main.jsx
+|  └── utils
+|     ├── conditionUtils.js
+|     ├── conditionUtils.test.js
+|     ├── dependencyGraph.js
+|     ├── dependencyGraph.test.js
+|     ├── graphLayout.js
+|     ├── reachabilityAnalyzer.js
+|     ├── routeTracer.js
+|     └── routeTracer.test.js
+└── vite.config.js
+
+directory: 376 file: 650
+
+ignored: directory (3)
