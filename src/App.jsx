@@ -100,13 +100,15 @@ function App() {
         created_at: new Date().toISOString().split('T')[0],
         updated_at: new Date().toISOString().split('T')[0],
         entry_node: entryNode,
-        scene_types: sceneTypes
+        scene_types: sceneTypes,
+        common_node_types: sceneTypes  // BRIDGE: added alongside scene_types for new format
       },
       path: paths,
       chapter: chapters,
       flags,
       choices,
-      scenes,
+      scenes,  // BRIDGE: kept for backward-compat, will be replaced in later phase
+      common: scenes,  // BRIDGE: added new key with current S###-keyed data
       status: statusPoints,
       quests,
       endings
@@ -136,15 +138,20 @@ function App() {
           return;
         }
 
-        const sliceKeys = ['flags', 'choices', 'scenes', 'path', 'chapter', 'status', 'quests', 'endings'];
+        const sliceKeys = ['flags', 'choices', 'path', 'chapter', 'status', 'quests', 'endings'];
+        const scenesData = data.common || data.scenes || {};
         for (const key of sliceKeys) {
           if (data[key] !== undefined && (typeof data[key] !== 'object' || data[key] === null || Array.isArray(data[key]))) {
             alert(`Invalid file: "${key}" must be a plain object, got ${Array.isArray(data[key]) ? 'array' : typeof data[key]}.`);
             return;
           }
         }
+        if (scenesData && (typeof scenesData !== 'object' || scenesData === null || Array.isArray(scenesData))) {
+          alert(`Invalid file: "scenes" must be a plain object, got ${Array.isArray(scenesData) ? 'array' : typeof scenesData}.`);
+          return;
+        }
 
-        if (!sliceKeys.some(k => data[k] && Object.keys(data[k]).length > 0)) {
+        if (!sliceKeys.some(k => data[k] && Object.keys(data[k]).length > 0) && !scenesData || Object.keys(scenesData).length === 0) {
           alert("Invalid file structure. No valid data found.");
           return;
         }
@@ -162,7 +169,7 @@ function App() {
         };
         if (!validateEntities(data.flags, 'flags')) return;
         if (!validateEntities(data.choices, 'choices')) return;
-        if (!validateEntities(data.scenes, 'scenes')) return;
+        if (!validateEntities(scenesData, 'scenes')) return;
         if (!validateEntities(data.path, 'paths')) return;
         if (!validateEntities(data.chapter, 'chapters')) return;
         if (!validateEntities(data.status, 'status points')) return;
@@ -177,7 +184,7 @@ function App() {
         };
         checkCollisions(data.flags, flags, 'Flags');
         checkCollisions(data.choices, choices, 'Choices');
-        checkCollisions(data.scenes, scenes, 'Scenes');
+        checkCollisions(scenesData, scenes, 'Scenes');
         checkCollisions(data.path, paths, 'Paths');
         checkCollisions(data.chapter, chapters, 'Chapters');
         checkCollisions(data.status, statusPoints, 'Status');
@@ -192,10 +199,13 @@ function App() {
         }
 
         loadData({
-          metadata: data.metadata || {},
+          metadata: {
+            ...data.metadata,
+            scene_types: data.metadata?.common_node_types || data.metadata?.scene_types
+          },
           flags: data.flags || {},
           choices: data.choices || {},
-          scenes: data.scenes || {},
+          scenes: scenesData,
           paths: data.path || {},
           chapters: data.chapter || {},
           status: data.status || {},

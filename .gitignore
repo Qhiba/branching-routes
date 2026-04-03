@@ -11,6 +11,7 @@ saved
 node_modules
 dist
 dist-ssr
+backup
 *.local
 
 # Editor directories and files
