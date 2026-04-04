@@ -7,11 +7,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-saved
 node_modules
 dist
 dist-ssr
-backup
 *.local
 
 # Editor directories and files
@@ -24,4 +22,3 @@ backup
 *.njsproj
 *.sln
 *.sw?
-.kilo

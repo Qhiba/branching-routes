@@ -1,109 +1,111 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600&family=DM+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-@import "tailwindcss";
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-@theme {
-  /* ── Surfaces ── */
-  --color-surface-canvas:     #161616;
-  --color-surface-workspace:  #0a0a0a;
-  --color-surface-panel:      #1e1d1d;
-  --color-surface-card:       #2e2e2e;
-  --color-surface-card-low:   #1a1a1a;
-  --color-surface-elevated:   #383736;
-  --color-surface-bright:     #404040;
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
 
-  /* ── Text ── */
-  --color-text-primary:   #e8e8e8;
-  --color-text-secondary: #9aa8ae;
-  --color-text-muted:     rgba(255,255,255,0.35);
-  --color-text-disabled:  rgba(255,255,255,0.15);
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 
-  /* ── Borders ── */
-  --color-border-card:    rgba(255,255,255,0.12);
-  --color-border-panel:   rgba(255,255,255,0.06);
-  --color-border-row:     rgba(255,255,255,0.06);
-  --color-border-divider: rgba(255,255,255,0.07);
-  --color-border-ghost:   rgba(255,255,255,0.07);
-  --color-border-subtle:  rgba(255,255,255,0.06);
-  --color-border-active:  #00d1ff;
-
-  /* ── Semantic Accents ── */
-  --color-accent-primary:     #00d1ff;
-  --color-accent-primary-dim: #4cd6ff;
-  --color-accent-visited:     #1d9e75;
-  --color-accent-terminal:    #c8770a;
-  --color-accent-variable:    #eaa9ff;
-  --color-accent-success:     #abf900;
-  --color-accent-error:       #ff6b6b;
-  --color-accent-scene:       #a78bfa;
-
-  /* ── Fonts ── */
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-ui:      'DM Sans', sans-serif;
-  --font-mono:    'IBM Plex Mono', monospace;
-}
-
-@layer base {
-  body {
-    background: var(--color-surface-workspace);
-    color: var(--color-text-primary);
-    font-family: var(--font-ui);
-    font-size: 13px;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow: hidden;
-  }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--color-border-ghost); border-radius: 2px; }
-}
-
-@layer base {
-  input, select, textarea {
-    background: var(--color-surface-card-low);
-    border: 1px solid var(--color-border-row);
-    border-radius: 6px;
-    font-family: var(--font-ui);
-    font-size: 13px;
-    padding: 7px 10px;
-    color: var(--color-text-primary);
-    outline: none;
-    transition: border-color 0.15s ease;
-  }
-  input:focus, select:focus, textarea:focus {
-    border-color: var(--color-border-active);
-  }
-  input::placeholder, textarea::placeholder {
-    color: var(--color-text-muted);
+  @media (max-width: 1024px) {
+    font-size: 16px;
   }
 }
 
-@layer utilities {
-  .signature-gradient {
-    background: linear-gradient(135deg, #a4e6ff, #00d1ff);
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #c084fc;
+    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-border: rgba(192, 132, 252, 0.5);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow:
+      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
 
-  /* §2.4 Dynamic tracker flash animations */
-  @keyframes flash-flag {
-    0% { background-color: rgba(171,249,0,0.12); }
-    100% { background-color: transparent; }
+  #social .button-icon {
+    filter: invert(1) brightness(2);
   }
-  @keyframes flash-flag-on {
-    0% { background-color: rgba(171,249,0,0.08); }
-    100% { background-color: transparent; }
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  width: 1126px;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+  border-inline: 1px solid var(--border);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+h1,
+h2 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
   }
-  @keyframes flash-flag-off {
-    0% { background-color: rgba(255,107,107,0.08); }
-    100% { background-color: transparent; }
+}
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 20px;
   }
-  @keyframes flash-status {
-    0% { background-color: rgba(0,209,255,0.1); }
-    100% { background-color: transparent; }
-  }
-  .flash-flag { animation: flash-flag 0.6s ease-out; }
-  .flash-flag-on { animation: flash-flag-on 0.3s ease-out; }
-  .flash-flag-off { animation: flash-flag-off 0.3s ease-out; }
-  .flash-status { animation: flash-status 0.6s ease-out; }
+}
+p {
+  margin: 0;
+}
+
+code,
+.counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
 }

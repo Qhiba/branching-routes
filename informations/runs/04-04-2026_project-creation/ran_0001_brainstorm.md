@@ -1,0 +1,1 @@
+Brainstorm phase was replaced by a complete rebuild specification `/informations/docs/v2_rebuild_spec.md`. All ideation, convergence, and product decisions are documented there.
