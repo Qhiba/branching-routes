@@ -33,6 +33,8 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 
 ### Phase 1 — Project Scaffold & Design Tokens
 
+**Goal:** Establish the project foundation — working dev server, design token system, and clean entry point — so every subsequent phase has a runnable app to build on.
+
 **Produces:**
 - `src/styles/tokens.css` — CSS custom properties (colors, spacing, typography, radii, shadows)
 - `src/styles/reset.css` — CSS reset / normalize
@@ -41,11 +43,19 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - `src/App.jsx` — empty shell rendering a placeholder
 - `vite.config.js` — alias `@/` → `src/`
 
+**Acceptance Criteria:**
+- [ ] `npm run dev` starts without errors and renders the placeholder App
+- [ ] All design tokens are defined as CSS custom properties on `:root` in `tokens.css`
+- [ ] No hard-coded color, spacing, or font values exist outside `tokens.css`
+- [ ] `@/` import alias resolves correctly (verified by importing tokens in `App.jsx`)
+
 **Next phase needs:** importable token system, working dev server.
 
 ---
 
 ### Phase 2 — Utility Layer
+
+**Goal:** Build the pure-function utility layer that all stores, engines, and services depend on — ensuring ID generation, name sanitization, condition evaluation, and entity factories are testable in isolation.
 
 **Produces:**
 - `src/utils/generateId.js` — `generateId(prefix)` → `"prefix_<timestamp>_<4rand>"`
@@ -55,11 +65,20 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - `src/utils/entityDefaults.js` — factory functions: `createCommonNode()`, `createChoice()`, `createEnding()`, `createFlag()`, `createStatusPoint()`, `createPath()`, `createChapter()` — each returns a new entity with all fields set to safe defaults
 - `src/utils/idTransform.js` — `toHierarchicalIds(dataModel) → exportData` and `toRuntimeIds(importData) → dataModel`
 
+**Acceptance Criteria:**
+- [ ] `generateId(prefix)` returns unique strings with no module-level mutable state
+- [ ] `sanitizeName()` converts `"My Scene Name!"` → `"my_scene_name_"`
+- [ ] `evaluateCondition()` correctly evaluates nested AND/OR groups with flag and status conditions
+- [ ] Every entity factory returns an object satisfying AR-03 through AR-05 (condition groups, array fields default to `[]`)
+- [ ] `toHierarchicalIds` → `toRuntimeIds` round-trip preserves data integrity (all fields present, sub-element IDs replaced)
+
 **Next phase needs:** ID generation, entity factories, condition evaluator.
 
 ---
 
 ### Phase 3 — Zustand Stores (Narrative)
+
+**Goal:** Implement the central data store that holds the entire narrative model, with complete CRUD operations for all entity types and JSON serialization — this is the single source of truth for the project.
 
 **Produces:**
 - `src/store/useNarrativeStore.js` — single store managing all narrative entity slices:
@@ -69,11 +88,21 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
   - Actions: `loadFromJSON(json)`, `toExportJSON() → json`
   - Middleware: `subscribeWithSelector` for granular subscriptions
 
+**Acceptance Criteria:**
+- [ ] Can create, read, update, and delete every entity type (Common Node, Choice, Ending, Flag, Status Point, Path, Chapter)
+- [ ] Sub-element CRUD works: add/remove conditions, next entries, options, variants
+- [ ] `loadFromJSON()` populates the store from a valid JSON object; `toExportJSON()` produces a valid export
+- [ ] Entity names are sanitized on creation (AR-07)
+- [ ] All data structure invariants hold after every mutation (AR-03, AR-04, AR-05)
+- [ ] Deleting a top-level entity cleans up references in `next[].target`, `flags_set`, `status_set`, and `requires.conditions`
+
 **Next phase needs:** working narrative store with CRUD and export/import logic.
 
 ---
 
 ### Phase 4 — Zustand Stores (UI + Simulation + Campaign)
+
+**Goal:** Complete the state management layer with stores for UI state, simulation state, and campaign management — giving all future UI components and engines the reactive data layer they need.
 
 **Produces:**
 - `src/store/useUIStore.js` — UI state:
@@ -87,11 +116,20 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
   - `campaigns: {}`, `activeCampaignId`, `activeCampaign`
   - Actions: `createCampaign`, `loadCampaign`, `saveCampaign`, `deleteCampaign`, `switchCampaign`, `resetActiveCampaign`
 
+**Acceptance Criteria:**
+- [ ] `useUIStore` actions correctly toggle inspector, manage toasts (add/auto-remove), and track selected node
+- [ ] `useSimulationStore.cycleNodeStatus()` cycles through all 6 states: `default → active → locked → complete → failed → branch_locked → default`
+- [ ] `useSimulationStore.cycleNodeSeen()` cycles through: `unseen → partially_seen → seen → unseen`
+- [ ] `useCampaignStore` can create, switch, reset, and delete campaigns; active campaign state is isolated from narrative data
+- [ ] `showPersistError()` sets a persistent flag; `clearPersistError()` clears it (AR-08)
+
 **Next phase needs:** all stores operational and subscribable.
 
 ---
 
 ### Phase 5 — Persistence Layer
+
+**Goal:** Wire up IndexedDB persistence (auto-save with error surfacing) and JSON/ZIP import/export — ensuring the user never loses work silently and can round-trip data through files.
 
 **Produces:**
 - `src/services/persistence.js`
@@ -105,11 +143,21 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
   - `exportZIP(narrativeStore, campaigns) → Blob` — `datamodel.json` + `campaigns/*.json`
   - `importZIP(file) → { narrativeData, campaigns }` — validates structure, handles all import rules from spec §6.2
 
+**Acceptance Criteria:**
+- [ ] Auto-save fires 500ms after the last store mutation and writes to IndexedDB
+- [ ] If IndexedDB write fails, a persistent warning banner appears (AR-08); no `.catch(() => {})` anywhere
+- [ ] `loadProject()` restores the full narrative + campaign state on app start
+- [ ] JSON export → import round-trip produces identical data (sub-element IDs regenerated, structure preserved)
+- [ ] ZIP import rejects archives missing `datamodel.json` with a specific error message
+- [ ] Plain `.json` import works as data-model-only (no campaigns)
+
 **Next phase needs:** persistence + import/export working end-to-end.
 
 ---
 
 ### Phase 6 — Graph Canvas Foundation
+
+**Goal:** Get the full-viewport React Flow canvas rendering data-driven nodes and edges from the narrative store — the visual core of the application.
 
 **Produces:**
 - `src/components/graph/GraphCanvas.jsx` — full-viewport `<ReactFlow>` wrapper with pan/zoom/select, sets up node types and edge types
@@ -118,11 +166,21 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - `src/hooks/useGraphCallbacks.js` — `onConnect`, `onNodesChange`, `onEdgesChange`, `onNodeDrag` callbacks wired to narrative store actions
 - `src/App.jsx` — updated to render `<GraphCanvas />`
 
+**Acceptance Criteria:**
+- [ ] Graph canvas fills 100% of the viewport with dark-themed background
+- [ ] Nodes from the narrative store render on the canvas at their `_position` coordinates
+- [ ] Edges render between connected nodes based on `next[].target` references
+- [ ] Pan, zoom, and multi-select interactions work
+- [ ] Dragging a node updates `_position` in the narrative store
+- [ ] Connecting two nodes via drag creates a `next` entry in the source entity
+
 **Next phase needs:** functional graph canvas with data-driven nodes/edges.
 
 ---
 
 ### Phase 7 — Custom Node Renderers
+
+**Goal:** Replace default React Flow nodes/edges with custom renderers that visually distinguish entity types, display metadata (badges, tags), and respond to simulation state — making the graph informative at a glance.
 
 **Produces:**
 - `src/components/graph/nodes/CommonNodeRenderer.jsx` — custom node for Common Nodes (shows name, type badge, chapter/path tags, flag/status indicators, state/seen overlays)
@@ -134,11 +192,21 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - `src/components/graph/edges/ConditionalEdge.jsx` — custom edge rendering (solid when conditions pass, dashed/dimmed when fail, glow when active node outgoing)
 - `src/components/graph/edges/ConditionalEdge.css`
 
+**Acceptance Criteria:**
+- [ ] Common Nodes, Choices, and Endings are visually distinct (different shape/color/icon)
+- [ ] Node renderers display: entity name/text, type badge, chapter/path tags
+- [ ] Common Node renderer shows flag/status indicators when `flags_set` or `status_set` are non-empty
+- [ ] Edge renderer supports three visual states: solid (conditions pass), dashed/dimmed (conditions fail), glow (active node outgoing)
+- [ ] All renderers consume design tokens from `tokens.css` — no hard-coded colors (AR-09)
+- [ ] Nodes render correctly with the premium dark-mode aesthetic (deep charcoal, neon accents)
+
 **Next phase needs:** visual nodes and edges rendering on the canvas with simulation-aware styling.
 
 ---
 
 ### Phase 8 — Context Menu & Keyboard Shortcuts
+
+**Goal:** Implement the primary interaction model — context-sensitive right-click menus and keyboard shortcuts — so users can create, delete, and manipulate entities without any sidebar or toolbar.
 
 **Produces:**
 - `src/components/ui/ContextMenu.jsx` — right-click menu with context-sensitive options per spec §3.2
@@ -146,11 +214,21 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - `src/hooks/useKeyboardShortcuts.js` — registers all keyboard shortcuts per spec §3.3, routes to store actions
 - `src/hooks/useContextMenu.js` — manages context menu position and visibility, maps right-click targets to menu options
 
+**Acceptance Criteria:**
+- [ ] Right-click on empty canvas shows: Create Common Node, Create Choice, Create Ending, Create Flag, Create Status Point, Create Path, Create Chapter, Paste
+- [ ] Right-click on a node shows: Edit, Delete, Duplicate, Connect to..., Toggle State, Toggle Seen, Copy
+- [ ] Right-click on an edge shows: Delete, Edit Conditions
+- [ ] All keyboard shortcuts from spec §3.3 are functional (`N`, `C`, `E`, `F`, `S`, `Del`, `Space`, `V`, `I`, `Ctrl+K`, `Escape`, `R`, `L`, `Ctrl+F`)
+- [ ] Shortcuts are suppressed when a text input has focus
+- [ ] Context menu closes on click-outside or `Escape`
+
 **Next phase needs:** full interaction model (create/delete/connect via context menu + keyboard).
 
 ---
 
 ### Phase 9 — Floating Inspector Panel
+
+**Goal:** Build the full entity editing UI as a draggable floating panel (like Figma's inspector), enabling users to edit all fields of any selected entity without leaving the graph canvas.
 
 **Produces:**
 - `src/components/inspector/InspectorPanel.jsx` — draggable, dismissible, pinnable floating panel for editing selected entity
@@ -165,11 +243,21 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - `src/components/inspector/fields/FlagSetEditor.jsx` — multi-select for `flags_set`
 - `src/components/inspector/fields/StatusSetEditor.jsx` — array editor for `status_set` entries
 
+**Acceptance Criteria:**
+- [ ] Clicking a node opens the inspector; `I` toggles it; `Escape` dismisses it (all dismissal paths check dirty state — AP8)
+- [ ] Inspector is draggable, dismissible, and pinnable
+- [ ] Fields follow the spec §2.1 ordering: identity → classification → content → prerequisites → side effects → routing
+- [ ] ConditionEditor supports recursive AND/OR nesting with add/remove at any depth
+- [ ] All edits write back to the narrative store immediately
+- [ ] Inspector adapts its field layout based on entity type (Common Node vs. Choice vs. Ending vs. Flag vs. Status Point vs. Path vs. Chapter)
+
 **Next phase needs:** complete entity editing through the inspector.
 
 ---
 
 ### Phase 10 — Simulation Engine
+
+**Goal:** Implement the always-running simulation engine that recalculates edge validity, node reachability, and auto-lock suggestions on every state change — the core differentiator from V1.
 
 **Produces:**
 - `src/engine/simulationEngine.js`
@@ -181,11 +269,21 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - `src/hooks/useSimulationSync.js` — hook that wires `simulationEngine` to stores, manages the subscription lifecycle
 - Updated node renderers to read simulation state (edge highlighting, state badges, reachability warnings)
 
+**Acceptance Criteria:**
+- [ ] Simulation recalculates automatically within 150ms of any flag/status/node-state change — no start/stop button
+- [ ] Edges whose conditions pass are visually highlighted; edges that fail are dimmed/dashed
+- [ ] Nodes marked `active` pulse and show valid outgoing edges glowing
+- [ ] Unreachable nodes (from `entry_node` given current state) display a warning badge
+- [ ] Node renderers display the correct state overlay: active (pulsing), locked (dimmed), complete (checkmark), failed (red/X), branch_locked (dashed)
+- [ ] Seen tracking icons render: unseen (none), partially_seen (half-eye), seen (filled-eye)
+
 **Next phase needs:** live simulation running, edges highlighted, unreachable warnings visible.
 
 ---
 
 ### Phase 11 — Campaign System
+
+**Goal:** Enable designers to create, save, and switch between named campaign sheets (saved simulation states) for testing different narrative scenarios independently.
 
 **Produces:**
 - `src/components/campaign/CampaignSelector.jsx` — dropdown/modal for campaign CRUD (create, switch, delete, reset)
@@ -194,11 +292,21 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - `src/components/campaign/StatusOverridePanel.jsx` — list of all status points with number inputs for override
 - Updated `persistence.js` to save/load campaigns alongside data model
 
+**Acceptance Criteria:**
+- [ ] Can create a new campaign with a name, switch between campaigns, delete campaigns
+- [ ] Reset button clears all node states, flag overrides, and status overrides for the active campaign
+- [ ] Flag overrides toggle individual flags; status overrides set specific values — both feed into the simulation engine
+- [ ] Campaign state is separate from narrative data (AR-10: editing structure does not modify campaigns)
+- [ ] Campaigns auto-save to IndexedDB alongside the data model
+- [ ] Stale campaign references (referencing deleted entities) are pruned with a toast notification (R-03 mitigation)
+
 **Next phase needs:** campaign-based simulation with state persistence.
 
 ---
 
 ### Phase 12 — Route Tracing
+
+**Goal:** Build the route analysis system — all-paths finder, shortest path, goal-directed pathfinding (Modes A and B), and filtered tracing — with a visual overlay and detail panel for results.
 
 **Produces:**
 - `src/engine/routeTracer.js`
@@ -215,11 +323,23 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - `src/components/route/RouteOverlay.css`
 - `src/components/route/RouteDetailPanel.jsx` — expandable breakdown of each step in the route
 
+**Acceptance Criteria:**
+- [ ] Basic route trace finds all paths between two selected nodes
+- [ ] Shortest path returns the path with fewest nodes and respects current flag/status state
+- [ ] Mode A ("how to reach X?") finds a valid path or reports why no path exists (which conditions fail)
+- [ ] Mode B ("what do I need for X?") returns required flags and status thresholds, with a 5-second timeout for complex graphs (R-02)
+- [ ] Filtered trace correctly filters by path, chapter, flag, and status
+- [ ] Route overlay highlights the traced path on the canvas with numbered steps
+- [ ] Toast summary shows path result (e.g., "Shortest path: N001 → CH002 → N005 → E001, 4 nodes")
+- [ ] Each route step is annotated with chapter, path, flags set, and status deltas
+
 **Next phase needs:** route tracing fully operational with visual overlays.
 
 ---
 
 ### Phase 13 — Chrome (Top Bar, Status Strip, Command Palette, Toast)
+
+**Goal:** Add the minimal application shell — top bar, bottom status strip, command palette, toast notifications, and minimap — completing the UI framework without adding persistent sidebars.
 
 **Produces:**
 - `src/components/chrome/TopBar.jsx` — thin single-line bar: project name (editable), settings, reset, import/export buttons
@@ -232,11 +352,22 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - `src/components/ui/ToastContainer.css`
 - `src/components/ui/Minimap.jsx` — React Flow minimap wrapper with dark-themed styling
 
+**Acceptance Criteria:**
+- [ ] Top bar is thin (single-line), shows editable project name, settings gear, reset simulation, import/export buttons
+- [ ] Status strip at the bottom shows: active node count, active flags summary, status point values, simulation warnings count
+- [ ] Clicking a status strip item opens relevant detail
+- [ ] Command palette opens on `Ctrl+K`, searches nodes/flags/status by name or ID, executes actions (Create Node, Export, Reset, Find path to...)
+- [ ] Toasts appear top-right, auto-dismiss after a timeout, are stackable
+- [ ] Minimap renders in a corner with dark-themed styling matching the app aesthetic
+- [ ] No persistent sidebars exist — all editing through floating panels, context menus, and keyboard shortcuts (AR-12)
+
 **Next phase needs:** full UI chrome complete.
 
 ---
 
 ### Phase 14 — Auto-Layout & Performance Polish
+
+**Goal:** Add Dagre auto-layout, performance optimizations for large graphs (200+ nodes), and visual clustering — the final polish pass before the project is considered feature-complete.
 
 **Produces:**
 - `src/engine/autoLayout.js`
@@ -248,6 +379,13 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - Updated keyboard shortcut `L` wired to auto-layout
 - Updated simulation engine with incremental recalculation (only affected subgraph)
 - Visual clustering by chapter/path (toggleable background grouping)
+
+**Acceptance Criteria:**
+- [ ] Pressing `L` runs Dagre auto-layout and repositions all nodes without data loss
+- [ ] Simulation recalculation on a 200-node graph completes within 16ms (R-01 detection threshold)
+- [ ] Incremental recalculation only processes the affected subgraph, not the full graph
+- [ ] Visual clustering groups nodes by chapter/path with background shading, toggleable on/off
+- [ ] No UI jank when rapidly toggling flags/statuses on a 200+ node graph
 
 **Next phase needs:** nothing — this is the final phase.
 
