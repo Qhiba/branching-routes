@@ -9,7 +9,6 @@ You write clean, complete code. You do not improvise. You follow the plan exactl
 `Branching Routes V2`
 
 ### Tech stack:
-<!-- from Scope Q6 — `ran_0002_scope.md` -->
 - React 19+ + Vite
 - plain JavaScript (JSX/ES6+, no TypeScript)
 - @xyflow/react (graph canvas)
@@ -25,41 +24,44 @@ You write clean, complete code. You do not improvise. You follow the plan exactl
 - dark mode only
 
 ### Current phase:
-Phase [1] — Project Scaffold & Design Tokens
+Phase [4] — Zustand Stores (UI + Simulation + Campaign)
 
-### Implementation plan for this phase:
-<!-- from Plan §2 — `ran_0003_plan.md` -->
-**Goal:** Establish the project foundation — working dev server, design token system, and clean entry point — so every subsequent phase has a runnable app to build on.
+**Goal:** Complete the state management layer with stores for UI state, simulation state, and campaign management — giving all future UI components and engines the reactive data layer they need.
 
 **Produces:**
-- `src/styles/tokens.css` — CSS custom properties (colors, spacing, typography, radii, shadows)
-- `src/styles/reset.css` — CSS reset / normalize
-- `src/index.css` — imports tokens + reset, sets global body/html rules
-- `src/main.jsx` — mounts `<App />`
-- `src/App.jsx` — empty shell rendering a placeholder
-- `vite.config.js` — alias `@/` → `src/`
+- `src/store/useUIStore.js` — UI state:
+  - `selectedNodeId`, `inspectorOpen`, `inspectorPinned`, `contextMenu`, `commandPaletteOpen`, `toasts[]`, `persistError`
+  - Actions: `selectNode`, `openInspector`, `closeInspector`, `pinInspector`, `showContextMenu`, `hideContextMenu`, `addToast`, `removeToast`, `showPersistError`, `clearPersistError`
+- `src/store/useSimulationStore.js` — simulation state:
+  - `nodeStates: { [nodeId]: { status, seen } }`, `flagOverrides: {}`, `statusOverrides: {}`
+  - Derived: `evaluatedEdges: { [edgeKey]: boolean }`, `unreachableNodes: Set`
+  - Actions: `setNodeStatus`, `cycleNodeStatus`, `setNodeSeen`, `cycleNodeSeen`, `setFlagOverride`, `setStatusOverride`, `resetSimulation`
+- `src/store/useCampaignStore.js` — campaign management:
+  - `campaigns: {}`, `activeCampaignId`, `activeCampaign`
+  - Actions: `createCampaign`, `loadCampaign`, `saveCampaign`, `deleteCampaign`, `switchCampaign`, `resetActiveCampaign`
 
 **Acceptance Criteria:**
-- [ ] `npm run dev` starts without errors and renders the placeholder App
-- [ ] All design tokens are defined as CSS custom properties on `:root` in `tokens.css`
-- [ ] No hard-coded color, spacing, or font values exist outside `tokens.css`
-- [ ] `@/` import alias resolves correctly (verified by importing tokens in `App.jsx`)
+- [ ] `useUIStore` actions correctly toggle inspector, manage toasts (add/auto-remove), and track selected node
+- [ ] `useSimulationStore.cycleNodeStatus()` cycles through all 6 states: `default → active → locked → complete → failed → branch_locked → default`
+- [ ] `useSimulationStore.cycleNodeSeen()` cycles through: `unseen → partially_seen → seen → unseen`
+- [ ] `useCampaignStore` can create, switch, reset, and delete campaigns; active campaign state is isolated from narrative data
+- [ ] `showPersistError()` sets a persistent flag; `clearPersistError()` clears it (AR-08)
 
-**Next phase needs:** importable token system, working dev server.
+**Next phase needs:** all stores operational and subscribable.
 
 ### File map for this phase:
-<!-- from Plan §3 — `ran_0003_plan.md` -->
 | File | Purpose | Key Exports | Dependencies |
 |------|---------|-------------|--------------|
-| `tokens.css` | CSS custom properties for the entire design system: colors (deep charcoal, neon accents), spacing scale, typography (Inter), border radii, shadows, transitions | Custom properties on `:root` | None |
-| `reset.css` | Browser reset / normalize | Global styles | None |
+| `useUIStore.js` | Zustand store for UI state | `useUIStore` (hook + actions) | None |
+| `useSimulationStore.js` | Zustand store for simulation state | `useSimulationStore` (hook + actions) | None |
+| `useCampaignStore.js` | Zustand store for campaign management | `useCampaignStore` (hook + actions) | None |
 
 ### Code from prior phases (if Phase 2+):
-<!-- example: "N/A, this is Phase 1" -->
-N/A
+| # | File | Path | Status |
+|---|------|------|--------|
+| 1 | `useNarrativeStore.js` | `src/store/useNarrativeStore.js` | **Created** |
 
 ### Architecture rules: 
-<!-- from Plan §1 — `ran_0003_plan.md` -->
 | # | Rule |
 |---|------|
 | **AR-01** | Every React component file is named `PascalCase.jsx` and lives under `src/components/<feature>/`; every utility/helper file is named `camelCase.js`. |
@@ -85,7 +87,7 @@ Produce:
 - At the end, list all files produced with their paths
 
 ## Save Report
-Save your report inside `/informations/runs/[DD-MM-YYYY]_project-creation/implementation_report/ran_0004_execute_[N].md`
+Save your report inside `/informations/runs/[DD-MM-YYYY]_project-creation/implementation_report_[N]/ran_0004_execute_[N].md`
 
 ## CONSTRAINT
 - Do not add features not in the plan
