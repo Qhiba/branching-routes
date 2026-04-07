@@ -1,0 +1,353 @@
+/* ============================================================
+ * RouteFinderDialog.css — Modal for route tracing controls
+ * ============================================================
+ * All values consume design tokens from tokens.css (AR-09).
+ * No hard-coded color/spacing/font values.
+ * ============================================================ */
+
+/* ── Backdrop ────────────────────────────────────────────── */
+
+.route-finder-backdrop {
+  position: fixed;
+  inset: 0;
+  background: var(--color-bg-overlay);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: route-finder-fade-in 200ms ease;
+}
+
+@keyframes route-finder-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── Dialog container ────────────────────────────────────── */
+
+.route-finder-dialog {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  width: 520px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: route-finder-slide-up 250ms var(--transition-spring);
+  overflow: hidden;
+}
+
+@keyframes route-finder-slide-up {
+  from {
+    transform: translateY(16px) scale(0.97);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+
+.route-finder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.route-finder-header h2 {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.route-finder-close-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast),
+              background var(--transition-fast);
+}
+
+.route-finder-close-btn:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-elevated);
+}
+
+/* ── Body ────────────────────────────────────────────────── */
+
+.route-finder-body {
+  padding: var(--space-5);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ── Mode selector tabs ──────────────────────────────────── */
+
+.route-finder-modes {
+  display: flex;
+  gap: var(--space-1);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-1);
+}
+
+.route-finder-mode-btn {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.route-finder-mode-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.route-finder-mode-btn.active {
+  background: var(--color-bg-tertiary);
+  color: var(--color-accent-cyan);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Field groups ────────────────────────────────────────── */
+
+.route-finder-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.route-finder-field label {
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wider);
+}
+
+.route-finder-field select,
+.route-finder-field input {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  transition: border-color var(--transition-fast),
+              box-shadow var(--transition-fast);
+  width: 100%;
+}
+
+.route-finder-field select:focus,
+.route-finder-field input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-accent-blue-glow);
+}
+
+.route-finder-field select option {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+/* ── Filters section ─────────────────────────────────────── */
+
+.route-finder-filters {
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-4);
+}
+
+.route-finder-filters-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  padding: var(--space-1) 0;
+  transition: color var(--transition-fast);
+  width: 100%;
+  text-align: left;
+}
+
+.route-finder-filters-toggle:hover {
+  color: var(--color-text-primary);
+}
+
+.route-finder-filters-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+/* ── Footer / actions ────────────────────────────────────── */
+
+.route-finder-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.route-finder-btn {
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              border-color var(--transition-fast),
+              transform var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.route-finder-btn:active {
+  transform: scale(0.97);
+}
+
+.route-finder-btn--secondary {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-subtle);
+}
+
+.route-finder-btn--secondary:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.route-finder-btn--primary {
+  background: var(--color-accent-cyan);
+  color: var(--color-text-inverse);
+  border-color: var(--color-accent-cyan);
+}
+
+.route-finder-btn--primary:hover {
+  background: var(--color-accent-cyan-muted);
+  color: var(--color-text-primary);
+  border-color: var(--color-accent-cyan);
+}
+
+.route-finder-btn--primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Status / result hint in dialog ──────────────────────── */
+
+.route-finder-status {
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.route-finder-status--error {
+  color: var(--color-error);
+  border-color: var(--color-error-muted);
+}
+
+.route-finder-status--success {
+  color: var(--color-success);
+  border-color: var(--color-success-muted);
+}
+
+.route-finder-status--warning {
+  color: var(--color-warning);
+  border-color: var(--color-warning-muted);
+}
+
+/* ── Requirements list (Mode B) ──────────────────────────── */
+
+.route-finder-requirements {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.route-finder-requirements h4 {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.route-finder-req-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.route-finder-req-item .req-badge {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  padding: var(--space-0-5) var(--space-1-5);
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.route-finder-req-item .req-badge--flag {
+  background: var(--color-accent-amber-muted);
+  color: var(--color-accent-amber);
+}
+
+.route-finder-req-item .req-badge--status {
+  background: var(--color-accent-cyan-muted);
+  color: var(--color-accent-cyan);
+}

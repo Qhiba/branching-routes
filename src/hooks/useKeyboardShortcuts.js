@@ -16,6 +16,7 @@ import { useNarrativeStore } from '@/store/useNarrativeStore.js';
 import { useUIStore } from '@/store/useUIStore.js';
 import { useSimulationStore } from '@/store/useSimulationStore.js';
 import { useReactFlow } from '@xyflow/react';
+import { applyDagreLayout } from '@/engine/autoLayout.js';
 
 // ── Input focus guard ────────────────────────────────────────
 
@@ -88,8 +89,8 @@ function getCenterPosition(reactFlowInstance) {
  *   Ctrl+K    — Open command palette
  *   Escape    — Deselect / Close panel / Close context menu
  *   R         — Reset simulation state
- *   L         — Auto-layout graph (for later phases)
- *   Ctrl+F    — Open route finder dialog (for later phases)
+ *   L         — Auto-layout graph via Dagre
+ *   Ctrl+F    — Open route finder dialog
  */
 export function useKeyboardShortcuts() {
   const reactFlowInstance = useReactFlow();
@@ -125,12 +126,12 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      // ── Ctrl+F — Open route finder dialog (for later phases)
+      // ── Ctrl+F — Open route finder dialog
       if (isCtrl && key.toLowerCase() === 'f') {
         event.preventDefault();
-        // AMBIGUOUS: Route finder dialog not yet implemented (Phase 12).
-        // Showing a toast as placeholder feedback.
-        useUIStore.getState().addToast('Route finder not yet available', 'info');
+        // AMBIGUOUS: Route finder dialog toggle is handled in App.jsx
+        // via the 'R' key. Ctrl+F provides an alternative.
+        useUIStore.getState().addToast('Route finder: use R key to toggle', 'info');
         return;
       }
 
@@ -247,11 +248,10 @@ export function useKeyboardShortcuts() {
         return;
       }
 
-      // ── L — Auto-layout graph (for later phases) ──────────
+      // ── L — Auto-layout graph via Dagre ────────────────────
       if (key.toLowerCase() === 'l' && !isShift) {
         event.preventDefault();
-        // Auto-layout not yet implemented (Phase 14)
-        useUIStore.getState().addToast('Auto-layout not yet available', 'info', 3000);
+        performAutoLayout(reactFlowInstance);
         return;
       }
     },
@@ -265,4 +265,66 @@ export function useKeyboardShortcuts() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
+}
+
+// ── Auto-layout helper ──────────────────────────────────────
+
+/**
+ * Run Dagre auto-layout on all current nodes and persist
+ * the new positions back to the narrative store.
+ *
+ * Phase 14: Wired to the 'L' keyboard shortcut.
+ *
+ * @param {object} reactFlowInstance — React Flow instance
+ */
+function performAutoLayout(reactFlowInstance) {
+  try {
+    const nodes = reactFlowInstance.getNodes();
+    const edges = reactFlowInstance.getEdges();
+
+    if (nodes.length === 0) {
+      useUIStore.getState().addToast('No nodes to layout', 'info', 3000);
+      return;
+    }
+
+    // Determine direction based on handle orientation
+    const handleOrientation = useUIStore.getState().handleOrientation;
+    const direction = handleOrientation === 'horizontal' ? 'LR' : 'TB';
+
+    // Apply Dagre layout
+    const positionedNodes = applyDagreLayout(nodes, edges, { direction });
+
+    // Persist positions back to narrative store (prevents corruption)
+    const narrative = useNarrativeStore.getState();
+    for (const node of positionedNodes) {
+      const position = {
+        x: Math.round(node.position.x),
+        y: Math.round(node.position.y),
+      };
+      if (narrative.common[node.id]) {
+        narrative.updateCommonNode(node.id, { _position: position });
+      } else if (narrative.choice[node.id]) {
+        narrative.updateChoice(node.id, { _position: position });
+      } else if (narrative.ending[node.id]) {
+        narrative.updateEnding(node.id, { _position: position });
+      }
+    }
+
+    // Also update React Flow's viewport to fit the new layout
+    setTimeout(() => {
+      reactFlowInstance.fitView({ padding: 0.15, duration: 400 });
+    }, 50);
+
+    useUIStore.getState().addToast(
+      `Auto-layout applied to ${positionedNodes.length} nodes`,
+      'success',
+      3000
+    );
+  } catch (err) {
+    useUIStore.getState().addToast(
+      `Auto-layout failed: ${err.message}`,
+      'error',
+      5000
+    );
+  }
 }

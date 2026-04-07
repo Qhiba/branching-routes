@@ -13,12 +13,14 @@
 //   - Common Node `next[].target` references
 //   - Choice `options[].next[].target` references
 //
+// Phase 14: Guards against edge corruption by filtering out
+// edges whose target node doesn't exist in the graph.
+//
 // Key export: useGraphSync() → { nodes, edges }
 // ============================================================
 
 import { useMemo } from 'react';
 import { useNarrativeStore } from '@/store/useNarrativeStore.js';
-import { useSimulationStore } from '@/store/useSimulationStore.js';
 
 /**
  * Determine the React Flow node type string for a given entity type.
@@ -111,6 +113,8 @@ function buildEdgesFromChoice(choice) {
  * Hook that transforms narrative store data into React Flow nodes and edges.
  * Subscribes to store changes and recomputes when entities change.
  *
+ * Phase 14: Filters out edges whose target doesn't exist (corruption guard).
+ *
  * @returns {{ nodes: object[], edges: object[] }}
  */
 export function useGraphSync() {
@@ -118,10 +122,6 @@ export function useGraphSync() {
   const choice = useNarrativeStore((s) => s.choice);
   const ending = useNarrativeStore((s) => s.ending);
   const entryNode = useNarrativeStore((s) => s.metadata.entry_node);
-
-  // AMBIGUOUS: Simulation store data (nodeStates) is read here for future
-  // node renderer use but not consumed in this hook's output directly.
-  // Node renderers will read it via their own selectors.
 
   const nodes = useMemo(() => {
     const result = [];
@@ -147,18 +147,35 @@ export function useGraphSync() {
   const edges = useMemo(() => {
     const result = [];
 
+    // Build a set of all valid node IDs for corruption guard
+    const validNodeIds = new Set();
+    for (const id of Object.keys(common)) validNodeIds.add(id);
+    for (const id of Object.keys(choice)) validNodeIds.add(id);
+    for (const id of Object.keys(ending)) validNodeIds.add(id);
+
     // Edges from Common Node next[] entries
     for (const node of Object.values(common)) {
-      result.push(...buildEdgesFromCommonNode(node));
+      const nodeEdges = buildEdgesFromCommonNode(node);
+      for (const edge of nodeEdges) {
+        // Phase 14: Only include edges whose target node exists
+        if (edge.target && validNodeIds.has(edge.target)) {
+          result.push(edge);
+        }
+      }
     }
 
     // Edges from Choice options[].next[] entries
     for (const ch of Object.values(choice)) {
-      result.push(...buildEdgesFromChoice(ch));
+      const choiceEdges = buildEdgesFromChoice(ch);
+      for (const edge of choiceEdges) {
+        if (edge.target && validNodeIds.has(edge.target)) {
+          result.push(edge);
+        }
+      }
     }
 
     return result;
-  }, [common, choice]);
+  }, [common, choice, ending]);
 
   return { nodes, edges };
 }

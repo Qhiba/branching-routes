@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useSimulationStore } from '@/store/useSimulationStore.js';
 import { useNarrativeStore } from '@/store/useNarrativeStore.js';
+import { useUIStore } from '@/store/useUIStore.js';
 
 import './CommonNodeRenderer.css';
 
@@ -84,6 +85,11 @@ function CommonNodeRenderer({ data }) {
   const status = nodeState?.status ?? 'default';
   const seen = nodeState?.seen ?? 'unseen';
 
+  // Phase 13: Read handle orientation from UI store
+  const handleOrientation = useUIStore((s) => s.handleOrientation);
+  const targetPos = handleOrientation === 'horizontal' ? Position.Left : Position.Top;
+  const sourcePos = handleOrientation === 'horizontal' ? Position.Right : Position.Bottom;
+
   // Read chapter and path maps to resolve tag names
   const chapterMap = useNarrativeStore((s) => s.chapter);
   const pathMap = useNarrativeStore((s) => s.path);
@@ -102,7 +108,7 @@ function CommonNodeRenderer({ data }) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} />
+      <Handle type="target" position={targetPos} />
       <div className={rootClasses} style={{ position: 'relative' }}>
 
         {/* State badge (top-right corner) */}
@@ -200,7 +206,7 @@ function CommonNodeRenderer({ data }) {
           )}
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} />
+      <Handle type="source" position={sourcePos} />
     </>
   );
 }

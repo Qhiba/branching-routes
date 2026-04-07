@@ -1,0 +1,175 @@
+/* ============================================================
+ * ToastContainer.css — Toast notification stack styles
+ * ============================================================
+ * Consumes design tokens from tokens.css (AR-09).
+ * ============================================================ */
+
+/* ── Container ───────────────────────────────────────────── */
+
+.toast-container {
+  position: fixed;
+  top: calc(var(--top-bar-height) + var(--space-3));
+  right: var(--space-4);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+  max-width: 380px;
+}
+
+/* ── Individual toast ────────────────────────────────────── */
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  pointer-events: auto;
+  animation: toastSlideIn 250ms var(--transition-spring);
+  min-width: 220px;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.toast--exiting {
+  animation: toastSlideOut 200ms ease forwards;
+}
+
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+}
+
+/* ── Toast type accents ──────────────────────────────────── */
+
+.toast--info {
+  border-left: 3px solid var(--color-info);
+}
+
+.toast--success {
+  border-left: 3px solid var(--color-success);
+}
+
+.toast--warning {
+  border-left: 3px solid var(--color-warning);
+}
+
+.toast--error {
+  border-left: 3px solid var(--color-error);
+}
+
+/* ── Toast icon ──────────────────────────────────────────── */
+
+.toast__icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.toast--info .toast__icon {
+  color: var(--color-info);
+}
+
+.toast--success .toast__icon {
+  color: var(--color-success);
+}
+
+.toast--warning .toast__icon {
+  color: var(--color-warning);
+}
+
+.toast--error .toast__icon {
+  color: var(--color-error);
+}
+
+/* ── Toast content ───────────────────────────────────────── */
+
+.toast__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast__message {
+  line-height: var(--line-height-normal);
+  word-break: break-word;
+}
+
+/* ── Toast dismiss button ────────────────────────────────── */
+
+.toast__dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  transition: background var(--transition-fast),
+              color var(--transition-fast);
+}
+
+.toast__dismiss:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.toast__dismiss-icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Progress bar ────────────────────────────────────────── */
+
+.toast__progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  transition: width linear;
+}
+
+.toast--info .toast__progress {
+  background: var(--color-info);
+}
+
+.toast--success .toast__progress {
+  background: var(--color-success);
+}
+
+.toast--warning .toast__progress {
+  background: var(--color-warning);
+}
+
+.toast--error .toast__progress {
+  background: var(--color-error);
+}

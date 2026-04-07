@@ -13,8 +13,8 @@
 
 .conditional-edge__path {
   transition: stroke var(--transition-normal),
-              stroke-opacity var(--transition-normal),
-              filter var(--transition-normal);
+    stroke-opacity var(--transition-normal),
+    filter var(--transition-normal);
 }
 
 .conditional-edge__path--default {
@@ -37,14 +37,20 @@
 .conditional-edge__path--glow {
   stroke: var(--color-edge-pass);
   stroke-width: 2.5;
-  filter: drop-shadow(0 0 4px var(--color-edge-glow))
-          drop-shadow(0 0 8px var(--color-edge-glow));
+  filter: drop-shadow(0 0 4px var(--color-edge-glow)) drop-shadow(0 0 8px var(--color-edge-glow));
   animation: edge-glow-pulse 2s ease-in-out infinite;
 }
 
 @keyframes edge-glow-pulse {
-  0%, 100% { filter: drop-shadow(0 0 4px var(--color-edge-glow)); }
-  50%      { filter: drop-shadow(0 0 8px var(--color-edge-glow)) drop-shadow(0 0 14px var(--color-edge-glow)); }
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px var(--color-edge-glow));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 8px var(--color-edge-glow)) drop-shadow(0 0 14px var(--color-edge-glow));
+  }
 }
 
 /* ── Edge label (option label on choice edges) ───────────── */

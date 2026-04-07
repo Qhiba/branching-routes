@@ -3,8 +3,12 @@
 // ============================================================
 // Manages the subscription lifecycle between stores and the
 // simulation engine. Subscribes to narrative store + simulation
-// store changes, debounces 150ms, runs recalculate(), and pushes
-// results back into the simulation store.
+// store changes, debounces adaptively based on graph size, runs
+// memoized recalculate(), and pushes results back into the
+// simulation store.
+//
+// Phase 14: Uses memoizeSimulation() for cache-hit skipping and
+// createDebouncedRecalculator() for graph-size-adaptive debounce.
 //
 // IMPORTANT: Only subscribes to INPUT fields of each store —
 // never to outputs (evaluatedEdges, unreachableNodes) to avoid
@@ -14,6 +18,8 @@
 //
 // Dependencies:
 //   - simulationEngine.recalculate()
+//   - performanceOptimizer.memoizeSimulation()
+//   - performanceOptimizer.createDebouncedRecalculator()
 //   - useNarrativeStore
 //   - useSimulationStore
 //   - useCampaignStore
@@ -24,9 +30,10 @@ import { useNarrativeStore } from '@/store/useNarrativeStore.js';
 import { useSimulationStore } from '@/store/useSimulationStore.js';
 import { useCampaignStore } from '@/store/useCampaignStore.js';
 import { recalculate } from '@/engine/simulationEngine.js';
-
-// Debounce delay in ms — plan specifies 150ms
-const DEBOUNCE_MS = 150;
+import {
+  memoizeSimulation,
+  createDebouncedRecalculator,
+} from '@/engine/performanceOptimizer.js';
 
 /**
  * Shallow compare two objects by reference equality of their values.
@@ -46,17 +53,23 @@ function shallowEqual(a, b) {
   return true;
 }
 
+// Create memoized version of recalculate — singleton shared across renders
+const memoizedRecalculate = memoizeSimulation(recalculate);
+
 /**
  * Hook that wires the simulation engine to Zustand store subscriptions.
  *
  * On any relevant state change (narrative data, simulation overrides,
- * campaign state), it debounces and runs `recalculate()`, then pushes
- * the results (evaluatedEdges, unreachableNodes) into the simulation store.
+ * campaign state), it debounces (adaptively by graph size) and runs
+ * `memoizedRecalculate()`, then pushes the results (evaluatedEdges,
+ * unreachableNodes) into the simulation store.
+ *
+ * Phase 14: Upgraded with memoization and adaptive debounce for
+ * 200+ node performance.
  *
  * Should be called exactly once, at the app root level.
  */
 export function useSimulationSync() {
-  const timerRef = useRef(null);
   const isMountedRef = useRef(true);
 
   // Memoized recalculation trigger
@@ -93,34 +106,38 @@ export function useSimulationSync() {
       status: narrativeState.status,
     };
 
-    // Run simulation
-    const result = recalculate(narrativeData, campaignState);
+    // Run memoized simulation — cache hit returns instantly (Phase 14)
+    const result = memoizedRecalculate(narrativeData, campaignState);
 
     // Push results into simulation store (only if still mounted)
     if (isMountedRef.current) {
       simState.setEvaluatedEdges(result.evaluatedEdges);
       simState.setUnreachableNodes(result.unreachableNodes);
       // AMBIGUOUS: autoLockSuggestions computed but not auto-applied.
-      // These could be surfaced via UI in a future phase (e.g. status strip warnings).
+      // These could be surfaced via UI in the status strip warnings.
     }
   }, []);
-
-  // Debounced trigger
-  const scheduleRecalculation = useCallback(() => {
-    if (timerRef.current != null) {
-      clearTimeout(timerRef.current);
-    }
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      runRecalculation();
-    }, DEBOUNCE_MS);
-  }, [runRecalculation]);
 
   useEffect(() => {
     isMountedRef.current = true;
 
     // Run initial calculation immediately
     runRecalculation();
+
+    // Phase 14: Adaptive debounce — shorter for small graphs, longer for large
+    const getNodeCount = () => {
+      const s = useNarrativeStore.getState();
+      return (
+        Object.keys(s.common).length +
+        Object.keys(s.choice).length +
+        Object.keys(s.ending).length
+      );
+    };
+
+    const { schedule, cancel } = createDebouncedRecalculator(
+      runRecalculation,
+      getNodeCount
+    );
 
     // Subscribe to narrative store changes (any entity collection change)
     const unsubNarrative = useNarrativeStore.subscribe(
@@ -133,7 +150,7 @@ export function useSimulationSync() {
         metadata: state.metadata,
       }),
       () => {
-        scheduleRecalculation();
+        schedule();
       },
       { equalityFn: shallowEqual }
     );
@@ -149,7 +166,7 @@ export function useSimulationSync() {
         statusOverrides: state.statusOverrides,
       }),
       () => {
-        scheduleRecalculation();
+        schedule();
       },
       { equalityFn: shallowEqual }
     );
@@ -161,7 +178,7 @@ export function useSimulationSync() {
         campaigns: state.campaigns,
       }),
       () => {
-        scheduleRecalculation();
+        schedule();
       },
       { equalityFn: shallowEqual }
     );
@@ -169,13 +186,10 @@ export function useSimulationSync() {
     // Cleanup
     return () => {
       isMountedRef.current = false;
-      if (timerRef.current != null) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
+      cancel();
       unsubNarrative();
       unsubSimulation();
       unsubCampaign();
     };
-  }, [runRecalculation, scheduleRecalculation]);
+  }, [runRecalculation]);
 }

@@ -1,0 +1,238 @@
+/* ============================================================
+ * TopBar.css — Thin single-line top bar styles
+ * ============================================================
+ * Consumes design tokens from tokens.css (AR-09).
+ * ============================================================ */
+
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--top-bar-height);
+  z-index: var(--z-top-bar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-family: var(--font-family);
+  box-shadow: var(--shadow-sm);
+  user-select: none;
+  gap: var(--space-3);
+}
+
+/* ── Left section: project name ──────────────────────────── */
+
+.top-bar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.top-bar__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-accent-cyan);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.top-bar__logo-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.top-bar__divider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.top-bar__project-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-2);
+  min-width: 100px;
+  max-width: 260px;
+  font-family: var(--font-family);
+  outline: none;
+  transition: border-color var(--transition-fast),
+              background var(--transition-fast);
+}
+
+.top-bar__project-name:hover {
+  border-color: var(--color-border-default);
+  background: var(--color-bg-tertiary);
+}
+
+.top-bar__project-name:focus {
+  border-color: var(--color-border-focus);
+  background: var(--color-bg-tertiary);
+}
+
+/* ── Center section: handle orientation toggle ────────────── */
+
+.top-bar__center {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.top-bar__handle-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              border-color var(--transition-fast),
+              color var(--transition-fast);
+  outline: none;
+  white-space: nowrap;
+}
+
+.top-bar__handle-toggle:hover {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary);
+}
+
+.top-bar__handle-toggle--active {
+  border-color: var(--color-accent-cyan-muted);
+  color: var(--color-accent-cyan);
+}
+
+.top-bar__handle-toggle-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* ── Right section: action buttons ───────────────────────── */
+
+.top-bar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.top-bar__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              color var(--transition-fast);
+  outline: none;
+  position: relative;
+}
+
+.top-bar__btn:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.top-bar__btn--danger:hover {
+  background: var(--color-error-muted);
+  color: var(--color-error);
+}
+
+.top-bar__btn-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.top-bar__btn-label {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-0-5) var(--space-2);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  z-index: calc(var(--z-top-bar) + 1);
+}
+
+.top-bar__btn:hover .top-bar__btn-label {
+  opacity: 1;
+}
+
+/* ── Persist error banner ────────────────────────────────── */
+
+.top-bar__persist-error {
+  position: fixed;
+  top: var(--top-bar-height);
+  left: 0;
+  right: 0;
+  padding: var(--space-1) var(--space-4);
+  background: var(--color-error-muted);
+  color: var(--color-error);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: var(--z-top-bar);
+  border-bottom: 1px solid var(--color-error);
+}
+
+.top-bar__persist-error-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-error);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.top-bar__persist-error-dismiss:hover {
+  background: hsla(0, 75%, 55%, 0.2);
+}
+
+/* ── Import file input (hidden) ──────────────────────────── */
+
+.top-bar__file-input {
+  display: none;
+}

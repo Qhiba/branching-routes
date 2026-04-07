@@ -41,6 +41,8 @@ export const useUIStore = create(
     commandPaletteOpen: false,
     toasts: [],
     persistError: null,
+    handleOrientation: 'vertical', // 'vertical' | 'horizontal' — Phase 13: handle position toggle
+    clusteringEnabled: false, // Phase 14: visual clustering by chapter/path
 
     // ── Node selection ──────────────────────────────────────
 
@@ -175,6 +177,36 @@ export const useUIStore = create(
      */
     clearPersistError: () => {
       set({ persistError: null });
+    },
+
+    // ── Handle orientation (Phase 13) ───────────────────────
+
+    /**
+     * Toggle handle orientation between 'vertical' and 'horizontal'.
+     * Vertical: handles on top/bottom. Horizontal: handles on left/right.
+     * @param {'vertical'|'horizontal'} [orientation] — If provided, sets directly.
+     */
+    toggleHandleOrientation: (orientation) => {
+      set((state) => ({
+        handleOrientation:
+          orientation != null
+            ? orientation
+            : state.handleOrientation === 'vertical'
+              ? 'horizontal'
+              : 'vertical',
+      }));
+    },
+
+    // ── Clustering toggle (Phase 14) ─────────────────────────
+
+    /**
+     * Toggle visual clustering of nodes by chapter/path.
+     * @param {boolean} [enabled] — If provided, sets directly.
+     */
+    toggleClustering: (enabled) => {
+      set((state) => ({
+        clusteringEnabled: enabled != null ? enabled : !state.clusteringEnabled,
+      }));
     },
   }))
 );

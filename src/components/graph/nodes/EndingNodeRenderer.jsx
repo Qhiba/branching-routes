@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useSimulationStore } from '@/store/useSimulationStore.js';
 import { useNarrativeStore } from '@/store/useNarrativeStore.js';
+import { useUIStore } from '@/store/useUIStore.js';
 
 import './EndingNodeRenderer.css';
 
@@ -75,6 +76,10 @@ function EndingNodeRenderer({ data }) {
   const chapterMap = useNarrativeStore((s) => s.chapter);
   const pathMap = useNarrativeStore((s) => s.path);
 
+  // Phase 13: Read handle orientation from UI store
+  const handleOrientation = useUIStore((s) => s.handleOrientation);
+  const targetPos = handleOrientation === 'horizontal' ? Position.Left : Position.Top;
+
   const chapterName = entity.chapter
     ? (chapterMap[entity.chapter]?.name || entity.chapter)
     : null;
@@ -91,7 +96,7 @@ function EndingNodeRenderer({ data }) {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} />
+      <Handle type="target" position={targetPos} />
       <div className={rootClasses} style={{ position: 'relative' }}>
 
         {/* State badge (top-right corner) */}

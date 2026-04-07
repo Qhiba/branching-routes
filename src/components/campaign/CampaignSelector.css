@@ -12,7 +12,8 @@
 
 .campaign-panel {
   position: fixed;
-  bottom: var(--space-4);
+  /* Phase 13: offset above status strip */
+  bottom: calc(var(--status-strip-height) + var(--space-4));
   left: var(--space-4);
   width: 300px;
   max-height: calc(100vh - var(--space-16));
@@ -26,7 +27,7 @@
   overflow: hidden;
   font-family: var(--font-family);
   transition: transform var(--transition-normal),
-              opacity var(--transition-normal);
+    opacity var(--transition-normal);
 }
 
 .campaign-panel--collapsed {
@@ -211,8 +212,8 @@
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: background var(--transition-fast),
-              color var(--transition-fast),
-              border-color var(--transition-fast);
+    color var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .campaign-selector__btn:hover {
@@ -341,10 +342,10 @@
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: background var(--transition-fast),
-              border-color var(--transition-fast);
+    border-color var(--transition-fast);
 }
 
-.toggle-switch__input:checked + .toggle-switch__track {
+.toggle-switch__input:checked+.toggle-switch__track {
   background: var(--color-accent-amber-muted);
   border-color: var(--color-accent-amber);
 }
@@ -358,11 +359,11 @@
   background: var(--color-text-tertiary);
   border-radius: var(--radius-full);
   transition: transform var(--transition-fast),
-              background var(--transition-fast);
+    background var(--transition-fast);
   pointer-events: none;
 }
 
-.toggle-switch__input:checked ~ .toggle-switch__thumb {
+.toggle-switch__input:checked~.toggle-switch__thumb {
   transform: translateX(16px);
   background: var(--color-accent-amber);
 }
@@ -381,8 +382,8 @@
   border-radius: var(--radius-sm);
   opacity: 0;
   transition: opacity var(--transition-fast),
-              color var(--transition-fast),
-              background var(--transition-fast);
+    color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .flag-override-item:hover .flag-override-item__clear {
@@ -465,8 +466,8 @@
   border-radius: var(--radius-sm);
   opacity: 0;
   transition: opacity var(--transition-fast),
-              color var(--transition-fast),
-              background var(--transition-fast);
+    color var(--transition-fast),
+    background var(--transition-fast);
 }
 
 .status-override-item:hover .status-override-item__clear {

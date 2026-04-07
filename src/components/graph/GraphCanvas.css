@@ -13,6 +13,10 @@
   flex: 1;
   position: relative;
   z-index: var(--z-graph);
+  /* Phase 13: offset for top bar and status strip */
+  padding-top: var(--top-bar-height);
+  padding-bottom: var(--status-strip-height);
+  box-sizing: border-box;
 }
 
 /* ── React Flow dark theme overrides ─────────────────────── */
@@ -36,12 +40,12 @@
   font-family: var(--font-family);
   font-size: var(--font-size-sm);
   transition: box-shadow var(--transition-fast),
-              border-color var(--transition-fast);
+    border-color var(--transition-fast);
 }
 
 .graph-canvas .react-flow__node.selected {
   box-shadow: 0 0 0 2px var(--color-accent-blue),
-              var(--shadow-glow);
+    var(--shadow-glow);
 }
 
 /* ── Node type variants (temporary until Phase 7) ─────── */
@@ -103,8 +107,8 @@
   border: 2px solid var(--color-border-default);
   border-radius: var(--radius-full);
   transition: background var(--transition-fast),
-              border-color var(--transition-fast),
-              transform var(--transition-fast);
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .graph-canvas .react-flow__handle:hover {
@@ -180,6 +184,8 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+  /* Phase 13: offset above status strip */
+  margin-bottom: calc(var(--status-strip-height) + var(--space-10));
 }
 
 .graph-canvas .react-flow__controls-button {
@@ -193,7 +199,7 @@
   align-items: center;
   justify-content: center;
   transition: background var(--transition-fast),
-              color var(--transition-fast);
+    color var(--transition-fast);
 }
 
 .graph-canvas .react-flow__controls-button:hover {

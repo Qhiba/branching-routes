@@ -1,0 +1,165 @@
+/* ============================================================
+ * StatusStrip.css — Bottom status bar styles
+ * ============================================================
+ * Consumes design tokens from tokens.css (AR-09).
+ * ============================================================ */
+
+.status-strip {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--status-strip-height);
+  z-index: var(--z-status-strip);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border-subtle);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  user-select: none;
+  gap: var(--space-1);
+}
+
+/* ── Status strip items ──────────────────────────────────── */
+
+.status-strip__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.status-strip__item:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
+.status-strip__item-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.status-strip__item-value {
+  font-family: var(--font-family-mono);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ── Divider between items ───────────────────────────────── */
+
+.status-strip__divider {
+  width: 1px;
+  height: 12px;
+  background: var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+/* ── Spacer to push right items to the end ───────────────── */
+
+.status-strip__spacer {
+  flex: 1;
+}
+
+/* ── Warning variant ─────────────────────────────────────── */
+
+.status-strip__item--warning {
+  color: var(--color-warning);
+}
+
+.status-strip__item--warning:hover {
+  color: var(--color-warning);
+  background: var(--color-warning-muted);
+}
+
+/* ── Info/accent variant ─────────────────────────────────── */
+
+.status-strip__item--accent {
+  color: var(--color-accent-cyan);
+}
+
+.status-strip__item--accent:hover {
+  color: var(--color-accent-cyan);
+  background: var(--color-accent-cyan-muted);
+}
+
+/* ── Detail popover ──────────────────────────────────────── */
+
+.status-strip__detail {
+  position: fixed;
+  bottom: calc(var(--status-strip-height) + var(--space-2));
+  max-width: 320px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  padding: var(--space-3);
+  z-index: calc(var(--z-status-strip) + 5);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-primary);
+}
+
+.status-strip__detail-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.status-strip__detail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.status-strip__detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-0-5) var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+.status-strip__detail-row:hover {
+  background: var(--color-bg-elevated);
+}
+
+.status-strip__detail-name {
+  font-family: var(--font-family-mono);
+  color: var(--color-text-secondary);
+}
+
+.status-strip__detail-value {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-accent-cyan);
+}
+
+.status-strip__detail-value--true {
+  color: var(--color-accent-green);
+}
+
+.status-strip__detail-value--false {
+  color: var(--color-text-tertiary);
+}
+
+.status-strip__detail-empty {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+  padding: var(--space-2);
+  text-align: center;
+}
