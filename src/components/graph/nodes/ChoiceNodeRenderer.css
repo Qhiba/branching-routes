@@ -1,0 +1,268 @@
+/* ============================================================
+ * ChoiceNodeRenderer.css — Custom node for Choices
+ * ============================================================
+ * Deep charcoal card with purple accent border.
+ * Shows: prompt text, option count badge, condition indicator,
+ *        chapter/path tags, simulation state overlays.
+ * All values from tokens.css — no hard-coded colors (AR-09).
+ * ============================================================ */
+
+/* ── Base node container ─────────────────────────────────── */
+
+.choice-node {
+  min-width: var(--node-min-width);
+  max-width: var(--node-max-width);
+  background: var(--color-bg-secondary);
+  border: 1.5px solid var(--color-node-choice);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-family);
+  color: var(--color-text-primary);
+  transition: box-shadow var(--transition-fast),
+              border-color var(--transition-fast),
+              opacity var(--transition-fast);
+  overflow: hidden;
+}
+
+.choice-node:hover {
+  border-color: var(--color-accent-purple-muted);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── Header strip ────────────────────────────────────────── */
+
+.choice-node__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.choice-node__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--color-node-choice);
+  flex-shrink: 0;
+}
+
+.choice-node__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wider);
+  color: var(--color-node-choice);
+  line-height: var(--line-height-tight);
+}
+
+/* ── Option count badge ──────────────────────────────────── */
+
+.choice-node__option-badge {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-node-choice);
+  background: var(--color-accent-purple-muted);
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-full);
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+}
+
+/* ── Body ────────────────────────────────────────────────── */
+
+.choice-node__body {
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1-5);
+}
+
+.choice-node__text {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-normal);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.choice-node__text--empty {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+/* ── Condition indicator ─────────────────────────────────── */
+
+.choice-node__condition-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-accent-amber);
+  background: var(--color-accent-amber-muted);
+  padding: var(--space-0-5) var(--space-1-5);
+  border-radius: var(--radius-sm);
+  line-height: var(--line-height-tight);
+  align-self: flex-start;
+}
+
+.choice-node__condition-icon {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+/* ── Tags row (chapter, path) ────────────────────────────── */
+
+.choice-node__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.choice-node__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-0-5) var(--space-1-5);
+  border-radius: var(--radius-sm);
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+}
+
+.choice-node__tag--chapter {
+  color: var(--color-node-chapter);
+  background: var(--color-accent-pink-muted);
+}
+
+.choice-node__tag--path {
+  color: var(--color-node-path);
+  background: var(--color-accent-green-muted);
+}
+
+.choice-node__tag-icon {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+
+.choice-node__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1-5) var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.choice-node__id {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* ── Simulation state overlays ───────────────────────────── */
+
+.choice-node--active {
+  border-color: var(--color-state-active);
+  box-shadow: 0 0 12px var(--color-state-active-glow),
+              0 0 24px var(--color-state-active-glow);
+  animation: choice-pulse 2s ease-in-out infinite;
+}
+
+@keyframes choice-pulse {
+  0%, 100% { box-shadow: 0 0 12px var(--color-state-active-glow), var(--shadow-md); }
+  50%      { box-shadow: 0 0 20px var(--color-state-active-glow), 0 0 32px var(--color-state-active-glow), var(--shadow-lg); }
+}
+
+.choice-node--locked {
+  opacity: 0.5;
+  border-color: var(--color-state-locked);
+}
+
+.choice-node--complete {
+  border-color: var(--color-state-complete);
+}
+
+.choice-node--failed {
+  border-color: var(--color-state-failed);
+}
+
+.choice-node--branch-locked {
+  border-style: dashed;
+  border-color: var(--color-state-branch-locked);
+  opacity: 0.65;
+}
+
+/* ── Unreachable state ───────────────────────────────────── */
+
+.choice-node--unreachable {
+  border-color: var(--color-state-unreachable);
+  border-style: dotted;
+  opacity: 0.55;
+}
+
+/* ── State icon badge (top-right overlay) ────────────────── */
+
+.choice-node__state-badge {
+  position: absolute;
+  top: calc(var(--space-1) * -1);
+  right: calc(var(--space-1) * -1);
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+}
+
+.choice-node__state-badge--complete {
+  background: var(--color-state-complete);
+  color: var(--color-text-inverse);
+}
+
+.choice-node__state-badge--failed {
+  background: var(--color-state-failed);
+  color: var(--color-text-inverse);
+}
+
+.choice-node__state-badge--unreachable {
+  background: var(--color-state-unreachable);
+  color: var(--color-text-inverse);
+  top: calc(var(--space-1) * -1);
+  left: calc(var(--space-1) * -1);
+  right: auto;
+}
+
+/* ── Seen state badge ────────────────────────────────────── */
+
+.choice-node__seen-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.choice-node__seen-badge--partially {
+  color: var(--color-accent-amber);
+}
+
+.choice-node__seen-badge--seen {
+  color: var(--color-accent-green);
+}

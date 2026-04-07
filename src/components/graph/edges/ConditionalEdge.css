@@ -1,0 +1,64 @@
+/* ============================================================
+ * ConditionalEdge.css — Custom edge with condition-aware rendering
+ * ============================================================
+ * Three visual states:
+ *   1. Pass (solid) — conditions met, full opacity cyan stroke
+ *   2. Fail (dashed/dimmed) — conditions not met, dimmed stroke
+ *   3. Glow (active outgoing) — source node is active, animated glow
+ *
+ * All values from tokens.css — no hard-coded colors (AR-09).
+ * ============================================================ */
+
+/* ── Edge path states ────────────────────────────────────── */
+
+.conditional-edge__path {
+  transition: stroke var(--transition-normal),
+              stroke-opacity var(--transition-normal),
+              filter var(--transition-normal);
+}
+
+.conditional-edge__path--default {
+  stroke: var(--color-edge-default);
+  stroke-width: 2;
+}
+
+.conditional-edge__path--pass {
+  stroke: var(--color-edge-pass);
+  stroke-width: 2;
+}
+
+.conditional-edge__path--fail {
+  stroke: var(--color-edge-fail);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  opacity: 0.6;
+}
+
+.conditional-edge__path--glow {
+  stroke: var(--color-edge-pass);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 4px var(--color-edge-glow))
+          drop-shadow(0 0 8px var(--color-edge-glow));
+  animation: edge-glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes edge-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px var(--color-edge-glow)); }
+  50%      { filter: drop-shadow(0 0 8px var(--color-edge-glow)) drop-shadow(0 0 14px var(--color-edge-glow)); }
+}
+
+/* ── Edge label (option label on choice edges) ───────────── */
+
+.conditional-edge__label {
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  fill: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.conditional-edge__label-bg {
+  fill: var(--color-bg-secondary);
+  rx: var(--radius-sm);
+  ry: var(--radius-sm);
+}

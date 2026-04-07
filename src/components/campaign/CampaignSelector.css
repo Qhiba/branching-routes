@@ -1,0 +1,496 @@
+/* ============================================================
+ * CampaignSelector.css — Campaign management panel styles
+ * ============================================================
+ * Floating campaign sidebar anchored to the bottom-left of the
+ * viewport. Collapsible, with campaign CRUD, flag overrides,
+ * and status overrides in an accordion layout.
+ *
+ * Rule: AR-09 — all values from tokens.css
+ * ============================================================ */
+
+/* ── Container ─────────────────────────────────────────────── */
+
+.campaign-panel {
+  position: fixed;
+  bottom: var(--space-4);
+  left: var(--space-4);
+  width: 300px;
+  max-height: calc(100vh - var(--space-16));
+  z-index: var(--z-inspector);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  font-family: var(--font-family);
+  transition: transform var(--transition-normal),
+              opacity var(--transition-normal);
+}
+
+.campaign-panel--collapsed {
+  max-height: 44px;
+}
+
+/* ── Toggle button (collapsed state) ──────────────────────── */
+
+.campaign-panel__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-tertiary);
+  border: none;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.campaign-panel__toggle:hover {
+  background: var(--color-bg-elevated);
+}
+
+.campaign-panel__toggle-icon {
+  display: flex;
+  align-items: center;
+  color: var(--color-accent-amber);
+  transition: transform var(--transition-normal);
+}
+
+.campaign-panel__toggle-icon--expanded {
+  transform: rotate(180deg);
+}
+
+.campaign-panel__toggle-label {
+  flex: 1;
+  text-align: left;
+}
+
+.campaign-panel__toggle-badge {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-regular);
+  text-transform: none;
+  letter-spacing: var(--letter-spacing-normal);
+}
+
+/* ── Body (expanded) ──────────────────────────────────────── */
+
+.campaign-panel__body {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - var(--space-16) - 44px);
+}
+
+.campaign-panel__body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.campaign-panel__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.campaign-panel__body::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  border-radius: var(--radius-full);
+}
+
+/* ── Section headers (accordion) ──────────────────────────── */
+
+.campaign-panel__section {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.campaign-panel__section:last-child {
+  border-bottom: none;
+}
+
+.campaign-panel__section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wider);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.campaign-panel__section-header:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-tertiary);
+}
+
+.campaign-panel__section-chevron {
+  display: flex;
+  align-items: center;
+  transition: transform var(--transition-fast);
+}
+
+.campaign-panel__section-chevron--open {
+  transform: rotate(90deg);
+}
+
+.campaign-panel__section-count {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-regular);
+}
+
+.campaign-panel__section-content {
+  padding: var(--space-1) var(--space-3) var(--space-3);
+}
+
+/* ── Campaign selector row ────────────────────────────────── */
+
+.campaign-selector {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.campaign-selector__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.campaign-selector__select {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.campaign-selector__select:focus {
+  border-color: var(--color-border-focus);
+}
+
+.campaign-selector__select option {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+}
+
+/* ── Icon buttons ─────────────────────────────────────────── */
+
+.campaign-selector__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              color var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+.campaign-selector__btn:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-default);
+}
+
+.campaign-selector__btn--danger:hover {
+  background: var(--color-accent-red-muted);
+  color: var(--color-accent-red);
+  border-color: var(--color-accent-red-muted);
+}
+
+.campaign-selector__btn--create:hover {
+  background: var(--color-accent-green-muted);
+  color: var(--color-accent-green);
+  border-color: var(--color-accent-green-muted);
+}
+
+.campaign-selector__btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.campaign-selector__btn:disabled:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-subtle);
+}
+
+/* ── Create campaign inline input ─────────────────────────── */
+
+.campaign-selector__create-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  margin-top: var(--space-2);
+}
+
+.campaign-selector__input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.campaign-selector__input:focus {
+  border-color: var(--color-border-focus);
+}
+
+.campaign-selector__input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* ── No campaign state ────────────────────────────────────── */
+
+.campaign-panel__empty {
+  padding: var(--space-3);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+}
+
+/* ── Flag override list ───────────────────────────────────── */
+
+.flag-override-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.flag-override-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.flag-override-item:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.flag-override-item__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-mono);
+}
+
+/* ── Toggle switch ────────────────────────────────────────── */
+
+.toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.toggle-switch__input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-switch__track {
+  position: absolute;
+  inset: 0;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+.toggle-switch__input:checked + .toggle-switch__track {
+  background: var(--color-accent-amber-muted);
+  border-color: var(--color-accent-amber);
+}
+
+.toggle-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--color-text-tertiary);
+  border-radius: var(--radius-full);
+  transition: transform var(--transition-fast),
+              background var(--transition-fast);
+  pointer-events: none;
+}
+
+.toggle-switch__input:checked ~ .toggle-switch__thumb {
+  transform: translateX(16px);
+  background: var(--color-accent-amber);
+}
+
+.flag-override-item__clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity var(--transition-fast),
+              color var(--transition-fast),
+              background var(--transition-fast);
+}
+
+.flag-override-item:hover .flag-override-item__clear {
+  opacity: 1;
+}
+
+.flag-override-item__clear:hover {
+  color: var(--color-accent-red);
+  background: var(--color-accent-red-muted);
+}
+
+/* ── Status override list ─────────────────────────────────── */
+
+.status-override-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.status-override-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-1-5);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.status-override-item:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.status-override-item__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-mono);
+}
+
+.status-override-item__input {
+  width: 56px;
+  padding: var(--space-0-5) var(--space-1);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-accent-cyan);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  text-align: center;
+  outline: none;
+  transition: border-color var(--transition-fast);
+  -moz-appearance: textfield;
+}
+
+.status-override-item__input::-webkit-outer-spin-button,
+.status-override-item__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.status-override-item__input:focus {
+  border-color: var(--color-border-focus);
+}
+
+.status-override-item__clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity var(--transition-fast),
+              color var(--transition-fast),
+              background var(--transition-fast);
+}
+
+.status-override-item:hover .status-override-item__clear {
+  opacity: 1;
+}
+
+.status-override-item__clear:hover {
+  color: var(--color-accent-red);
+  background: var(--color-accent-red-muted);
+}
+
+/* ── Status override with range label ─────────────────────── */
+
+.status-override-item__range {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* ── Empty list message ───────────────────────────────────── */
+
+.campaign-panel__list-empty {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  font-style: italic;
+  padding: var(--space-1) 0;
+}

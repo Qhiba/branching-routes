@@ -107,6 +107,7 @@
   --color-state-complete: var(--color-accent-green);
   --color-state-failed: var(--color-accent-red);
   --color-state-branch-locked: hsl(38, 40%, 30%);
+  --color-state-unreachable: var(--color-accent-amber);
 
   /* ----------------------------------------------------------
    * COLOR — Edge States

@@ -271,7 +271,7 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 
 **Acceptance Criteria:**
 - [ ] Simulation recalculates automatically within 150ms of any flag/status/node-state change — no start/stop button
-- [ ] Edges whose conditions pass are visually highlighted; edges that fail are dimmed/dashed
+- [ ] Edges visualization and those whose conditions pass are visually highlighted; edges that fail are dimmed/dashed
 - [ ] Nodes marked `active` pulse and show valid outgoing edges glowing
 - [ ] Unreachable nodes (from `entry_node` given current state) display a warning badge
 - [ ] Node renderers display the correct state overlay: active (pulsing), locked (dimmed), complete (checkmark), failed (red/X), branch_locked (dashed)
@@ -360,6 +360,7 @@ Each phase is scoped to complete in **one Execute step**. Phases are sequential;
 - [ ] Toasts appear top-right, auto-dismiss after a timeout, are stackable
 - [ ] Minimap renders in a corner with dark-themed styling matching the app aesthetic
 - [ ] No persistent sidebars exist — all editing through floating panels, context menus, and keyboard shortcuts (AR-12)
+- [ ] Horizontal or Vertical node handle position's toggle.
 
 **Next phase needs:** full UI chrome complete.
 
