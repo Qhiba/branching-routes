@@ -1,16 +1,24 @@
-# React + Vite
+# Branching Routes
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Branching Routes is a local, browser-based **graph-based narrative flow engine** designed for mapping, visualizing, and debugging non-linear stories. It provides an interactive node canvas where designers can build complex story structures and immediately playtest them, seeing how player state and variables affect the narrative flow in real-time.
 
-Currently, two official plugins are available:
+## The Canvas
+Unlike generic diagramming tools like Draw.io or Figma, Branching Routes understands game logic. It's built specifically to support:
+- Game Developers
+- Game Narrative Designers
+- Players mapping out game narratives
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Core Features
+*   **Interactive Graph Canvas**: Visually construct dialogue trees and story paths using a node-based interface.
+*   **Live Simulation & Playtesting**: Run your narrative directly in the editor. Watch the active path highlight and player state update as you make choices.
+*   **State & Variable Management**: Define conditions (e.g., `if gold > 10`) and state changes (e.g., `add +1 relationship`) deeply integrated into the node flow.
+*   **Local Browser App**: Runs entirely in your local browser, prioritizing privacy and fast access to your local file system.
 
-## React Compiler
+## Why use Branching Routes?
+While tools like Draw.io and Figma are excellent for drawing static boxes and arrows, they lack the ability to *calculate* or *run* logic. Branching Routes bridges the gap between static storyboards and the final game engine, serving as a live debugging environment for your non-linear narratives.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Getting Started
+*(Instructions on how to run the project locally will be added here once the technical stack is formalized.)*
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Contributing
+Contributions, issues, and feature requests are welcome. Feel free to check the issues page.
