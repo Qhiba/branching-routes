@@ -9,7 +9,7 @@ Project: Branching Routes V3
 Stack:
 `ran_0002_scope.md Q6`
 
-Current phase: [1]
+Current phase: `[N] = [2]`
 
 Load these files:
 1. `ran_0003_architecture.md` — always required
@@ -24,14 +24,15 @@ Load those too before proceeding.
 Implement Phase [N] exactly as described in the plan.
 
 Produce:
-- Complete file contents for every file being created or modified
+- Write all files directly to their correct paths in the project
+- In the report, include one sentence per file describing what changed and why — do not paste full file contents
 - If a file is unchanged from a prior phase, do not include it
 - If you create a new file, state its full path
 - At the end, list all files produced with their paths
 - If existing code contradicts the plan, add a comment `// CONFLICT: [what was found]` and follow the plan
 
 ## Save Report
-Save your report inside `/informations/runs/[DD-MM-YYYY]_project-creation/implementation_report/ran_0004_execute_[N].md`
+Save your report inside `/informations/runs/[DD-MM-YYYY]_project-creation/implementation_report_[N]/ran_0004_execute_[N].md`
 
 ## CONSTRAINT
 - Do not add features not in the plan
