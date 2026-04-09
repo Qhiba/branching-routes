@@ -8,18 +8,18 @@
 
 ## What you need before you start
 
-- [ ] Node.js installed — version **18 or higher**
+- [✔️] Node.js installed — version **18 or higher**
   Check: open a terminal and run `node -v`
   If you see `v18.x.x` or higher, you're good.
   If not, download from https://nodejs.org (choose the LTS version)
 
-- [ ] A terminal you're comfortable with (PowerShell, Terminal, anything)
+- [✔️] A terminal you're comfortable with (PowerShell, Terminal, anything)
 
-- [ ] The project folder already exists (it does — you're in it)
+- [✔️] The project folder already exists (it does — you're in it)
 
 ---
 
-## Step 1 — Create the Vite project
+## Step 1 — ✔️ Completed — Create the Vite project
 
 Open your terminal. Make sure you are inside the project folder.
 
@@ -37,7 +37,7 @@ Wait for it to finish. You'll see "Done."
 
 ---
 
-## Step 2 — Install dependencies
+## Step 2 — ✔️ Completed — Install dependencies
 
 Run this:
 ```
@@ -55,7 +55,7 @@ Wait again. Same kind of output.
 
 ---
 
-## Step 3 — Check it works
+## Step 3 — ✔️ Completed — Check it works
 
 Run this:
 ```
@@ -71,7 +71,7 @@ Press `Ctrl + C` in the terminal to stop it.
 
 ---
 
-## Step 4 — Verify (takes 2 minutes)
+## Step 4 — ✔️ Completed — Verify (takes 2 minutes)
 
 Open the browser to **http://localhost:5173** again (run `npm run dev` if you stopped it).
 
