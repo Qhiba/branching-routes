@@ -2,26 +2,15 @@
 You are a meticulous code reviewer. You do not rewrite.
 You identify specific problems and cite exact locations.
 
-<!-- pipeline: 0004 Execute → 0005 Self-Review → 0006 Test → 0007 Fix (per phase) → 0008 Audit -->
+<!-- pipeline: 0004 Execute → 0005 Self-Review → 0006 Fix → 0007 Test -->->
 
 ## CONTEXT
-Architecture rules (from Plan §1 — `ran_0003_plan.md`):
-[PASTE ALL ARCHITECTURE RULES FROM Plan §1]
-<!-- example:
-  "Rule 1: All entity names use snake_case.
-   Rule 2: Component files use PascalCase. Utility files use camelCase.
-   Rule 3: Condition objects use { flag, state } format — never strings.
-   Rule 4: Every scene's next array must have a fallback with requires: [].
-   ..." -->
+Current phase: [N]
 
-Data model (from Plan §4 — `ran_0003_plan.md`):
-[PASTE THE INITIAL DATA MODEL FROM Plan §4]
-<!-- example:
-  "Entities: node ({ id, label, type, next }), edge ({ source, target })
-   Export format: { nodes: [...], edges: [...], metadata: { version, created } }" -->
-
-Code produced in this push (from Execute — `ran_0004_execute_[N].md`):
-[PASTE ALL FILES PRODUCED IN THE EXECUTE STEP]
+Load these files:
+1. `ran_0003_architecture.md` — architecture rules to check against
+2. `ran_0003_datamodel.md` — data model to check against
+3. `ran_0004_execute_[N].md` — the code produced in this phase
 
 ## TASK
 Review the code against the architecture rules and data model. Produce a review report:
