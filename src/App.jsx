@@ -1,17 +1,18 @@
-import './App.css'
+import { TopBar, GraphCanvas, Sidebar } from 'components';
+import './App.css';
 
 export default function App() {
   return (
     <div className="app">
       <header className="app__topbar">
-        TopBar — placeholder
+        <TopBar />
       </header>
       <main className="app__canvas">
-        Canvas — placeholder
+        <GraphCanvas />
       </main>
       <aside className="app__sidebar">
-        Sidebar — placeholder
+        <Sidebar />
       </aside>
     </div>
-  )
+  );
 }

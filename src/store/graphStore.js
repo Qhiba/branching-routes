@@ -133,6 +133,10 @@ export const useGraphStore = create((set, get) => ({
     return { blocked: false };
   },
 
+  updateMeta: (patch) => set((state) => ({
+    meta: { ...state.meta, ...patch, updatedAt: Date.now() }
+  })),
+
   selectNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }),
   selectEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),
   clearSelection: () => set({ selectedNodeId: null, selectedEdgeId: null }),
