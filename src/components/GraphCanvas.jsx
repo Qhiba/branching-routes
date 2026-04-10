@@ -25,7 +25,8 @@ function GraphCanvasInner() {
     addEdge,
     updateNode,
     selectedNodeId,
-    selectedEdgeId
+    selectedEdgeId,
+    snapToGrid
   } = useGraphStore();
 
   const { isRunning, advance, reachableNodeIds } = useSimulationStore();
@@ -140,6 +141,10 @@ function GraphCanvasInner() {
         onNodeDragStop={onNodeDragStop}
         defaultEdgeOptions={{ type: 'conditionalEdge' }}
         connectionLineType={ConnectionLineType.SmoothStep}
+        snapToGrid={snapToGrid}
+        snapGrid={[16, 16]}
+        proOptions={{ hideAttribution: true }}
+        zoomOnDoubleClick={false}
         fitView
       >
         <Background variant="dots" gap={16} />

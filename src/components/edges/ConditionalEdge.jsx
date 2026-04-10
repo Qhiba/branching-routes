@@ -26,7 +26,7 @@ function ConditionalEdge(props) {
 
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} className={className} />
+      <BaseEdge path={edgePath} markerEnd={markerEnd} className={className} interactionWidth={20} />
       {(label || condition) && (
         <EdgeLabelRenderer>
           <div

@@ -1,9 +1,45 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useGraphStore } from 'store';
+import NodeInspector from './NodeInspector';
+import EdgeInspector from './EdgeInspector';
+import FlagManager from './FlagManager';
 
 export default function Sidebar() {
+  const [activeTab, setActiveTab] = useState('inspector');
+  const selectedNodeId = useGraphStore(state => state.selectedNodeId);
+  const selectedEdgeId = useGraphStore(state => state.selectedEdgeId);
+
   return (
-    <div style={{ padding: '20px', color: 'var(--color-text-secondary)' }}>
-      <p>Sidebar — Phase 04</p>
+    <div className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderLeft: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-surface)' }}>
+      <div className="sidebar-tabs" style={{ display: 'flex', borderBottom: '1px solid var(--color-border)' }}>
+        <button 
+          style={{ flex: 1, padding: '12px', background: activeTab === 'inspector' ? 'var(--color-bg-base)' : 'transparent', color: activeTab === 'inspector' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', border: 'none', borderBottom: activeTab === 'inspector' ? '2px solid var(--color-primary)' : '2px solid transparent', cursor: 'pointer' }}
+          onClick={() => setActiveTab('inspector')}
+        >
+          Inspector
+        </button>
+        <button 
+          style={{ flex: 1, padding: '12px', background: activeTab === 'flags' ? 'var(--color-bg-base)' : 'transparent', color: activeTab === 'flags' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', border: 'none', borderBottom: activeTab === 'flags' ? '2px solid var(--color-primary)' : '2px solid transparent', cursor: 'pointer' }}
+          onClick={() => setActiveTab('flags')}
+        >
+          Flags
+        </button>
+      </div>
+      
+      <div className="sidebar-content" style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+        {activeTab === 'inspector' && (
+          <>
+            {selectedNodeId && <NodeInspector />}
+            {selectedEdgeId && <EdgeInspector />}
+            {!selectedNodeId && !selectedEdgeId && (
+              <div style={{ color: 'var(--color-text-secondary)', textAlign: 'center', marginTop: '40px' }}>
+                Select a node or edge to inspect
+              </div>
+            )}
+          </>
+        )}
+        {activeTab === 'flags' && <FlagManager />}
+      </div>
     </div>
   );
 }

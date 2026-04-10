@@ -8,6 +8,9 @@ export const useGraphStore = create((set, get) => ({
   flags: [],
   selectedNodeId: null,
   selectedEdgeId: null,
+  snapToGrid: true,
+
+  toggleSnapToGrid: () => set(state => ({ snapToGrid: !state.snapToGrid })),
 
   addNode: (position, type = 'common') => set((state) => {
     const isStartNode = state.nodes.length === 0;
@@ -52,6 +55,9 @@ export const useGraphStore = create((set, get) => ({
     const sourceNode = state.nodes.find(n => n.id === sourceId);
     if (sourceNode && sourceNode.type === 'ending') {
       throw new Error("Cannot add an edge from an 'ending' node");
+    }
+    if (state.edges.some(e => e.sourceId === sourceId && e.targetId === targetId)) {
+      throw new Error("Edge already exists between these nodes");
     }
 
     const newEdge = {
@@ -170,3 +176,7 @@ export const useGraphStore = create((set, get) => ({
     };
   }
 }));
+
+if (typeof window !== 'undefined') {
+  window.useGraphStore = useGraphStore;
+}

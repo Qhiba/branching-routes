@@ -9,7 +9,7 @@ Project: Branching Routes V3
 Stack:
 `ran_0002_scope.md Q6`
 
-Current phase: `[N] = [3]`
+Current phase: `[N] = [5]`
 
 Load these files:
 1. `ran_0003_architecture.md` — always required
@@ -38,5 +38,5 @@ Save your report inside `/informations/runs/[DD-MM-YYYY]_project-creation/implem
 - Do not add features not in the plan
 - Do not create files not listed in the file map
 - Do not change the data model structure unless the plan explicitly says to
-- Follow all architecture rules from Plan §1 — do not deviate from naming, structure, or pattern rules
+- Follow all architecture rules from `ran_0003_architecture.md` — do not deviate from naming, structure, or pattern rules
 - If something in the plan is ambiguous, add a comment `// AMBIGUOUS: [what you assumed]` and proceed

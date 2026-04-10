@@ -4,6 +4,8 @@ import { useGraphStore, useSimulationStore } from 'store';
 export default function TopBar() {
   const meta = useGraphStore(s => s.meta);
   const updateMeta = useGraphStore(s => s.updateMeta);
+  const snapToGrid = useGraphStore(s => s.snapToGrid);
+  const toggleSnapToGrid = useGraphStore(s => s.toggleSnapToGrid);
   const isRunning = useSimulationStore(s => s.isRunning);
 
   const handleTitleChange = (e) => {
@@ -32,6 +34,9 @@ export default function TopBar() {
         />
       </div>
       <div className="topbar__right">
+        <button onClick={toggleSnapToGrid} className="topbar__btn">
+          Snap: {snapToGrid ? 'ON' : 'OFF'}
+        </button>
         <button onClick={() => console.log('New')}>New</button>
         <button onClick={() => console.log('Open')}>Open</button>
         <button onClick={() => console.log('Save')}>Save</button>

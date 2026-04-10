@@ -3,3 +3,6 @@ export { default as StoryNode } from './nodes/StoryNode';
 export { default as ConditionalEdge } from './edges/ConditionalEdge';
 export { default as TopBar } from './TopBar';
 export { default as Sidebar } from './Sidebar';
+export { default as NodeInspector } from './NodeInspector';
+export { default as EdgeInspector } from './EdgeInspector';
+export { default as FlagManager } from './FlagManager';

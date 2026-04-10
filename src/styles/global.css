@@ -41,6 +41,15 @@ input, textarea, select {
   transition: border-color var(--transition-fast);
 }
 
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+}
+
 input:focus, textarea:focus, select:focus {
   border-color: var(--color-accent);
 }
