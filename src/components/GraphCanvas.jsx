@@ -29,7 +29,7 @@ function GraphCanvasInner() {
     snapToGrid
   } = useGraphStore();
 
-  const { isRunning, advance, reachableNodeIds } = useSimulationStore();
+  const { isRunning, advance, reachableNodeIds, reachableEdgeIds } = useSimulationStore();
 
   const { screenToFlowPosition } = useReactFlow();
 
@@ -75,15 +75,20 @@ function GraphCanvasInner() {
   }, [storeEdges, selectedEdgeId]);
 
   const onNodeClick = useCallback((event, node) => {
-    selectNode(node.id);
-    if (isRunning && reachableNodeIds.includes(node.id)) {
+    if (isRunning) {
       const activeStateId = useSimulationStore.getState().activeNodeId;
-      const validEdge = storeEdges.find(e => e.targetId === node.id && e.sourceId === activeStateId);
-      if (validEdge) {
-        advance(validEdge.id);
+      if (reachableNodeIds.includes(node.id)) {
+        const edge = storeEdges.find(
+          e => e.sourceId === activeStateId && e.targetId === node.id && reachableEdgeIds.includes(e.id)
+        );
+        if (edge) {
+          advance(edge.id);
+        }
       }
+      return; 
     }
-  }, [selectNode, isRunning, reachableNodeIds, storeEdges, advance]);
+    selectNode(node.id);
+  }, [selectNode, isRunning, reachableNodeIds, reachableEdgeIds, storeEdges, advance]);
 
   const onEdgeClick = useCallback((event, edge) => {
     event.stopPropagation();
@@ -125,8 +130,27 @@ function GraphCanvasInner() {
     updateNode(node.id, { position: node.position });
   }, [updateNode]);
 
+  const { fitView } = useReactFlow();
+
+  useEffect(() => {
+    const handleTidy = () => {
+      setTimeout(() => fitView({ duration: 500, padding: 0.2 }), 50);
+    };
+    window.addEventListener('graph-layout-tidy', handleTidy);
+    return () => window.removeEventListener('graph-layout-tidy', handleTidy);
+  }, [fitView]);
+
   return (
     <div className={`canvas-wrapper ${isRunning ? 'simulation-mode' : ''}`} style={{ width: '100%', height: '100%' }}>
+      {isRunning && (
+        <div className="simulation-banner" style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+          backgroundColor: 'var(--color-active)', color: '#000', textAlign: 'center',
+          padding: '8px', fontWeight: 'bold'
+        }}>
+          ⚡ Simulation Active — click a highlighted node to advance
+        </div>
+      )}
       <ReactFlow
         nodes={rfNodes}
         edges={reactFlowEdges}

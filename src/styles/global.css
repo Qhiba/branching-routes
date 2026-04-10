@@ -183,13 +183,15 @@ input:focus, textarea:focus, select:focus {
   font-weight: var(--font-weight-bold);
 }
 
-.simulation-mode .react-flow__handle {
-  pointer-events: none !important;
-}
-.simulation-mode .react-flow__connection-path {
-  display: none !important;
-}
+/* Simulation Mode Overrides */
+.simulation-mode .react-flow__node { cursor: default; }
+.simulation-mode .react-flow__node.story-node--reachable { cursor: pointer; }
+.simulation-mode .react-flow__node-drag-handle { pointer-events: none; }
+.simulation-mode .react-flow__handle { pointer-events: none !important; opacity: 0; }
+.simulation-mode .react-flow__edge { pointer-events: none; }
+.simulation-mode .react-flow__connection-path { display: none !important; }
 
+header.simulation-mode .file-actions { opacity: 0.4; pointer-events: none; }
 .topbar-content {
   display: flex;
   justify-content: space-between;

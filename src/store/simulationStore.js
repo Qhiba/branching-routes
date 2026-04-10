@@ -94,7 +94,7 @@ export const useSimulationStore = create((set, get) => ({
     if (destNode.type === 'ending') {
       set({
         activeNodeId: destNode.id,
-        visitedNodeIds: [...state.visitedNodeIds, destNode.id],
+        visitedNodeIds: [...state.visitedNodeIds, state.activeNodeId],
         traversedEdgeIds: [...state.traversedEdgeIds, edgeId],
         currentFlagValues: nextFlagValues,
         reachableEdgeIds: [],
@@ -104,7 +104,7 @@ export const useSimulationStore = create((set, get) => ({
       const { reachableEdgeIds, reachableNodeIds } = computeReachable(destNode.id, graphState.edges, nextFlagValues);
       set({
         activeNodeId: destNode.id,
-        visitedNodeIds: [...state.visitedNodeIds, destNode.id],
+        visitedNodeIds: [...state.visitedNodeIds, state.activeNodeId],
         traversedEdgeIds: [...state.traversedEdgeIds, edgeId],
         currentFlagValues: nextFlagValues,
         reachableEdgeIds,
