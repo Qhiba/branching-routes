@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGraphStore, useSimulationStore } from 'store';
+import { exportProject, importProject } from 'utils';
 import dagre from 'dagre';
 
 export default function TopBar() {
@@ -12,8 +13,12 @@ export default function TopBar() {
   const isRunning = useSimulationStore(s => s.isRunning);
   const startSimulation = useSimulationStore(s => s.start);
   const resetSimulation = useSimulationStore(s => s.reset);
+  const newGraph = useGraphStore(s => s.newGraph);
+  const loadGraph = useGraphStore(s => s.loadGraph);
+  const exportGraph = useGraphStore(s => s.exportGraph);
 
   const [simError, setSimError] = useState(null);
+  const [exportStatus, setExportStatus] = useState(false);
 
   const handleTitleChange = (e) => {
     if (updateMeta) {
@@ -62,6 +67,38 @@ export default function TopBar() {
     window.dispatchEvent(new Event('graph-layout-tidy'));
   };
 
+  const handleNew = () => {
+    if (window.confirm("Start a new project? Unsaved changes will be lost.")) {
+      newGraph();
+      resetSimulation();
+    }
+  };
+
+  const handleImport = async () => {
+    try {
+      const data = await importProject();
+      if (data) {
+        loadGraph(data);
+        resetSimulation();
+      }
+    } catch (err) {
+      if (err.message === 'unsupported_schema_version') {
+        alert("This file uses an unsupported format version. Please open a valid Branching Routes file.");
+      }
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const graphData = exportGraph();
+      await exportProject(graphData, meta?.title || 'branching_routes_project');
+      setExportStatus(true);
+      setTimeout(() => setExportStatus(false), 2000);
+    } catch (err) {
+      alert("Export failed. Check browser permissions for file access.");
+    }
+  };
+
   return (
     <div className="topbar-content">
       <div className="topbar__left">
@@ -95,9 +132,11 @@ export default function TopBar() {
         <button onClick={toggleSnapToGrid} className="topbar__btn" disabled={isRunning}>
           Snap: {snapToGrid ? 'ON' : 'OFF'}
         </button>
-        <button className="topbar__btn" disabled={isRunning}>New</button>
-        <button className="topbar__btn" disabled={isRunning}>Open</button>
-        <button className="topbar__btn" disabled={isRunning}>Save</button>
+        <button className="topbar__btn" disabled={isRunning} onClick={handleNew}>New</button>
+        <button className="topbar__btn" disabled={isRunning} onClick={handleImport}>Import</button>
+        <button className="topbar__btn" disabled={isRunning} onClick={handleExport}>
+          {exportStatus ? "Exported ✓" : "Export"}
+        </button>
         
         {isRunning ? (
           <button onClick={handleStopSimulation} className="topbar__btn topbar__btn--primary">

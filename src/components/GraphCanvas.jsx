@@ -6,7 +6,8 @@ import {
   Controls,
   MiniMap,
   useReactFlow,
-  ReactFlowProvider
+  ReactFlowProvider,
+  MarkerType
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -66,6 +67,10 @@ function GraphCanvasInner() {
       target: edge.targetId,
       type: 'conditionalEdge',
       selected: edge.id === selectedEdgeId,
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: '#b1b6be',
+      },
       data: {
         label: edge.label,
         condition: edge.condition,

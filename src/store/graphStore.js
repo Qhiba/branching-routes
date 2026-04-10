@@ -167,9 +167,20 @@ export const useGraphStore = create((set, get) => ({
 
   exportGraph: () => {
     const state = get();
+    
+    const formatTs = (ts) => {
+      const d = new Date(ts);
+      if (isNaN(d.getTime())) return ts;
+      return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+    };
+
     return {
       schemaVersion: 1,
-      meta: state.meta,
+      meta: {
+        ...state.meta,
+        createdAt: formatTs(state.meta.createdAt),
+        updatedAt: formatTs(state.meta.updatedAt)
+      },
       nodes: state.nodes,
       edges: state.edges,
       flags: state.flags

@@ -5,7 +5,7 @@ You identify specific problems and cite exact locations.
 <!-- pipeline: 0004 Execute → 0005 Self-Review → 0006 Fix → 0007 Test -->->
 
 ## CONTEXT
-Current phase: `[N] = [5]`
+Current phase: `[N] = [6]`
 
 Load these files:
 1. `ran_0003_architecture.md` — architecture rules to check against

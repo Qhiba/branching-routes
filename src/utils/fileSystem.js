@@ -1,9 +1,11 @@
-export async function saveFile(graphData) {
+export async function exportProject(graphData, defaultTitle = 'graph') {
   const jsonString = JSON.stringify(graphData, null, 2);
+  const safeTitle = defaultTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'graph';
 
   if (typeof window.showSaveFilePicker === 'function') {
     try {
       const fileHandle = await window.showSaveFilePicker({
+        suggestedName: `${safeTitle}.json`,
         types: [{
           description: 'JSON Files',
           accept: { 'application/json': ['.json'] },
@@ -24,14 +26,14 @@ export async function saveFile(graphData) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'graph.json';
+  a.download = `${safeTitle}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
-export async function openFile() {
+export async function importProject() {
   let file;
 
   if (typeof window.showOpenFilePicker === 'function') {

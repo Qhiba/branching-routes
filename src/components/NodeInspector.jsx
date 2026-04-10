@@ -80,7 +80,7 @@ export default function NodeInspector() {
         disabled={data.isStartNode}
         style={{ padding: '8px', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', cursor: data.isStartNode ? 'default' : 'pointer', opacity: data.isStartNode ? 0.7 : 1 }}
       >
-        {data.isStartNode ? 'Start Node ✁E' : 'Set as Start Node'}
+        {data.isStartNode ? 'Start Node ✓' : 'Set as Start Node'}
       </button>
 
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
@@ -89,7 +89,7 @@ export default function NodeInspector() {
         {(data.sideEffects || []).map((se, index) => {
           const flag = flags.find(f => f.id === se.flagId);
           return (
-            <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', background: 'var(--color-bg-base)', padding: '8px', border: '1px solid var(--color-border)' }}>
+            <div key={index} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginBottom: '8px', background: 'var(--color-bg-base)', padding: '8px', border: '1px solid var(--color-border)' }}>
               <select
                 name={`se-flag-${index}`}
                 value={se.flagId}
@@ -136,7 +136,7 @@ export default function NodeInspector() {
                 </>
               )}
 
-              <button onClick={() => removeSideEffect(index)} style={{ padding: '4px 8px', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer' }}>DEL</button>
+              <button onClick={() => removeSideEffect(index)} style={{ padding: '4px', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '1.2rem', marginLeft: 'auto' }}>🗑️</button>
             </div>
           );
         })}
