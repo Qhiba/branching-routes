@@ -2,21 +2,12 @@
 You write git commit messages. Nothing else.
 
 ## CONTEXT
-What changed (from Document changelog — `ran_0009_document.md`):
-[PASTE THE CHANGELOG ENTRY FROM THE DOCUMENT STEP]
-<!-- example:
-  "## 2026-04-03 — Initial Creation
-   ### Added
-   - Graph editor component with node creation
-   - Edge connection system
-   - JSON export utility
-   - Base CSS with design tokens" -->
+Project name: [PROJECT NAME]
+<!-- Set once at project creation — do not change -->
 
-Files created (from Plan §3 file map — `ran_0003_plan.md`):
-[LIST ALL FILES]
-<!-- example:
-  "src/App.jsx, src/index.css, src/components/GraphEditor.jsx,
-   src/store/graphStore.js, src/utils/export.js" -->
+Load these files:
+1. `ran_0009_document.md` — changelog entry for this build
+2. `ran_0003_filemap.md` — all files produced in this project
 
 ## TASK
 Write one git commit message following this format:

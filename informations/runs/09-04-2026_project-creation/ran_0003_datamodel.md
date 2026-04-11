@@ -94,13 +94,15 @@ Constraint: An edge may not have sourceId pointing to a node where type === 'end
 
 ## Export / Save Format (JSON)
 
+> **Note:** Node objects use a `data` sub-object to hold designer-editable fields (`label`, `content`, `isStartNode`, `sideEffects`). This nesting is required for React Flow compatibility — React Flow expects custom node data inside a `data` property. Timestamps are formatted as `DD-MM-YYYY` strings for human readability.
+
 ```json
 {
   "schemaVersion": 1,
   "meta": {
     "title": "string",
-    "createdAt": "ISO8601 timestamp",
-    "updatedAt": "ISO8601 timestamp"
+    "createdAt": "DD-MM-YYYY",
+    "updatedAt": "DD-MM-YYYY"
   },
   "flags": [
     {
@@ -114,17 +116,19 @@ Constraint: An edge may not have sourceId pointing to a node where type === 'end
     {
       "id": "uuid",
       "type": "common | ending",
-      "label": "string",
-      "content": "string",
-      "isStartNode": "boolean",
       "position": { "x": "number", "y": "number" },
-      "sideEffects": [
-        {
-          "flagId": "uuid",
-          "operation": "set | add | subtract",
-          "value": "boolean | number"
-        }
-      ]
+      "data": {
+        "label": "string",
+        "content": "string",
+        "isStartNode": "boolean",
+        "sideEffects": [
+          {
+            "flagId": "uuid",
+            "operation": "set | add | subtract",
+            "value": "boolean | number"
+          }
+        ]
+      }
     }
   ],
   "edges": [
@@ -164,19 +168,21 @@ Constraint: An edge may not have sourceId pointing to a node where type === 'end
   "schemaVersion": 1,
   "meta": {
     "title": "Untitled Story",
-    "createdAt": "2026-04-09T10:00:00.000Z",
-    "updatedAt": "2026-04-09T10:00:00.000Z"
+    "createdAt": "09-04-2026",
+    "updatedAt": "09-04-2026"
   },
   "flags": [],
   "nodes": [
     {
       "id": "a1b2c3d4-0000-0000-0000-000000000001",
       "type": "common",
-      "label": "Start",
-      "content": "The story begins.",
-      "isStartNode": true,
       "position": { "x": 100, "y": 100 },
-      "sideEffects": []
+      "data": {
+        "label": "Start",
+        "content": "The story begins.",
+        "isStartNode": true,
+        "sideEffects": []
+      }
     }
   ],
   "edges": []

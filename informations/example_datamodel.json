@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "title": "The Enchanted Forest",
+    "createdAt": "11-04-2026",
+    "updatedAt": "11-04-2026"
+  },
+  "flags": [
+    {
+      "id": "f001-0000-0000-0000-000000000001",
+      "name": "has_lantern",
+      "type": "boolean",
+      "defaultValue": false
+    },
+    {
+      "id": "f002-0000-0000-0000-000000000002",
+      "name": "courage",
+      "type": "number",
+      "defaultValue": 0
+    }
+  ],
+  "nodes": [
+    {
+      "id": "n001-0000-0000-0000-000000000001",
+      "type": "common",
+      "position": { "x": 0, "y": 100 },
+      "data": {
+        "label": "Forest Entrance",
+        "content": "You stand at the edge of a dense forest. A narrow path leads into the darkness, and a faint glow flickers to the east.",
+        "isStartNode": true,
+        "sideEffects": [
+          {
+            "flagId": "f002-0000-0000-0000-000000000002",
+            "operation": "add",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "n002-0000-0000-0000-000000000002",
+      "type": "common",
+      "position": { "x": 300, "y": 0 },
+      "data": {
+        "label": "Old Campsite",
+        "content": "A ruined campsite. Among the debris you find a battered but functional lantern.",
+        "isStartNode": false,
+        "sideEffects": [
+          {
+            "flagId": "f001-0000-0000-0000-000000000001",
+            "operation": "set",
+            "value": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "n003-0000-0000-0000-000000000003",
+      "type": "common",
+      "position": { "x": 300, "y": 200 },
+      "data": {
+        "label": "Dark Cave",
+        "content": "The cave entrance yawns before you. Without a light source, you can barely see a few steps inside.",
+        "isStartNode": false,
+        "sideEffects": [
+          {
+            "flagId": "f002-0000-0000-0000-000000000002",
+            "operation": "add",
+            "value": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "n004-0000-0000-0000-000000000004",
+      "type": "common",
+      "position": { "x": 600, "y": 100 },
+      "data": {
+        "label": "Underground Lake",
+        "content": "Your lantern reveals a vast underground lake. A stone bridge leads to an island with a glowing crystal.",
+        "isStartNode": false,
+        "sideEffects": []
+      }
+    },
+    {
+      "id": "n005-0000-0000-0000-000000000005",
+      "type": "ending",
+      "position": { "x": 900, "y": 100 },
+      "data": {
+        "label": "Crystal Chamber",
+        "content": "You grasp the crystal and the forest fills with light. The enchantment is broken. You are free.",
+        "isStartNode": false,
+        "sideEffects": []
+      }
+    },
+    {
+      "id": "n006-0000-0000-0000-000000000006",
+      "type": "ending",
+      "position": { "x": 600, "y": 300 },
+      "data": {
+        "label": "Lost in Darkness",
+        "content": "Without a lantern, the darkness swallows you whole. You wander for hours and eventually find yourselves back at the forest entrance, defeated.",
+        "isStartNode": false,
+        "sideEffects": []
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e001-0000-0000-0000-000000000001",
+      "sourceId": "n001-0000-0000-0000-000000000001",
+      "targetId": "n002-0000-0000-0000-000000000002",
+      "label": "Investigate the glow",
+      "condition": null,
+      "sideEffects": []
+    },
+    {
+      "id": "e002-0000-0000-0000-000000000002",
+      "sourceId": "n001-0000-0000-0000-000000000001",
+      "targetId": "n003-0000-0000-0000-000000000003",
+      "label": "Enter the cave directly",
+      "condition": null,
+      "sideEffects": []
+    },
+    {
+      "id": "e003-0000-0000-0000-000000000003",
+      "sourceId": "n002-0000-0000-0000-000000000002",
+      "targetId": "n003-0000-0000-0000-000000000003",
+      "label": "Head to the cave with lantern",
+      "condition": null,
+      "sideEffects": []
+    },
+    {
+      "id": "e004-0000-0000-0000-000000000004",
+      "sourceId": "n003-0000-0000-0000-000000000003",
+      "targetId": "n004-0000-0000-0000-000000000004",
+      "label": "Venture deeper",
+      "condition": {
+        "operator": "AND",
+        "clauses": [
+          {
+            "flagId": "f001-0000-0000-0000-000000000001",
+            "comparator": "==",
+            "value": true
+          }
+        ]
+      },
+      "sideEffects": []
+    },
+    {
+      "id": "e005-0000-0000-0000-000000000005",
+      "sourceId": "n003-0000-0000-0000-000000000003",
+      "targetId": "n006-0000-0000-0000-000000000006",
+      "label": "Stumble in the dark",
+      "condition": {
+        "operator": "AND",
+        "clauses": [
+          {
+            "flagId": "f001-0000-0000-0000-000000000001",
+            "comparator": "==",
+            "value": false
+          }
+        ]
+      },
+      "sideEffects": []
+    },
+    {
+      "id": "e006-0000-0000-0000-000000000006",
+      "sourceId": "n004-0000-0000-0000-000000000004",
+      "targetId": "n005-0000-0000-0000-000000000005",
+      "label": "Cross the bridge",
+      "condition": {
+        "operator": "AND",
+        "clauses": [
+          {
+            "flagId": "f002-0000-0000-0000-000000000002",
+            "comparator": ">=",
+            "value": 3
+          }
+        ]
+      },
+      "sideEffects": [
+        {
+          "flagId": "f002-0000-0000-0000-000000000002",
+          "operation": "add",
+          "value": 5
+        }
+      ]
+    }
+  ]
+}
