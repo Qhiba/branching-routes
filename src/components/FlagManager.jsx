@@ -52,7 +52,7 @@ export default function FlagManager() {
             <div key={flag.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <code style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>{flag.name}</code>
+                  <code style={{ color: 'var(--color-accent)', fontWeight: 'bold' }}>{flag.name}</code>
                   <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', display: 'inline-block', padding: '2px 6px', background: 'var(--color-bg-surface)', borderRadius: '12px', border: '1px solid var(--color-border)', width: 'fit-content' }}>
                     {flag.type}
                   </span>
@@ -143,7 +143,7 @@ export default function FlagManager() {
           <button 
             type="submit" 
             disabled={!hasTypedName || !isNameValid}
-            style={{ marginTop: '8px', padding: '10px', background: (!hasTypedName || !isNameValid) ? 'var(--color-bg-hover)' : 'var(--color-primary)', color: (!hasTypedName || !isNameValid) ? 'var(--color-text-secondary)' : 'white', border: 'none', cursor: (!hasTypedName || !isNameValid) ? 'not-allowed' : 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
+            style={{ marginTop: '8px', padding: '10px', background: (!hasTypedName || !isNameValid) ? 'var(--color-bg-hover)' : 'var(--color-accent)', color: (!hasTypedName || !isNameValid) ? 'var(--color-text-secondary)' : 'white', border: 'none', cursor: (!hasTypedName || !isNameValid) ? 'not-allowed' : 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
           >
             Add Flag
           </button>

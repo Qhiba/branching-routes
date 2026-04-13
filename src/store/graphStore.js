@@ -11,7 +11,8 @@ export const useGraphStore = create((set, get) => ({
   addNode: (position, type = 'common') => set((state) => {
     const isStartNode = state.nodes.length === 0;
     const newNode = {
-      id: generateId(),
+      // MIGRATION: Parallel Support S03
+      id: generateId('n'),
       type,
       position,
       data: {
@@ -61,7 +62,8 @@ export const useGraphStore = create((set, get) => ({
     }
 
     const newEdge = {
-      id: generateId(),
+      // MIGRATION: Parallel Support S03
+      id: generateId('e'),
       sourceId,
       targetId,
       label: '',
@@ -95,7 +97,8 @@ export const useGraphStore = create((set, get) => ({
       throw new Error('Invalid flag name');
     }
     const newFlag = {
-      id: generateId(),
+      // MIGRATION: Parallel Support S03
+      id: generateId('f'),
       name,
       type,
       defaultValue
@@ -148,6 +151,9 @@ export const useGraphStore = create((set, get) => ({
   })),
 
   loadGraph: (graphData) => {
+    // INVARIANT: LBA-02
+    // INVARIANT: HS-04
+    // MIGRATION: Parallel Support S03 (accepts both bare UUID and prefixed ID transparently)
     set({
       meta: graphData.meta || { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now() },
       nodes: graphData.nodes || [],
