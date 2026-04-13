@@ -1,8 +1,8 @@
 import React from 'react';
-import { useGraphStore } from 'store';
+import { useGraphStore, useUIStore } from 'store';
 
 export default function NodeInspector() {
-  const selectedNodeId = useGraphStore(state => state.selectedNodeId);
+  const selectedNodeId = useUIStore(state => state.selectedNodeId);
   const node = useGraphStore(state => state.nodes.find(n => n.id === selectedNodeId));
   const flags = useGraphStore(state => state.flags);
   const updateNode = useGraphStore(state => state.updateNode);

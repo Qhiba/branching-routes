@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { useGraphStore, useSimulationStore } from 'store';
+import { useGraphStore, useSimulationStore, useUIStore } from 'store';
 import { exportProject, importProject } from 'utils';
 import dagre from 'dagre';
 
 export default function TopBar() {
   const meta = useGraphStore(s => s.meta);
   const updateMeta = useGraphStore(s => s.updateMeta);
-  const snapToGrid = useGraphStore(s => s.snapToGrid);
-  const toggleSnapToGrid = useGraphStore(s => s.toggleSnapToGrid);
+  const snapToGrid = useUIStore(s => s.snapToGrid);
+  const toggleSnapToGrid = useUIStore(s => s.toggleSnapToGrid);
   const nodes = useGraphStore(s => s.nodes);
   
   const isRunning = useSimulationStore(s => s.isRunning);
@@ -69,6 +69,7 @@ export default function TopBar() {
 
   const handleNew = () => {
     if (window.confirm("Start a new project? Unsaved changes will be lost.")) {
+      // NOTE: unrelated issue — not touching in refactor [Violation] 'click' handler took 1682ms
       newGraph();
       resetSimulation();
     }

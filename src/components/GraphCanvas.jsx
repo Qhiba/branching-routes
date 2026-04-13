@@ -11,7 +11,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { useGraphStore, useSimulationStore } from 'store';
+import { useGraphStore, useSimulationStore, useUIStore } from 'store';
 import StoryNode from './nodes/StoryNode';
 import ConditionalEdge from './edges/ConditionalEdge';
 
@@ -19,16 +19,19 @@ function GraphCanvasInner() {
   const {
     nodes: storeNodes,
     edges: storeEdges,
-    selectNode,
-    selectEdge,
-    clearSelection,
     addNode,
     addEdge,
     updateNode,
+  } = useGraphStore();
+
+  const {
+    selectNode,
+    selectEdge,
+    clearSelection,
     selectedNodeId,
     selectedEdgeId,
     snapToGrid
-  } = useGraphStore();
+  } = useUIStore();
 
   const { isRunning, advance, reachableNodeIds, reachableEdgeIds } = useSimulationStore();
 

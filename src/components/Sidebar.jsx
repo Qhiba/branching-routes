@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { useGraphStore } from 'store';
+import { useGraphStore, useUIStore } from 'store';
 import NodeInspector from './NodeInspector';
 import EdgeInspector from './EdgeInspector';
 import FlagManager from './FlagManager';
 
 export default function Sidebar() {
   const [activeTab, setActiveTab] = useState('inspector');
-  const selectedNodeId = useGraphStore(state => state.selectedNodeId);
-  const selectedEdgeId = useGraphStore(state => state.selectedEdgeId);
+  const selectedNodeId = useUIStore(state => state.selectedNodeId);
+  const selectedEdgeId = useUIStore(state => state.selectedEdgeId);
 
   return (
     <div className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%', borderLeft: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-surface)' }}>

@@ -1,8 +1,8 @@
 import React from 'react';
-import { useGraphStore } from 'store';
+import { useGraphStore, useUIStore } from 'store';
 
 export default function EdgeInspector() {
-  const selectedEdgeId = useGraphStore(state => state.selectedEdgeId);
+  const selectedEdgeId = useUIStore(state => state.selectedEdgeId);
   const edge = useGraphStore(state => state.edges.find(e => e.id === selectedEdgeId));
   const flags = useGraphStore(state => state.flags);
   const updateEdge = useGraphStore(state => state.updateEdge);

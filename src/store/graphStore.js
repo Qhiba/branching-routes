@@ -1,16 +1,12 @@
 import { create } from 'zustand';
 import { generateId } from 'utils';
+import { useUIStore } from './uiStore.js';
 
 export const useGraphStore = create((set, get) => ({
   meta: { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now() },
   nodes: [],
   edges: [],
   flags: [],
-  selectedNodeId: null,
-  selectedEdgeId: null,
-  snapToGrid: true,
-
-  toggleSnapToGrid: () => set(state => ({ snapToGrid: !state.snapToGrid })),
 
   addNode: (position, type = 'common') => set((state) => {
     const isStartNode = state.nodes.length === 0;
@@ -36,12 +32,16 @@ export const useGraphStore = create((set, get) => ({
     meta: { ...state.meta, updatedAt: Date.now() }
   })),
 
-  deleteNode: (id) => set((state) => ({
-    nodes: state.nodes.filter(n => n.id !== id),
-    edges: state.edges.filter(e => e.sourceId !== id && e.targetId !== id),
-    selectedNodeId: state.selectedNodeId === id ? null : state.selectedNodeId,
-    meta: { ...state.meta, updatedAt: Date.now() }
-  })),
+  deleteNode: (id) => {
+    set((state) => ({
+      nodes: state.nodes.filter(n => n.id !== id),
+      edges: state.edges.filter(e => e.sourceId !== id && e.targetId !== id),
+      meta: { ...state.meta, updatedAt: Date.now() }
+    }));
+    // MIGRATION: S25 — In-place migration 
+    // INVARIANT: BI-04
+    useUIStore.getState().clearIfSelected(id, 'node');
+  },
 
   setStartNode: (id) => set((state) => ({
     nodes: state.nodes.map(n => ({
@@ -80,11 +80,15 @@ export const useGraphStore = create((set, get) => ({
     meta: { ...state.meta, updatedAt: Date.now() }
   })),
 
-  deleteEdge: (id) => set((state) => ({
-    edges: state.edges.filter(e => e.id !== id),
-    selectedEdgeId: state.selectedEdgeId === id ? null : state.selectedEdgeId,
-    meta: { ...state.meta, updatedAt: Date.now() }
-  })),
+  deleteEdge: (id) => {
+    set((state) => ({
+      edges: state.edges.filter(e => e.id !== id),
+      meta: { ...state.meta, updatedAt: Date.now() }
+    }));
+    // MIGRATION: S25 — In-place migration
+    // INVARIANT: BI-05
+    useUIStore.getState().clearIfSelected(id, 'edge');
+  },
 
   addFlag: (name, type, defaultValue) => set((state) => {
     if (!/^[a-zA-Z0-9_]+$/.test(name)) {
@@ -143,27 +147,29 @@ export const useGraphStore = create((set, get) => ({
     meta: { ...state.meta, ...patch, updatedAt: Date.now() }
   })),
 
-  selectNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }),
-  selectEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),
-  clearSelection: () => set({ selectedNodeId: null, selectedEdgeId: null }),
+  loadGraph: (graphData) => {
+    set({
+      meta: graphData.meta || { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now() },
+      nodes: graphData.nodes || [],
+      edges: graphData.edges || [],
+      flags: graphData.flags || []
+    });
+    // MIGRATION: S25 — In-place migration
+    // INVARIANT: BI-16
+    useUIStore.getState().resetSelection();
+  },
 
-  loadGraph: (graphData) => set({
-    meta: graphData.meta || { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now() },
-    nodes: graphData.nodes || [],
-    edges: graphData.edges || [],
-    flags: graphData.flags || [],
-    selectedNodeId: null,
-    selectedEdgeId: null
-  }),
-
-  newGraph: () => set({
-    meta: { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now() },
-    nodes: [],
-    edges: [],
-    flags: [],
-    selectedNodeId: null,
-    selectedEdgeId: null
-  }),
+  newGraph: () => {
+    set({
+      meta: { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now() },
+      nodes: [],
+      edges: [],
+      flags: []
+    });
+    // MIGRATION: S25 — In-place migration
+    // INVARIANT: BI-16
+    useUIStore.getState().resetSelection();
+  },
 
   exportGraph: () => {
     const state = get();
