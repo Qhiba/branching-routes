@@ -9,7 +9,7 @@ Structure changes. Behavior does not.
 Project: Branching Routes
 Tech stack: `/informations/docs/project_overview.md`
 
-Current phase: [N] = 3
+Current phase: [N] = 4
 
 Load these files:
 1. `/informations/runs/[DD-MM-YYYY]_refactor/ran_0404_structuraldelta.md` — what changes and what stays identical

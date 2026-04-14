@@ -11,7 +11,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { useGraphStore, useSimulationStore, useUIStore } from 'store';
+import { useNarrativeStore, useSimulationStore, useUIStore } from 'store';
 import StoryNode from './nodes/StoryNode';
 import ConditionalEdge from './edges/ConditionalEdge';
 
@@ -22,7 +22,7 @@ function GraphCanvasInner() {
     addNode,
     addEdge,
     updateNode,
-  } = useGraphStore();
+  } = useNarrativeStore();
 
   const {
     selectNode,

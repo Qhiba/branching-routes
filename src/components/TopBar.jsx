@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
-import { useGraphStore, useSimulationStore, useUIStore } from 'store';
+import { useNarrativeStore, useSimulationStore, useUIStore } from 'store';
 import { exportProject, importProject } from 'utils';
 import dagre from 'dagre';
 
 export default function TopBar() {
-  const meta = useGraphStore(s => s.meta);
-  const updateMeta = useGraphStore(s => s.updateMeta);
+  const meta = useNarrativeStore(s => s.meta);
+  const updateMeta = useNarrativeStore(s => s.updateMeta);
   const snapToGrid = useUIStore(s => s.snapToGrid);
   const toggleSnapToGrid = useUIStore(s => s.toggleSnapToGrid);
-  const nodes = useGraphStore(s => s.nodes);
+  const nodes = useNarrativeStore(s => s.nodes);
   
   const isRunning = useSimulationStore(s => s.isRunning);
   const startSimulation = useSimulationStore(s => s.start);
   const resetSimulation = useSimulationStore(s => s.reset);
-  const newGraph = useGraphStore(s => s.newGraph);
-  const loadGraph = useGraphStore(s => s.loadGraph);
-  const exportGraph = useGraphStore(s => s.exportGraph);
+  const newGraph = useNarrativeStore(s => s.newGraph);
+  const loadGraph = useNarrativeStore(s => s.loadGraph);
+  const exportGraph = useNarrativeStore(s => s.exportGraph);
 
   const [simError, setSimError] = useState(null);
   const [exportStatus, setExportStatus] = useState(false);
@@ -41,9 +41,9 @@ export default function TopBar() {
   };
 
   const handleTidyLayout = () => {
-    const storeNodes = useGraphStore.getState().nodes;
-    const edges = useGraphStore.getState().edges;
-    const updateNode = useGraphStore.getState().updateNode;
+    const storeNodes = useNarrativeStore.getState().nodes;
+    const edges = useNarrativeStore.getState().edges;
+    const updateNode = useNarrativeStore.getState().updateNode;
 
     const g = new dagre.graphlib.Graph();
     g.setGraph({ rankdir: 'LR' });

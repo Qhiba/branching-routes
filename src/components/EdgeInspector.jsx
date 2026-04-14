@@ -1,12 +1,12 @@
 import React from 'react';
-import { useGraphStore, useUIStore } from 'store';
+import { useNarrativeStore, useUIStore } from 'store';
 
 export default function EdgeInspector() {
   const selectedEdgeId = useUIStore(state => state.selectedEdgeId);
-  const edge = useGraphStore(state => state.edges.find(e => e.id === selectedEdgeId));
-  const flags = useGraphStore(state => state.flags);
-  const updateEdge = useGraphStore(state => state.updateEdge);
-  const deleteEdge = useGraphStore(state => state.deleteEdge);
+  const edge = useNarrativeStore(state => state.edges.find(e => e.id === selectedEdgeId));
+  const flags = useNarrativeStore(state => state.flags);
+  const updateEdge = useNarrativeStore(state => state.updateEdge);
+  const deleteEdge = useNarrativeStore(state => state.deleteEdge);
 
   if (!edge) return null;
 

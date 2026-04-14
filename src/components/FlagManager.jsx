@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useGraphStore } from 'store';
+import { useNarrativeStore } from 'store';
 
 export default function FlagManager() {
-  const flags = useGraphStore(state => state.flags);
-  const addFlag = useGraphStore(state => state.addFlag);
-  const deleteFlag = useGraphStore(state => state.deleteFlag);
+  const flags = useNarrativeStore(state => state.flags);
+  const addFlag = useNarrativeStore(state => state.addFlag);
+  const deleteFlag = useNarrativeStore(state => state.deleteFlag);
   
   const [newName, setNewName] = useState('');
   const [newType, setNewType] = useState('boolean');
@@ -143,7 +143,7 @@ export default function FlagManager() {
           <button 
             type="submit" 
             disabled={!hasTypedName || !isNameValid}
-            style={{ marginTop: '8px', padding: '10px', background: (!hasTypedName || !isNameValid) ? 'var(--color-bg-hover)' : 'var(--color-accent)', color: (!hasTypedName || !isNameValid) ? 'var(--color-text-secondary)' : 'white', border: 'none', cursor: (!hasTypedName || !isNameValid) ? 'not-allowed' : 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
+            style={{ marginTop: '8px', padding: '10px', background: (!hasTypedName || !isNameValid) ? 'var(--color-bg-hover)' : 'var(--color-accent)', color: (!hasTypedName || !isNameValid) ? 'var(--color-text-secondary)' : 'white', border: (!hasTypedName || !isNameValid) ? '1px solid var(--color-border)' : '1px solid var(--color-accent)', cursor: (!hasTypedName || !isNameValid) ? 'not-allowed' : 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
           >
             Add Flag
           </button>

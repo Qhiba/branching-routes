@@ -1,13 +1,13 @@
 import React from 'react';
-import { useGraphStore, useUIStore } from 'store';
+import { useNarrativeStore, useUIStore } from 'store';
 
 export default function NodeInspector() {
   const selectedNodeId = useUIStore(state => state.selectedNodeId);
-  const node = useGraphStore(state => state.nodes.find(n => n.id === selectedNodeId));
-  const flags = useGraphStore(state => state.flags);
-  const updateNode = useGraphStore(state => state.updateNode);
-  const setStartNode = useGraphStore(state => state.setStartNode);
-  const deleteNode = useGraphStore(state => state.deleteNode);
+  const node = useNarrativeStore(state => state.nodes.find(n => n.id === selectedNodeId));
+  const flags = useNarrativeStore(state => state.flags);
+  const updateNode = useNarrativeStore(state => state.updateNode);
+  const setStartNode = useNarrativeStore(state => state.setStartNode);
+  const deleteNode = useNarrativeStore(state => state.deleteNode);
 
   if (!node) return null;
   const data = node.data || {};

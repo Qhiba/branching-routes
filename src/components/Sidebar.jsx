@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGraphStore, useUIStore } from 'store';
+import { useNarrativeStore, useUIStore } from 'store';
 import NodeInspector from './NodeInspector';
 import EdgeInspector from './EdgeInspector';
 import FlagManager from './FlagManager';

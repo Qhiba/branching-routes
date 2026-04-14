@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { useGraphStore } from 'store';
+import { useNarrativeStore } from 'store';
 import { evaluateCondition } from 'utils';
 
 function computeReachable(activeNodeId, edges, currentFlagValues) {
@@ -42,7 +42,8 @@ export const useSimulationStore = create((set, get) => ({
   reachableNodeIds: [],
 
   start: () => {
-    const graphState = useGraphStore.getState();
+    // INVARIANT: LBA-01
+    const graphState = useNarrativeStore.getState();
     const startNode = graphState.nodes.find(n => n.data && n.data.isStartNode);
     if (!startNode) {
       throw new Error('No start node exists');
@@ -72,7 +73,8 @@ export const useSimulationStore = create((set, get) => ({
       throw new Error('Edge is not reachable');
     }
 
-    const graphState = useGraphStore.getState();
+    // INVARIANT: LBA-01
+    const graphState = useNarrativeStore.getState();
     const edge = graphState.edges.find(e => e.id === edgeId);
     if (!edge) throw new Error('Edge not found');
 

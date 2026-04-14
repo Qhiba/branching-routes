@@ -2,7 +2,11 @@ import { create } from 'zustand';
 import { generateId } from 'utils';
 import { useUIStore } from './uiStore.js';
 
-export const useGraphStore = create((set, get) => ({
+// INVARIANT: HS-08 (Do not import simulationStore to avoid circular dependence)
+
+// RENAMED: graphStore.js → narrativeStore.js
+// RENAMED: useGraphStore → useNarrativeStore
+export const useNarrativeStore = create((set, get) => ({
   meta: { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now() },
   nodes: [],
   edges: [],
@@ -201,5 +205,5 @@ export const useGraphStore = create((set, get) => ({
 }));
 
 if (typeof window !== 'undefined') {
-  window.useGraphStore = useGraphStore;
+  window.useNarrativeStore = useNarrativeStore;
 }

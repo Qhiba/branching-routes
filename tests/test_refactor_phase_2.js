@@ -6,13 +6,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // We dynamically import to support testing against either old or new architecture
-let useGraphStore, useUIStore;
+let useNarrativeStore, useUIStore;
 
 try {
-  const gs = await import('../src/store/graphStore.js');
-  useGraphStore = gs.useGraphStore;
+  const gs = await import('../src/store/narrativeStore.js');
+  useNarrativeStore = gs.useNarrativeStore;
 } catch (e) {
-  console.error("Failed to load graphStore", e);
+  console.error("Failed to load narrativeStore", e);
   process.exit(1);
 }
 
@@ -29,22 +29,22 @@ try {
 // ------------------------------------------------------------------
 const selectNode = (id) => {
   if (useUIStore) useUIStore.getState().selectNode(id);
-  else useGraphStore.getState().selectNode(id);
+  else useNarrativeStore.getState().selectNode(id);
 };
 
 const getSelectedNodeId = () => {
   if (useUIStore) return useUIStore.getState().selectedNodeId;
-  return useGraphStore.getState().selectedNodeId;
+  return useNarrativeStore.getState().selectedNodeId;
 };
 
 const selectEdge = (id) => {
   if (useUIStore) useUIStore.getState().selectEdge(id);
-  else useGraphStore.getState().selectEdge(id);
+  else useNarrativeStore.getState().selectEdge(id);
 };
 
 const getSelectedEdgeId = () => {
   if (useUIStore) return useUIStore.getState().selectedEdgeId;
-  return useGraphStore.getState().selectedEdgeId;
+  return useNarrativeStore.getState().selectedEdgeId;
 };
 
 const resetSelection = () => {
@@ -55,8 +55,8 @@ const resetSelection = () => {
       useUIStore.getState().clearSelection();
     }
   } else {
-    // Old architecture graphStore
-    useGraphStore.getState().clearSelection();
+    // Old architecture narrativeStore
+    useNarrativeStore.getState().clearSelection();
   }
 };
 
@@ -69,7 +69,7 @@ let failed = 0;
 async function runTest(name, fn) {
   try {
     // Reset state before each test
-    useGraphStore.getState().newGraph();
+    useNarrativeStore.getState().newGraph();
     resetSelection();
     
     await fn();
@@ -88,12 +88,12 @@ async function main() {
   if (useUIStore) {
     console.log("Architecture: NEW (uiStore detected)\n");
   } else {
-    console.log("Architecture: OLD (graphStore handles UI state)\n");
+    console.log("Architecture: OLD (narrativeStore handles UI state)\n");
   }
 
   await runTest('TEST_BI_04 (deleteNode clears selectedNodeId if it matches)', async () => {
-    useGraphStore.getState().addNode({ x: 0, y: 0 }, 'common');
-    const nodes = useGraphStore.getState().nodes;
+    useNarrativeStore.getState().addNode({ x: 0, y: 0 }, 'common');
+    const nodes = useNarrativeStore.getState().nodes;
     const nodeId = nodes[nodes.length - 1].id;
     
     selectNode(nodeId);
@@ -101,7 +101,7 @@ async function main() {
       throw new Error("Setup failed: Could not select node.");
     }
     
-    useGraphStore.getState().deleteNode(nodeId);
+    useNarrativeStore.getState().deleteNode(nodeId);
     
     if (getSelectedNodeId() !== null) {
       throw new Error(`BI-04 Broken: selectedNodeId is ${getSelectedNodeId()} instead of null.`);
@@ -109,14 +109,14 @@ async function main() {
   });
 
   await runTest('TEST_BI_05 (deleteEdge clears selectedEdgeId if it matches)', async () => {
-    useGraphStore.getState().addNode({ x: 0, y: 0 }, 'common');
-    useGraphStore.getState().addNode({ x: 100, y: 0 }, 'common');
-    const nodes = useGraphStore.getState().nodes;
+    useNarrativeStore.getState().addNode({ x: 0, y: 0 }, 'common');
+    useNarrativeStore.getState().addNode({ x: 100, y: 0 }, 'common');
+    const nodes = useNarrativeStore.getState().nodes;
     const n1 = nodes[nodes.length - 2].id;
     const n2 = nodes[nodes.length - 1].id;
     
-    useGraphStore.getState().addEdge(n1, n2);
-    const edges = useGraphStore.getState().edges;
+    useNarrativeStore.getState().addEdge(n1, n2);
+    const edges = useNarrativeStore.getState().edges;
     const edgeId = edges[edges.length - 1].id;
     
     selectEdge(edgeId);
@@ -124,7 +124,7 @@ async function main() {
       throw new Error("Setup failed: Could not select edge.");
     }
     
-    useGraphStore.getState().deleteEdge(edgeId);
+    useNarrativeStore.getState().deleteEdge(edgeId);
     
     if (getSelectedEdgeId() !== null) {
       throw new Error(`BI-05 Broken: selectedEdgeId is ${getSelectedEdgeId()} instead of null.`);
@@ -133,8 +133,8 @@ async function main() {
 
   await runTest('TEST_BI_16 (loadGraph resets selection state to null)', async () => {
     // Set selection
-    useGraphStore.getState().addNode({ x: 0, y: 0 }, 'common');
-    const nodes = useGraphStore.getState().nodes;
+    useNarrativeStore.getState().addNode({ x: 0, y: 0 }, 'common');
+    const nodes = useNarrativeStore.getState().nodes;
     const nodeId = nodes[nodes.length - 1].id;
     selectNode(nodeId);
     
@@ -143,7 +143,7 @@ async function main() {
     }
     
     // Load empty graph
-    useGraphStore.getState().loadGraph({
+    useNarrativeStore.getState().loadGraph({
       meta: { title: 'New Graph' },
       nodes: [],
       edges: [],

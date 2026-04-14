@@ -21,6 +21,7 @@
   --color-text-muted:     #636b8c;
 
   /* Colour — accent and semantic states */
+  --color-primary:   #7393f8;   /* general theme interaction color */
   --color-accent:    #7393f8;   /* primary interactive, selected rings */
   --color-active:    #f8ab54;   /* simulation active node */
   --color-visited:   #636b8c;   /* simulation visited (dimmed) */
