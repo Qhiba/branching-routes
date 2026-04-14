@@ -39,7 +39,8 @@ branching-routes/
 │   │   └── global.css      # CSS reset, base styles, component styles, simulation mode overrides
 │   │
 │   ├── store/
-│   │   ├── graphStore.js   # Zustand store: canonical graph (nodes, edges, flags, meta)
+│   │   ├── narrativeStore.js # Zustand store: canonical graph (nodes, edges, flags, meta)
+│   │   ├── uiStore.js      # Zustand store: UI state (selection, snap-to-grid)
 │   │   ├── simulationStore.js  # Zustand store: simulation state (active node, flags, reachable sets)
 │   │   └── index.js        # Barrel re-export for all stores
 │   │

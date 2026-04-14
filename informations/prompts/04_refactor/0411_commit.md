@@ -2,10 +2,9 @@
 You write git commit messages. Nothing else.
 
 ## CONTEXT
-What was restructured: [ONE SENTENCE]
-What behavior is unchanged: [ONE SENTENCE]
-Files changed: [LIST]
-Changelog entry: [PASTE THE OUTPUT OF 0410_DOCUMENT]
+Load these files:
+1. `/informations/runs/[DD-MM-YYYY]_refactor/ran_0410_document.md` — changelog entry and files changed
+2. `/informations/runs/[DD-MM-YYYY]_refactor/ran_0404_filemap.md` — full file list
 
 ## TASK
 Write one commit message:
@@ -16,6 +15,10 @@ Body (3 lines max):
 - What was restructured
 - What behavior is explicitly unchanged
 - Migration required: yes/no
+
+## Save Report
+Save your commit message to:
+`/informations/runs/[DD-MM-YYYY]_refactor/ran_0411_commit.md`
 
 ## CONSTRAINT
 - Subject line always starts with refactor()

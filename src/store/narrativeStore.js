@@ -4,8 +4,6 @@ import { useUIStore } from './uiStore.js';
 
 // INVARIANT: HS-08 (Do not import simulationStore to avoid circular dependence)
 
-// RENAMED: graphStore.js → narrativeStore.js
-// RENAMED: useGraphStore → useNarrativeStore
 export const useNarrativeStore = create((set, get) => ({
   meta: { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now() },
   nodes: [],

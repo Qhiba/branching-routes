@@ -51,29 +51,35 @@
 
 ## `src/store/`
 
-### `src/store/graphStore.js`
-- **Purpose:** Zustand store owning the canonical graph: `nodes[]`, `edges[]`, `flags[]`, and `meta`. Exposes CRUD actions for all entity types, selection management, graph import/export, and the `snapToGrid` toggle.
-- **Key exports:** `useGraphStore` (Zustand hook)
+### `src/store/narrativeStore.js` (RENAMED FROM graphStore.js — 14-04-2026)
+- **Purpose:** Zustand store owning the canonical graph: `nodes[]`, `edges[]`, `flags[]`, and `meta`. Exposes CRUD actions for narrative entity types, graph import/export, and new graph creation. Cross-coordinates with `uiStore` on deletions and loads.
+- **Key exports:** `useNarrativeStore` (Zustand hook)
 - **Dependencies:** `utils` (barrel — `generateId`)
-- **Actions:** `addNode`, `updateNode`, `deleteNode`, `setStartNode`, `addEdge`, `updateEdge`, `deleteEdge`, `addFlag`, `updateFlag`, `deleteFlag`, `updateMeta`, `selectNode`, `selectEdge`, `clearSelection`, `loadGraph`, `newGraph`, `exportGraph`, `toggleSnapToGrid`
+- **Actions:** `addNode`, `updateNode`, `deleteNode`, `setStartNode`, `addEdge`, `updateEdge`, `deleteEdge`, `addFlag`, `updateFlag`, `deleteFlag`, `updateMeta`, `loadGraph`, `newGraph`, `exportGraph`
+
+### `src/store/uiStore.js`
+- **Purpose:** Zustand store owning UI state: `selectedNodeId`, `selectedEdgeId`, and `snapToGrid`. Designed to prevent re-render storms in the canvas while editing.
+- **Key exports:** `useUIStore` (Zustand hook)
+- **Dependencies:** None.
+- **Actions:** `selectNode`, `selectEdge`, `clearSelection`, `clearIfSelected`, `resetSelection`, `toggleSnapToGrid`
 
 ### `src/store/simulationStore.js`
 - **Purpose:** Zustand store owning live simulation state: `activeNodeId`, `visitedNodeIds[]`, `traversedEdgeIds[]`, `currentFlagValues{}`, `reachableEdgeIds[]`, `reachableNodeIds[]`, `isRunning`. Exposes `start()`, `advance(edgeId)`, and `reset()` actions.
 - **Key exports:** `useSimulationStore` (Zustand hook)
-- **Dependencies:** `store` (barrel — `useGraphStore`), `utils` (barrel — `evaluateCondition`)
+- **Dependencies:** `store` (barrel — `useNarrativeStore`), `utils` (barrel — `evaluateCondition`)
 
 ### `src/store/index.js`
 - **Purpose:** Barrel re-export for all stores.
-- **Key exports:** `useGraphStore`, `useSimulationStore`
-- **Dependencies:** `graphStore`, `simulationStore`
+- **Key exports:** `useNarrativeStore`, `useUIStore`, `useSimulationStore`
+- **Dependencies:** `narrativeStore`, `uiStore`, `simulationStore`
 
 ---
 
 ## `src/utils/`
 
 ### `src/utils/uuid.js`
-- **Purpose:** Thin wrapper around the browser's `crypto.randomUUID()`. Returns a UUID v4 string.
-- **Key exports:** `generateId(): string`
+- **Purpose:** Thin wrapper around the browser's `crypto.randomUUID()`. Returns a prefixed UUID string.
+- **Key exports:** `generateId(prefix): string`
 - **Dependencies:** None.
 
 ### `src/utils/conditionEvaluator.js`
@@ -98,32 +104,32 @@
 ### `src/components/TopBar.jsx`
 - **Purpose:** Horizontal top bar with app title, editable project title, file actions (New, Import, Export), Tidy Layout button (Dagre-based), Snap-to-Grid toggle, simulation controls (Start / Stop), and simulation status indicator.
 - **Key exports:** `default TopBar`
-- **Dependencies:** `store` (barrel — `useGraphStore`, `useSimulationStore`), `utils` (barrel — `exportProject`, `importProject`), `dagre`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`), `utils` (barrel — `exportProject`, `importProject`), `dagre`
 
 ### `src/components/GraphCanvas.jsx`
 - **Purpose:** React Flow canvas wrapper. Transforms store state into React Flow format, registers custom node/edge types, handles interactions (click, connect, drag, double-click-to-add-node), manages simulation advance-by-click, and applies simulation mode CSS class.
 - **Key exports:** `default GraphCanvas`
-- **Dependencies:** `store` (barrel — `useGraphStore`, `useSimulationStore`), `@xyflow/react`, `components/nodes/StoryNode`, `components/edges/ConditionalEdge`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`), `@xyflow/react`, `components/nodes/StoryNode`, `components/edges/ConditionalEdge`
 
 ### `src/components/Sidebar.jsx`
 - **Purpose:** Right-side panel with two tabs: Inspector (shows NodeInspector or EdgeInspector based on selection) and Flags (always shows FlagManager).
 - **Key exports:** `default Sidebar`
-- **Dependencies:** `store` (barrel — `useGraphStore`), `NodeInspector`, `EdgeInspector`, `FlagManager`
+- **Dependencies:** `store` (barrel — `useUIStore`), `NodeInspector`, `EdgeInspector`, `FlagManager`
 
 ### `src/components/NodeInspector.jsx`
 - **Purpose:** Form panel for editing the selected node's label, content, side effects, and start node status. Includes node deletion.
 - **Key exports:** `default NodeInspector`
-- **Dependencies:** `store` (barrel — `useGraphStore`)
+- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`)
 
 ### `src/components/EdgeInspector.jsx`
 - **Purpose:** Form panel for editing a selected edge's label, condition (AND/OR operator + clauses), and side effects. Shows execution order hint. Includes edge deletion.
 - **Key exports:** `default EdgeInspector`
-- **Dependencies:** `store` (barrel — `useGraphStore`)
+- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`)
 
 ### `src/components/FlagManager.jsx`
 - **Purpose:** Panel listing all flags with name, type badge, and default value. Add-flag form with live name validation. Delete with referential integrity checking (RISK-02 mitigation).
 - **Key exports:** `default FlagManager`
-- **Dependencies:** `store` (barrel — `useGraphStore`)
+- **Dependencies:** `store` (barrel — `useNarrativeStore`)
 
 ### `src/components/nodes/StoryNode.jsx`
 - **Purpose:** Custom React Flow node renderer. Displays label, truncated content preview, side-effect count badge. Applies simulation state CSS classes (`--active`, `--visited`, `--reachable`). Uses `React.memo` with targeted selectors (RISK-01 mitigation). Hides outgoing handle on ending nodes (AR-12).
@@ -143,6 +149,20 @@
 ---
 
 ## Changelog
+
+## [2026-04-14] — Structural Refactor
+### Changed
+- `src/store/graphStore.js` renamed to `src/store/narrativeStore.js` directly owning canonical data.
+- Extraction of UI state to a new `src/store/uiStore.js` to manage selected entity and snap grid configuration.
+- ID System updated to emit prefixed UUID strings (`n-{uuid}`, `e-{uuid}`, `f-{uuid}`).
+- Component dependencies updated to use `useNarrativeStore` and `useUIStore`.
+### Retired
+- `graphStore.js` was replaced by `narrativeStore.js`.
+- Legacy bare UUID generation from `generateId` was replaced by prefixed generation.
+### Behavior
+- Unchanged — this was a structural refactor
+### Migration
+- Yes — New entities use prefixed IDs; legacy UUIDs remain acceptable at import via backward compatibility rules.
 
 ## [2026-04-11] — Initial Creation
 
