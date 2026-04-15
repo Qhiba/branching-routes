@@ -21,11 +21,13 @@ Load these files:
 4. `/informations/runs/[DD-MM-YYYY]_iteration/ran_0303_preservation.md` — what must survive unchanged, PROTECTED and ACKNOWLEDGED RISK items
 5. `/informations/runs/[DD-MM-YYYY]_iteration/ran_0303_phases.md` — all planned phases
 6. `/informations/runs/[DD-MM-YYYY]_iteration/ran_0303_migrationstrategy.md` — declared migration strategies
-7. All `ran_0305_self-review_[1..N].md` — self-review findings per phase
-8. All `ran_0307_test_[1..N].md` — test results per phase
-9. `/informations/docs/architecture_rules.md` — rules to check against
-10. All project files currently on disk — the actual after state
-11. `ran_0308_audit_1.md` — previous audit report (skip if this is pass 1)
+7. All `implementation_report_[1..N]/ran_0305_self-review_[N].md` — self-review findings per phase
+8. All `implementation_report_[1..N]/ran_0307_test_[N].md` — test results per phase
+9. All `implementation_report_[1..N]/ran_0304_execute_[N].md` — execution reports; 
+  check for PLAN GAP, AMBIGUOUS, and CONFLICT flags raised during implementation
+10. `/informations/docs/architecture_rules.md` — rules to check against
+11. All project files currently on disk — the actual after state
+12. `ran_0308_audit_1.md` — previous audit report (skip if this is pass 1)
 
 ## TASK
 Produce a structured audit:

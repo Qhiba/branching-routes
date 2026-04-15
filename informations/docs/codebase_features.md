@@ -132,17 +132,17 @@
 - **Dependencies:** `store` (barrel — `useNarrativeStore`)
 
 ### `src/components/nodes/CommonNode.jsx`
-- **Purpose:** Custom React Flow node renderer for standard narrative components. Displays label, truncated content preview, side-effect count badge. Applies simulation state CSS classes (`--active`, `--visited`, `--reachable`). Uses `React.memo` with targeted selectors.
+- **Purpose:** Custom React Flow node renderer for standard narrative components. Displays label, truncated content preview, and a solid green header bar with a `COMMON` badge and side-effect count. Applies simulation state CSS classes (`--active`, `--visited`, `--reachable`). Uses `React.memo` with targeted selectors.
 - **Key exports:** `default CommonNode`
 - **Dependencies:** `store` (barrel — `useSimulationStore`), `@xyflow/react`
 
 ### `src/components/nodes/ChoiceNode.jsx`
-- **Purpose:** Custom React Flow node renderer for choice points. Displays label, truncated content preview, side-effect count, and `[Choice]` indicator. Applies simulation state CSS classes. Uses `React.memo`.
+- **Purpose:** Custom React Flow node renderer for choice points. Displays label, truncated content preview, and a solid blue header bar with a `CHOICE` badge, side-effect count, and outgoing edge count. Applies simulation state CSS classes. Uses `React.memo`.
 - **Key exports:** `default ChoiceNode`
 - **Dependencies:** `store` (barrel — `useSimulationStore`), `@xyflow/react`
 
 ### `src/components/nodes/EndingNode.jsx`
-- **Purpose:** Custom React Flow node renderer for terminal states. Omits outgoing handle for structural AR-12 compliance. Applies simulation state CSS classes. Uses `React.memo`.
+- **Purpose:** Custom React Flow node renderer for terminal states. Displays label, truncated content preview, a solid orange header bar with an `ENDING` badge, and a footer terminal bar. Omits outgoing handle for structural AR-12 compliance. Applies simulation state CSS classes. Uses `React.memo`.
 - **Key exports:** `default EndingNode`
 - **Dependencies:** `store` (barrel — `useSimulationStore`), `@xyflow/react`
 
@@ -159,6 +159,20 @@
 ---
 
 ## Changelog
+
+## [2026-04-15] — Canvas Visual Identity Iteration
+### Changed
+- `CommonNode` now features a solid green header bar with a `COMMON` type label and effect badge.
+- `ChoiceNode` now features a solid blue header bar with a `CHOICE` type label, effect badge, and an outgoing edge count indicator.
+- `EndingNode` now features a solid orange header bar with an `ENDING` type label and a footer terminal bar with a prompt icon.
+- Added visual token colors (`--color-node-common`, `--color-node-choice`, `--color-node-ending`) to `tokens.css`.
+- Node bodies now feature a cleaner, unified structure without inline type text.
+### Deprecated
+- The single generic `.story-node` border treatment previously shared by all nodes.
+- Inline type text (e.g., `[Choice]`, `[END]`) within node titles.
+### Migration
+- no — changes were purely presentational and did not alter the saved data structure.
+
 
 ## [2026-04-15] — Data Model, Canvas, State Management Iteration
 ### Changed

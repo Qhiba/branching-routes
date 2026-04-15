@@ -12,7 +12,8 @@ Load these files:
 5. All project files in the area being changed
 
 The thing I want to change:
-Data Model, Canvas, State Management
+<!-- User input here. -->
+Data Model, Condition Evaluation, Form Layer
 
 ## TASK
 Produce a complete current-state behavioral map:

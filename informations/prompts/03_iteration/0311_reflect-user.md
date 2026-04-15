@@ -12,9 +12,9 @@ Load these files:
 1. `/informations/runs/[DD-MM-YYYY]_iteration/ran_0301_understand.md` — original state map
 2. `/informations/runs/[DD-MM-YYYY]_iteration/ran_0302_scope.md` — iteration scope and definition of done
 3. `/informations/runs/[DD-MM-YYYY]_iteration/ran_0303_phases.md` — planned phases
-4. All `ran_0304_execute_[1..N].md` — execution reports per phase
-5. All `ran_0305_self-review_[1..N].md` — self-review findings per phase
-6. All `ran_0307_test_[1..N].md` — test results per phase
+4. All `implementation_report_[1..N]/ran_0304_execute_[1..N].md` — execution reports per phase
+5. All `implementation_report_[1..N]/ran_0305_self-review_[N].md` — self-review findings per phase
+6. All `implementation_report_[1..N]/ran_0307_test_[N].md` — test results per phase
 7. `/informations/runs/[DD-MM-YYYY]_iteration/ran_0308_audit_[PASS_NUMBER].md` — final audit verdict
 
 ## TASK

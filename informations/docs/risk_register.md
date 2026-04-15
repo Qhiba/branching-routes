@@ -9,6 +9,11 @@
 | RISK-03 | File System Access API Browser Compatibility Breaks Save/Open | High | Medium | See details below | OPEN |
 | RISK-04 | Graph Becomes Visually Unreadable at Medium Scale | Medium | Medium | See details below | OPEN |
 | RISK-05 | Simulation "Live Checker" UX is Ambiguous Without a Clear Mode Indicator | Medium | Medium | See details below | OPEN |
+| RISK-06 | Simulation state CSS overrides conflict with new accent borders | Medium | Medium | See details below | MITIGATED |
+| RISK-07 | Option count indicator in ChoiceNode requires store access | Medium | Low | See details below | MITIGATED |
+| RISK-08 | Badge styling overlaps with existing `story-node__badge` | High | Low | See details below | MITIGATED |
+| RISK-09 | `choice-node` and `ending-node` classes already exist | Medium | Low | See details below | MITIGATED |
+| RISK-10 | EndingNode accent color visually clashes with active state | High | Low | See details below | ACKNOWLEDGED |
 
 ---
 
@@ -89,3 +94,53 @@
 **Mitigation Strategy:** During Phase 5, `GraphCanvas` must visually shift modes when `simulationStore.isRunning === true`: apply a global CSS class (`.simulation-mode`) to the canvas root that dims the toolbar, changes the cursor to `pointer` on reachable nodes, disables all node/edge drag interactions, and shows a persistent banner reading "Simulation Active — click a highlighted node to advance."
 
 **Early detection:** During Phase 5 usability check: start the simulation, then attempt to drag a node. If drag works during simulation, the mode separation is not enforced. If drag is inexplicably blocked with no explanation, the UX is still broken.
+
+---
+
+## RISK-06 — Simulation state CSS overrides conflict with new accent borders
+
+**Description:** The simulation state classes override `border-color`. If type accent styling uses `border-color` with higher or equal specificity, simulation states could be lost.
+
+**Mitigation Strategy:** Simulation classes use `!important` and are placed at the bottom of the CSS file.
+
+**Status:** MITIGATED — Audit BD-6 confirms simulation overrides appear after type rules with `!important` in `global.css` L256–270.
+
+---
+
+## RISK-07 — Option count indicator in ChoiceNode requires store access
+
+**Description:** Displaying outgoing edge count on ChoiceNode requires filtering `narrativeStore` edges, causing possible render cycles.
+
+**Mitigation Strategy:** Use a targeted, memoized `useNarrativeStore` selector inside `ChoiceNode`.
+
+**Status:** MITIGATED — Audit BD-2 confirms `ChoiceNode.jsx` L16 derives its specific outgoing edge count cleanly.
+
+---
+
+## RISK-08 — Badge styling overlaps with existing `story-node__badge`
+
+**Description:** Adding a new type badge might conflict with the existing side-effect badge if class names bleed.
+
+**Mitigation Strategy:** Use distinct class names (`.story-node__type-label` vs `.story-node__meta-badge`) and encapsulated styles.
+
+**Status:** MITIGATED — Audit DoD-5 confirms distinct CSS blocks were implemented in `global.css`.
+
+---
+
+## RISK-09 — `choice-node` and `ending-node` classes already exist
+
+**Description:** Suffix classes already exist in `global.css` leading to possible rule collisions when expanding their definitions.
+
+**Mitigation Strategy:** Treat blocks as purely additive during the iteration without overwriting unrelated layout structures.
+
+**Status:** MITIGATED — Style updates applied safely.
+
+---
+
+## RISK-10 — EndingNode accent color visually clashes with simulation `--color-active`
+
+**Description:** `--color-node-ending` (orange) and `--color-active` (orange) are too similar, meaning an active EndingNode border won't clearly show an active state change.
+
+**Mitigation Strategy:** Acknowledged as acceptable design overlap for now; no code mitigation was planned.
+
+**Status:** ACKNOWLEDGED — Audit Preservation AR-2 confirms this visual impact was contained and accepted.

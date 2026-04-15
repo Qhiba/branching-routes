@@ -64,7 +64,7 @@ in the audit §5.
   If yes — add it as a new rule in the correct section.
   If no — document the decision and skip.
 
-- If rule text was updated during execution:
+- If rule text was updated before or during the iteration:
   Confirm this file reflects those updates exactly.
   Rewrite any rule that does not match the executed state.
 

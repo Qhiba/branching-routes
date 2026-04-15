@@ -26,40 +26,40 @@ Save to: `/informations/runs/[DD-MM-YYYY]_iteration/ran_0302_scope.md`
 ## Part 1 — User fills
 
 ### What I am changing
-Data Model, Canvas, State Management
+Canvas
 
 ### Why this needs to change
-The current data model uses a single flat `nodes[]` array where node behaviour is distinguished only by a `type` field. This forces structural constraints to be enforced downstream — in store actions, component guards, and hidden UI elements — rather than being expressed in the data itself. AR-12 is a direct symptom: the prohibition on outgoing edges from ending nodes cannot be enforced by the schema, so it must be patched at the store and renderer level instead.
-Edge `sideEffects` introduce a parallel problem. AR-11 mandates a strict execution order specifically because effects distributed across both edges and nodes create evaluation ambiguity. Removing `sideEffects` from edges and consolidating them onto nodes eliminates this ambiguity at the data layer, making AR-11 structurally guaranteed rather than convention-dependent.
-Splitting `nodes[]` into typed sub-collections (`common`, `choice`, `ending`) and registering valid types in `meta` moves node-type rules into the schema where they can be validated on import, reasoned about without runtime guards, and rendered by dedicated components without conditional branching inside a single shared renderer.
+The current single StoryNode renderer applies uniform visual treatment across all node types, with no distinction between a narrative beat, a decision point, and a terminal state. As the data model moves to typed sub-collections, the renderer must reflect that separation visually — designers need to identify node types at a glance without reading labels or opening the inspector.
+
+Each type receives a distinct accent color applied to borders, badges, and header strips rather than card fills, preserving canvas readability at scale. Common nodes use a green accent to signal neutral continuity. Choice nodes use a blue accent with a treatment that suggests branching — option count, wider body, or a decision icon. Ending nodes use an orange accent with a terminal treatment such as a filled accent bar or stop indicator.
+
+All three types share the existing dark card background from the design system. A type label pill is included on each node as a redundancy layer beyond color, ensuring type remains legible regardless of how the designer perceives the accent palette.
 
 ### New behavior after this push
-Split `nodes[]` into `common{}` / `choice{}` / `ending{}`. Remove `sideEffects` from edges — nodes-only rule. Add `commonNodeTypes` and `endingTypes` to metadata. Separate node renderers per type (CommonNode, ChoiceNode, EndingNode).
+**Contains:** Distinct visual identity per node type. Each type gets a unique color scheme, border treatment, and type indicator so designers can instantly identify node types on the canvas at a glance.
+
+**Design direction:**
+- **Common nodes** — Green accent (`#4ade80` family). Solid left border or top accent stripe. Clean, neutral body — these are the workhorses, shouldn't scream.
+- **Choice nodes** — Blue accent (`#60a5fa` family). Distinctive shape treatment (e.g., wider body, option count badge, or branching icon). Must visually suggest "decision point."
+- **Ending nodes** — King orange accent (`#fb923c` family). Terminal feel — perhaps a double border, filled accent bar, or stop icon. Must feel final.
+- All three types share the same dark card background from the app theme. Color appears as accents (borders, badges, header strips), not as full card fills — keeps the canvas readable at scale.
+- Type label badge (small pill: "Common" / "Choice" / "Ending") on each node for redundancy beyond color.
 
 ### Accepted blast radius
 <!-- Which dependencies from ran_0301 are you okay with changing —
 even if they appear in the preservation list?
 These are conscious decisions, not oversights. -->
-**1. Reliable Cross-Store Deletion Synchronization**
-**2. Strict Deterministic Side Effect Application**
-**4. Safely Rejecting Terminus Edges**
-`architecture_rules.md` changes.
+**Graph visual derivation:**
+**Simulation advancing:** on aesthetics design perspective
 
 ### Definition of done
 | Action | File | Detail |
 |--------|------|--------|
-| MODIFY | `src/store/narrativeStore.js` | Replace `nodes[]` with `common{}`, `choice{}`, `ending{}` CRUD; remove `sideEffects` from edge schema; add `commonNodeTypes`/`endingTypes` to meta |
-| MODIFY | `src/components/GraphCanvas.jsx` | Derive React Flow nodes from three collections; register three node types |
-| MODIFY | `src/components/NodeInspector.jsx` | Branch form fields by entity type |
-| MODIFY | `src/components/EdgeInspector.jsx` | Remove side effects section |
-| MODIFY | `src/components/nodes/StoryNode.jsx` | Rename file content to CommonNode |
-| ADD | `src/components/nodes/CommonNode.jsx` | Replaces StoryNode.jsx |
-| ADD | `src/components/nodes/ChoiceNode.jsx` | Choice node renderer |
-| ADD | `src/components/nodes/EndingNode.jsx` | Ending node renderer |
-| DELETE | `src/components/nodes/StoryNode.jsx` | Replaced by CommonNode.jsx |
-| MODIFY | `src/components/edges/ConditionalEdge.jsx` | Remove side effect display |
-| MODIFY | `src/utils/fileSystem.js` | Export/import with new collection structure |
-| MODIFY | `src/components/index.js` | Updated re-exports |
+| MODIFY | `src/components/nodes/CommonNode.jsx` | Green accent styling, type badge |
+| MODIFY | `src/components/nodes/ChoiceNode.jsx` | Blue accent styling, type badge, option count indicator |
+| MODIFY | `src/components/nodes/EndingNode.jsx` | Orange accent styling, type badge, terminal visual treatment |
+| MODIFY | `src/styles/tokens.css` | Node type color tokens: `--color-node-common`, `--color-node-choice`, `--color-node-ending` |
+| MODIFY | `src/styles/global.css` | Node type CSS classes |
 
 ### Assumptions I am making
 NONE

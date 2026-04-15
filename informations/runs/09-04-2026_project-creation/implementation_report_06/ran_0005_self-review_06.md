@@ -1,1 +1,0 @@
-PASS: No violations found; `TopBar` and `fileSystem` correctly adhere to single source of truth, simulate/graph split, and File System access API requirements. All phase requirements are accurately mapped.
