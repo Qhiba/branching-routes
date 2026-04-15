@@ -8,8 +8,12 @@ export default function TopBar() {
   const updateMeta = useNarrativeStore(s => s.updateMeta);
   const snapToGrid = useUIStore(s => s.snapToGrid);
   const toggleSnapToGrid = useUIStore(s => s.toggleSnapToGrid);
-  const nodes = useNarrativeStore(s => s.nodes);
-  
+  // PLAN GAP: nodes[] removed in Phase 1. Deriving isEmpty from sub-collections as interim shim until Phase 3.
+  const common = useNarrativeStore(s => s.common);
+  const choice = useNarrativeStore(s => s.choice);
+  const endingNodes = useNarrativeStore(s => s.ending);
+  const hasNodes = Object.keys(common).length + Object.keys(choice).length + Object.keys(endingNodes).length > 0;
+
   const isRunning = useSimulationStore(s => s.isRunning);
   const startSimulation = useSimulationStore(s => s.start);
   const resetSimulation = useSimulationStore(s => s.reset);
@@ -41,9 +45,15 @@ export default function TopBar() {
   };
 
   const handleTidyLayout = () => {
-    const storeNodes = useNarrativeStore.getState().nodes;
-    const edges = useNarrativeStore.getState().edges;
-    const updateNode = useNarrativeStore.getState().updateNode;
+    // PLAN GAP: nodes[] removed in Phase 1. Flattening sub-collections as interim shim until Phase 3.
+    const graphState = useNarrativeStore.getState();
+    const storeNodes = [
+      ...Object.values(graphState.common || {}),
+      ...Object.values(graphState.choice || {}),
+      ...Object.values(graphState.ending || {})
+    ];
+    const edges = graphState.edges;
+    const updateNode = graphState.updateNode;
 
     const g = new dagre.graphlib.Graph();
     g.setGraph({ rankdir: 'LR' });
@@ -106,9 +116,9 @@ export default function TopBar() {
         <strong>Branching Routes</strong>
       </div>
       <div className="topbar__center">
-        <input 
-          type="text" 
-          value={meta?.title || ''} 
+        <input
+          type="text"
+          value={meta?.title || ''}
           onChange={handleTitleChange}
           onFocus={(e) => {
             if (e.target.value === 'Untitled Graph') {
@@ -138,16 +148,16 @@ export default function TopBar() {
         <button className="topbar__btn" disabled={isRunning} onClick={handleExport}>
           {exportStatus ? "Exported ✓" : "Export"}
         </button>
-        
+
         {isRunning ? (
           <button onClick={handleStopSimulation} className="topbar__btn topbar__btn--primary">
             Stop Simulation
           </button>
         ) : (
-          <button 
-            onClick={handleStartSimulation} 
-            className="topbar__btn topbar__btn--primary" 
-            disabled={nodes.length === 0}
+          <button
+            onClick={handleStartSimulation}
+            className="topbar__btn topbar__btn--primary"
+            disabled={!hasNodes}
           >
             Start Simulation
           </button>

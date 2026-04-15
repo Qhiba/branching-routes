@@ -12,6 +12,7 @@ function computeReachable(activeNodeId, edges, currentFlagValues) {
 }
 
 function applySideEffects(sideEffects, currentFlagValues) {
+  // PRESERVED: Strict Deterministic Side Effect Application
   if (!sideEffects) return currentFlagValues;
   const nextVals = { ...currentFlagValues };
   sideEffects.forEach(se => {
@@ -44,7 +45,13 @@ export const useSimulationStore = create((set, get) => ({
   start: () => {
     // INVARIANT: LBA-01
     const graphState = useNarrativeStore.getState();
-    const startNode = graphState.nodes.find(n => n.data && n.data.isStartNode);
+    // CHANGED: replaces graphState.nodes.find with search across Object.values(common/choice/ending).
+    const allNodes = [
+      ...Object.values(graphState.common || {}),
+      ...Object.values(graphState.choice || {}),
+      ...Object.values(graphState.ending || {})
+    ];
+    const startNode = allNodes.find(n => n.data && n.data.isStartNode);
     if (!startNode) {
       throw new Error('No start node exists');
     }
@@ -78,22 +85,21 @@ export const useSimulationStore = create((set, get) => ({
     const edge = graphState.edges.find(e => e.id === edgeId);
     if (!edge) throw new Error('Edge not found');
 
-    const destNode = graphState.nodes.find(n => n.id === edge.targetId);
+    // CHANGED: replaces destNode.type === 'ending' with edge.targetId in graphState.ending and graphState.nodes.find with sub-collection lookup.
+    const isEnding = edge.targetId in (graphState.ending || {});
+    let destNode = (graphState.common || {})[edge.targetId] || (graphState.choice || {})[edge.targetId] || (graphState.ending || {})[edge.targetId];
     if (!destNode) throw new Error('Destination node not found');
 
     let nextFlagValues = { ...state.currentFlagValues };
 
-    // Apply edge side effects
-    if (edge.sideEffects) {
-      nextFlagValues = applySideEffects(edge.sideEffects, nextFlagValues);
-    }
+    // CHANGED: removes edge.sideEffects application (field removed from schema).
 
     // Apply destination node side effects
     if (destNode.data && destNode.data.sideEffects) {
       nextFlagValues = applySideEffects(destNode.data.sideEffects, nextFlagValues);
     }
 
-    if (destNode.type === 'ending') {
+    if (isEnding) {
       set({
         activeNodeId: destNode.id,
         visitedNodeIds: [...state.visitedNodeIds, state.activeNodeId],

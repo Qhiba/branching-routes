@@ -65,6 +65,10 @@ export async function importProject() {
   const text = await file.text();
   const data = JSON.parse(text);
 
+  // PLAN GAP (Phase 2): This gate currently rejects schemaVersion 2 files, which are
+  // produced by exportGraph() after Phase 1. Import of files exported post-Phase-1 is
+  // broken until Phase 2 rewrites this to accept schemaVersion 2 and normalize the
+  // common/choice/ending shape. Legacy schemaVersion 1 files remain importable until Phase 2.
   if (data.schemaVersion !== 1) {
     throw new Error('unsupported_schema_version');
   }

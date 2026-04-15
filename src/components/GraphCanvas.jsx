@@ -16,6 +16,9 @@ import StoryNode from './nodes/StoryNode';
 import ConditionalEdge from './edges/ConditionalEdge';
 
 function GraphCanvasInner() {
+  // PLAN GAP (Phase 3): narrativeStore no longer holds nodes[]. This entire destructure
+  // is broken — storeNodes will be undefined. Phase 3 rewrites this to merge
+  // Object.values(common), Object.values(choice), Object.values(ending) into derivedNodes.
   const {
     nodes: storeNodes,
     edges: storeEdges,
@@ -37,11 +40,17 @@ function GraphCanvasInner() {
 
   const { screenToFlowPosition } = useReactFlow();
 
+  // PLAN GAP (Phase 3): nodeTypes map must expand to { commonNode: CommonNode, choiceNode: ChoiceNode, endingNode: EndingNode }.
+  // StoryNode.jsx is replaced by three dedicated renderers. Phase 3 owns this change.
   const nodeTypes = useMemo(() => ({ storyNode: StoryNode, ending: StoryNode }), []);
   const edgeTypes = useMemo(() => ({ conditionalEdge: ConditionalEdge }), []);
 
+  // PLAN GAP (Phase 3): storeNodes is undefined (nodes[] was removed in Phase 1).
+  // Phase 3 rewrites this useMemo to derive from Object.values(common/choice/ending)
+  // and maps each node to the correct React Flow type (commonNode/choiceNode/endingNode).
+  // The isEndNode conditional inside data is replaced by EndingNode unconditionally omitting its handle.
   const derivedNodes = useMemo(() => {
-    return storeNodes.map(node => ({
+    return (storeNodes || []).map(node => ({
       id: node.id,
       type: node.type === 'ending' ? 'ending' : 'storyNode',
       position: node.position,
@@ -77,6 +86,9 @@ function GraphCanvasInner() {
       data: {
         label: edge.label,
         condition: edge.condition,
+        // PLAN GAP (Phase 4): sideEffects field removed from edge schema in Phase 1.
+        // ConditionalEdge.jsx no longer receives data.sideEffects. This pass-through
+        // is now undefined and harmless, but Phase 4 removes it entirely.
         sideEffects: edge.sideEffects,
       }
     }));

@@ -52,6 +52,10 @@ export default function EdgeInspector() {
     updateEdge(edge.id, { condition: { ...edge.condition, clauses: updated } });
   };
 
+  // PLAN GAP (Phase 4): edge.sideEffects field removed from schema in Phase 1.
+  // The three handlers below (addSideEffect, updateSideEffect, removeSideEffect) write
+  // to edge.sideEffects which no longer exists. Phase 4 removes these handlers entirely
+  // and removes the full sideEffects UI section from the JSX below.
   const addSideEffect = () => {
     const newSideEffect = { flagId: flags[0]?.id || '', operation: 'set', value: flags[0]?.type === 'boolean' ? false : 0 };
     updateEdge(edge.id, { sideEffects: [...(edge.sideEffects || []), newSideEffect] });
@@ -186,6 +190,10 @@ export default function EdgeInspector() {
         )}
       </div>
 
+      {/* PLAN GAP (Phase 4): This entire sideEffects section must be removed.
+           edge.sideEffects no longer exists (field removed from schema in Phase 1).
+           The section renders nothing (edge.sideEffects is undefined → falls back to []).
+           Phase 4 deletes this block and all three handlers above. */}
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
         <h4 style={{ margin: '0 0 4px 0', color: 'var(--color-text-primary)' }}>Side Effects</h4>
         <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>

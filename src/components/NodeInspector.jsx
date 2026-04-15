@@ -3,7 +3,10 @@ import { useNarrativeStore, useUIStore } from 'store';
 
 export default function NodeInspector() {
   const selectedNodeId = useUIStore(state => state.selectedNodeId);
-  const node = useNarrativeStore(state => state.nodes.find(n => n.id === selectedNodeId));
+  // PLAN GAP (Phase 3): state.nodes no longer exists (removed in Phase 1). This selector
+  // always returns undefined. Phase 3 replaces this with a sub-collection lookup:
+  // state.common[id] ?? state.choice[id] ?? state.ending[id]
+  const node = useNarrativeStore(state => state.nodes?.find(n => n.id === selectedNodeId));
   const flags = useNarrativeStore(state => state.flags);
   const updateNode = useNarrativeStore(state => state.updateNode);
   const setStartNode = useNarrativeStore(state => state.setStartNode);
