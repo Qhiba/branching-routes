@@ -39,9 +39,9 @@ No component file may directly mutate the graph data structure. All mutations mu
 
 ## AR-05 — Single Source of Truth
 
-The canonical graph representation is the Zustand `graphStore`. The React Flow `nodes` and `edges` arrays are derived from this store and re-synced on every store change. The JSON export/import format is the serialised form of `graphStore` state only.
+The canonical graph representation is the Zustand `narrativeStore`. The React Flow `nodes` and `edges` arrays are derived from the typed node sub-collections (`common`, `choice`, `ending`) and re-synced on every store change. The JSON export/import format is the serialised form of `narrativeStore` state only.
 
-**Rationale:** A single canonical source eliminates synchronisation bugs between the store, the canvas, and the saved file.
+**Rationale:** The canonical shape changed; the rule must reflect what the store actually holds.
 
 ---
 
@@ -85,16 +85,16 @@ This application makes zero network requests at runtime. No fetch, axios, or Web
 
 ---
 
-## AR-11 — Side Effect Execution Order
+## AR-11 — Side Effect Placement
 
-When the simulation advances along an edge, side effects must execute in this strict order: (1) edge `sideEffects` fire first (the consequence of the choice), then (2) destination node `sideEffects` fire (the consequence of entering the scene). This order must be enforced inside `simulationStore.advance()` and nowhere else.
+Side effects exist only on nodes. When the simulation advances along an edge, only the destination node's `sideEffects` fire upon entry. This must be enforced inside `simulationStore.advance()` and nowhere else. Edges carry no `sideEffects` field.
 
-**Rationale:** Deterministic execution order prevents subtle flag-mutation bugs. Centralising the logic in one function ensures the order cannot be accidentally violated by a UI change.
+**Rationale:** The rule existed to manage execution order ambiguity caused by effects on both edges and nodes. Removing edge side effects eliminates the ambiguity entirely, so the ordering concern no longer applies.
 
 ---
 
 ## AR-12 — Node Type Structural Constraints
 
-A node of `type: 'ending'` must never be the `sourceId` of any edge. `graphStore.addEdge()` must validate this and throw if the source node is an ending node. The UI must also hide the outgoing handle on `EndingNode` to prevent accidental connection.
+Ending nodes are stored in a dedicated ending{} sub-collection. Because they are structurally separated from connectable node types, narrativeStore.addEdge() must validate that the source ID does not belong to the ending collection and throw if it does. The UI must hide the outgoing handle on EndingNode to reinforce this at the interaction layer.
 
-**Rationale:** Ending nodes are terminal by definition. Allowing outgoing edges from an ending node would create an impossible simulation state and confuse the designer.
+**Rationale:** The enforcement mechanism is the same but the lookup target changed — from a type field on a flat array entry to sub-collection identity.
