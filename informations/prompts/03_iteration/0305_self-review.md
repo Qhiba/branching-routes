@@ -9,7 +9,7 @@ You do not rewrite. You identify and cite.
 <!-- pipeline: 0304 Execute → 0305 Self-Review → 0306 Fix → 0307 Test -->
 
 ## CONTEXT
-Current phase: [N] = 1
+Current phase: [N] = 2
 
 Load these files:
 1. `/informations/runs/[DD-MM-YYYY]_iteration/ran_0303_phase_[N].md` — what this phase planned to do

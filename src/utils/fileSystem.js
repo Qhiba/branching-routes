@@ -65,13 +65,64 @@ export async function importProject() {
   const text = await file.text();
   const data = JSON.parse(text);
 
-  // PLAN GAP (Phase 2): This gate currently rejects schemaVersion 2 files, which are
-  // produced by exportGraph() after Phase 1. Import of files exported post-Phase-1 is
-  // broken until Phase 2 rewrites this to accept schemaVersion 2 and normalize the
-  // common/choice/ending shape. Legacy schemaVersion 1 files remain importable until Phase 2.
-  if (data.schemaVersion !== 1) {
+  // CHANGED: Accep both schemaVersion: 1 and schemaVersion: 2. Throw 'unsupported_schema_version' for anything else.
+  if (data.schemaVersion !== 1 && data.schemaVersion !== 2) {
     throw new Error('unsupported_schema_version');
   }
 
+  if (data.schemaVersion === 1) {
+    // MIGRATION: Parallel Support (S03) & In-place migration (edges, meta)
+    // CHANGED: Legacy path (schemaVersion: 1) distributes nodes[], strips edge.sideEffects, adds meta types.
+    
+    const meta = {
+      ...data.meta,
+      commonNodeTypes: data.meta?.commonNodeTypes || [],
+      endingTypes: data.meta?.endingTypes || [],
+    };
+
+    const common = {};
+    const choice = {};
+    const ending = {};
+
+    (data.nodes || []).forEach(node => {
+      if (node.type === 'choice') {
+        choice[node.id] = node;
+      } else if (node.type === 'ending') {
+        ending[node.id] = node;
+      } else {
+        if (node.type !== 'common') {
+          console.log(`Legacy node type mapped to common. ID: ${node.id}`);
+        }
+        common[node.id] = node;
+      }
+    });
+
+    const affectedEdgeIds = [];
+    let discardedEffectsCount = 0;
+
+    const edges = (data.edges || []).map(edge => {
+      if (edge.sideEffects && edge.sideEffects.length > 0) {
+        affectedEdgeIds.push(edge.id);
+        discardedEffectsCount += edge.sideEffects.length;
+      }
+      const { sideEffects, ...cleanEdge } = edge;
+      return cleanEdge;
+    });
+
+    if (affectedEdgeIds.length > 0) {
+      console.warn(`Removed ${discardedEffectsCount} edge sideEffects from ${affectedEdgeIds.length} edges. Affected edge IDs: ${affectedEdgeIds.join(', ')}`);
+    }
+
+    return {
+      common,
+      choice,
+      ending,
+      edges,
+      flags: data.flags || [],
+      meta
+    };
+  }
+
+  // CHANGED: New-schema path (schemaVersion: 2) passes data through unchanged.
   return data;
 }
