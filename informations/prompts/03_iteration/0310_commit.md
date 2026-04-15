@@ -1,27 +1,30 @@
+<!-- 0310_commit.md -->
+
 ## ROLE
 You write git commit messages. Nothing else.
 
 ## CONTEXT
-What changed: [ONE SENTENCE BEHAVIOR DELTA]
-What was preserved: [ONE SENTENCE]
-Files changed: [LIST]
-Changelog entry: [PASTE FROM STEP 9]
+Load these files:
+1. `/informations/runs/[DD-MM-YYYY]_iteration/ran_0309_document.md` — changelog entry and files changed
+2. `/informations/runs/[DD-MM-YYYY]_iteration/ran_0303_filemap.md` — full file list
 
 ## TASK
-Write one commit message.
+Write one commit message:
 
-If the change is behavioral:
 change(scope): short description of what behavior shifted
-
-If the change is internal only with no behavior delta:
-refactor(scope): short description
 
 Body (3 lines max):
 - What the old behavior was
 - What the new behavior is
-- What was explicitly preserved
+- Migration required: yes/no
+
+## Save Report
+Save your commit message to:
+`/informations/runs/[DD-MM-YYYY]_iteration/ran_0310_commit.md`
 
 ## CONSTRAINT
+- Subject line always starts with change()
 - Subject line max 72 characters
-- Do not use feat() — this is a change, not an addition
+- Never use feat() — this is a change, not an addition
+- Never use refactor() — behavior changed
 - Do not mention the model, the process, or this prompt

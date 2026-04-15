@@ -65,14 +65,13 @@ export async function importProject() {
   const text = await file.text();
   const data = JSON.parse(text);
 
-  // CHANGED: Accep both schemaVersion: 1 and schemaVersion: 2. Throw 'unsupported_schema_version' for anything else.
+
   if (data.schemaVersion !== 1 && data.schemaVersion !== 2) {
     throw new Error('unsupported_schema_version');
   }
 
   if (data.schemaVersion === 1) {
-    // MIGRATION: Parallel Support (S03) & In-place migration (edges, meta)
-    // CHANGED: Legacy path (schemaVersion: 1) distributes nodes[], strips edge.sideEffects, adds meta types.
+
     
     const meta = {
       ...data.meta,
@@ -123,6 +122,6 @@ export async function importProject() {
     };
   }
 
-  // CHANGED: New-schema path (schemaVersion: 2) passes data through unchanged.
+
   return data;
 }

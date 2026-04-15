@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useSimulationStore } from 'store';
 
-function StoryNode({ id, data }) {
+function CommonNode({ id, data }) {
   const isActive = useSimulationStore(s => s.activeNodeId === id);
   const isVisited = useSimulationStore(s => s.visitedNodeIds.includes(id));
   const isReachable = useSimulationStore(s => {
@@ -31,12 +31,10 @@ function StoryNode({ id, data }) {
         </div>
       )}
 
-      {/* Ending nodes shouldn't have outgoing connect possibility per spec, but data.type isn't here natively unless passed. We'll handle globally in connection logic or check type if passed. The plan says AR-12 restricts ending node. We can conditionally hide source handle if isEndNode is added, but React Flow manages connection validation. */}
-      {data.isEndNode !== true && (
-        <Handle type="source" position={Position.Right} />
-      )}
+
+      <Handle type="source" position={Position.Right} />
     </div>
   );
 }
 
-export default memo(StoryNode);
+export default memo(CommonNode);

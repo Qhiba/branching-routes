@@ -9,7 +9,7 @@ You do not touch anything outside that delta.
 <!-- pipeline: 0304 Execute → 0305 Self-Review → 0306 Fix → 0307 Test -->
 
 ## CONTEXT
-Current phase: [N] = 2
+Current phase: [N] = 4
 
 Load these files:
 1. `/informations/runs/[DD-MM-YYYY]_iteration/ran_0303_behaviordelta.md` — what changes and what stays identical

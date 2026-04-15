@@ -39,7 +39,7 @@ branching-routes/
 │   │   └── global.css      # CSS reset, base styles, component styles, simulation mode overrides
 │   │
 │   ├── store/
-│   │   ├── narrativeStore.js # Zustand store: canonical graph (nodes, edges, flags, meta)
+│   │   ├── narrativeStore.js # Zustand store: canonical graph (common, choice, ending, edges, flags, meta)
 │   │   ├── uiStore.js      # Zustand store: UI state (selection, snap-to-grid)
 │   │   ├── simulationStore.js  # Zustand store: simulation state (active node, flags, reachable sets)
 │   │   └── index.js        # Barrel re-export for all stores
@@ -55,10 +55,12 @@ branching-routes/
 │       ├── GraphCanvas.jsx  # React Flow canvas wrapper with interaction handlers
 │       ├── Sidebar.jsx      # Tab panel: Inspector / Flags
 │       ├── NodeInspector.jsx    # Form for editing node label, content, side effects
-│       ├── EdgeInspector.jsx    # Form for editing edge label, conditions, side effects
+│       ├── EdgeInspector.jsx    # Form for editing edge label and conditions
 │       ├── FlagManager.jsx      # Flag CRUD with name validation and reference checking
 │       ├── nodes/
-│       │   └── StoryNode.jsx    # Custom React Flow node with simulation state classes
+│       │   ├── CommonNode.jsx   # Custom React Flow node for standard narrative stops
+│       │   ├── ChoiceNode.jsx   # Custom React Flow node for player choices
+│       │   └── EndingNode.jsx   # Custom React Flow node for terminal states (no source handle)
 │       ├── edges/
 │       │   └── ConditionalEdge.jsx  # Custom React Flow edge with condition badges
 │       └── index.js         # Barrel re-export for all components

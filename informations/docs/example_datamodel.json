@@ -1,9 +1,11 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "meta": {
     "title": "The Enchanted Forest",
     "createdAt": "11-04-2026",
-    "updatedAt": "11-04-2026"
+    "updatedAt": "15-04-2026",
+    "commonNodeTypes": [],
+    "endingTypes": []
   },
   "flags": [
     {
@@ -19,8 +21,8 @@
       "defaultValue": 0
     }
   ],
-  "nodes": [
-    {
+  "common": {
+    "n-00100000-0000-4000-8000-000000000001": {
       "id": "n-00100000-0000-4000-8000-000000000001",
       "type": "common",
       "position": { "x": 0, "y": 100 },
@@ -37,7 +39,7 @@
         ]
       }
     },
-    {
+    "n-00200000-0000-4000-8000-000000000002": {
       "id": "n-00200000-0000-4000-8000-000000000002",
       "type": "common",
       "position": { "x": 300, "y": 0 },
@@ -54,9 +56,22 @@
         ]
       }
     },
-    {
-      "id": "n-00300000-0000-4000-8000-000000000003",
+    "n-00400000-0000-4000-8000-000000000004": {
+      "id": "n-00400000-0000-4000-8000-000000000004",
       "type": "common",
+      "position": { "x": 600, "y": 100 },
+      "data": {
+        "label": "Underground Lake",
+        "content": "Your lantern reveals a vast underground lake. A stone bridge leads to an island with a glowing crystal.",
+        "isStartNode": false,
+        "sideEffects": []
+      }
+    }
+  },
+  "choice": {
+    "n-00300000-0000-4000-8000-000000000003": {
+      "id": "n-00300000-0000-4000-8000-000000000003",
+      "type": "choice",
       "position": { "x": 300, "y": 200 },
       "data": {
         "label": "Dark Cave",
@@ -70,19 +85,10 @@
           }
         ]
       }
-    },
-    {
-      "id": "n-00400000-0000-4000-8000-000000000004",
-      "type": "common",
-      "position": { "x": 600, "y": 100 },
-      "data": {
-        "label": "Underground Lake",
-        "content": "Your lantern reveals a vast underground lake. A stone bridge leads to an island with a glowing crystal.",
-        "isStartNode": false,
-        "sideEffects": []
-      }
-    },
-    {
+    }
+  },
+  "ending": {
+    "n-00500000-0000-4000-8000-000000000005": {
       "id": "n-00500000-0000-4000-8000-000000000005",
       "type": "ending",
       "position": { "x": 900, "y": 100 },
@@ -93,7 +99,7 @@
         "sideEffects": []
       }
     },
-    {
+    "n-00600000-0000-4000-8000-000000000006": {
       "id": "n-00600000-0000-4000-8000-000000000006",
       "type": "ending",
       "position": { "x": 600, "y": 300 },
@@ -104,31 +110,28 @@
         "sideEffects": []
       }
     }
-  ],
+  },
   "edges": [
     {
       "id": "e-00100000-0000-4000-8000-000000000001",
       "sourceId": "n-00100000-0000-4000-8000-000000000001",
       "targetId": "n-00200000-0000-4000-8000-000000000002",
       "label": "Investigate the glow",
-      "condition": null,
-      "sideEffects": []
+      "condition": null
     },
     {
       "id": "e-00200000-0000-4000-8000-000000000002",
       "sourceId": "n-00100000-0000-4000-8000-000000000001",
       "targetId": "n-00300000-0000-4000-8000-000000000003",
       "label": "Enter the cave directly",
-      "condition": null,
-      "sideEffects": []
+      "condition": null
     },
     {
       "id": "e-00300000-0000-4000-8000-000000000003",
       "sourceId": "n-00200000-0000-4000-8000-000000000002",
       "targetId": "n-00300000-0000-4000-8000-000000000003",
       "label": "Head to the cave with lantern",
-      "condition": null,
-      "sideEffects": []
+      "condition": null
     },
     {
       "id": "e-00400000-0000-4000-8000-000000000004",
@@ -144,8 +147,7 @@
             "value": true
           }
         ]
-      },
-      "sideEffects": []
+      }
     },
     {
       "id": "e-00500000-0000-4000-8000-000000000005",
@@ -161,8 +163,7 @@
             "value": false
           }
         ]
-      },
-      "sideEffects": []
+      }
     },
     {
       "id": "e-00600000-0000-4000-8000-000000000006",
@@ -178,14 +179,7 @@
             "value": 3
           }
         ]
-      },
-      "sideEffects": [
-        {
-          "flagId": "f-00200000-0000-4000-8000-000000000002",
-          "operation": "add",
-          "value": 5
-        }
-      ]
+      }
     }
   ]
 }

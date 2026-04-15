@@ -12,15 +12,18 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { useNarrativeStore, useSimulationStore, useUIStore } from 'store';
-import StoryNode from './nodes/StoryNode';
+
+import CommonNode from './nodes/CommonNode';
+import ChoiceNode from './nodes/ChoiceNode';
+import EndingNode from './nodes/EndingNode';
 import ConditionalEdge from './edges/ConditionalEdge';
 
 function GraphCanvasInner() {
-  // PLAN GAP (Phase 3): narrativeStore no longer holds nodes[]. This entire destructure
-  // is broken — storeNodes will be undefined. Phase 3 rewrites this to merge
-  // Object.values(common), Object.values(choice), Object.values(ending) into derivedNodes.
+
   const {
-    nodes: storeNodes,
+    common = {},
+    choice = {},
+    ending = {},
     edges: storeEdges,
     addNode,
     addEdge,
@@ -40,31 +43,46 @@ function GraphCanvasInner() {
 
   const { screenToFlowPosition } = useReactFlow();
 
-  // PLAN GAP (Phase 3): nodeTypes map must expand to { commonNode: CommonNode, choiceNode: ChoiceNode, endingNode: EndingNode }.
-  // StoryNode.jsx is replaced by three dedicated renderers. Phase 3 owns this change.
-  const nodeTypes = useMemo(() => ({ storyNode: StoryNode, ending: StoryNode }), []);
+
+  const nodeTypes = useMemo(() => ({
+    commonNode: CommonNode,
+    choiceNode: ChoiceNode,
+    endingNode: EndingNode
+  }), []);
+  
   const edgeTypes = useMemo(() => ({ conditionalEdge: ConditionalEdge }), []);
 
-  // PLAN GAP (Phase 3): storeNodes is undefined (nodes[] was removed in Phase 1).
-  // Phase 3 rewrites this useMemo to derive from Object.values(common/choice/ending)
-  // and maps each node to the correct React Flow type (commonNode/choiceNode/endingNode).
-  // The isEndNode conditional inside data is replaced by EndingNode unconditionally omitting its handle.
+
   const derivedNodes = useMemo(() => {
-    return (storeNodes || []).map(node => ({
-      id: node.id,
-      type: node.type === 'ending' ? 'ending' : 'storyNode',
-      position: node.position,
-      selected: node.id === selectedNodeId,
-      data: {
-        ...node.data,
-        isEndNode: node.type === 'ending'
-      },
-    }));
-  }, [storeNodes, selectedNodeId]);
+    return [
+      ...Object.values(common).map(node => ({
+        id: node.id,
+        type: 'commonNode',
+        position: node.position,
+        selected: node.id === selectedNodeId,
+        data: node.data,
+      })),
+      ...Object.values(choice).map(node => ({
+        id: node.id,
+        type: 'choiceNode',
+        position: node.position,
+        selected: node.id === selectedNodeId,
+        data: node.data,
+      })),
+      ...Object.values(ending).map(node => ({
+        id: node.id,
+        type: 'endingNode',
+        position: node.position,
+        selected: node.id === selectedNodeId,
+        data: node.data,
+      }))
+    ];
+  }, [common, choice, ending, selectedNodeId]);
 
   const [rfNodes, setRfNodes] = useState(derivedNodes);
 
   // Sync from store when store changes (e.g. node added/deleted), but not during drag
+
   const isDragging = useRef(false);
   useEffect(() => {
     if (!isDragging.current) {
@@ -86,10 +104,7 @@ function GraphCanvasInner() {
       data: {
         label: edge.label,
         condition: edge.condition,
-        // PLAN GAP (Phase 4): sideEffects field removed from edge schema in Phase 1.
-        // ConditionalEdge.jsx no longer receives data.sideEffects. This pass-through
-        // is now undefined and harmless, but Phase 4 removes it entirely.
-        sideEffects: edge.sideEffects,
+
       }
     }));
   }, [storeEdges, selectedEdgeId]);

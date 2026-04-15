@@ -12,7 +12,7 @@ function computeReachable(activeNodeId, edges, currentFlagValues) {
 }
 
 function applySideEffects(sideEffects, currentFlagValues) {
-  // PRESERVED: Strict Deterministic Side Effect Application
+
   if (!sideEffects) return currentFlagValues;
   const nextVals = { ...currentFlagValues };
   sideEffects.forEach(se => {
@@ -45,7 +45,7 @@ export const useSimulationStore = create((set, get) => ({
   start: () => {
     // INVARIANT: LBA-01
     const graphState = useNarrativeStore.getState();
-    // CHANGED: replaces graphState.nodes.find with search across Object.values(common/choice/ending).
+
     const allNodes = [
       ...Object.values(graphState.common || {}),
       ...Object.values(graphState.choice || {}),
@@ -85,14 +85,14 @@ export const useSimulationStore = create((set, get) => ({
     const edge = graphState.edges.find(e => e.id === edgeId);
     if (!edge) throw new Error('Edge not found');
 
-    // CHANGED: replaces destNode.type === 'ending' with edge.targetId in graphState.ending and graphState.nodes.find with sub-collection lookup.
+
     const isEnding = edge.targetId in (graphState.ending || {});
     let destNode = (graphState.common || {})[edge.targetId] || (graphState.choice || {})[edge.targetId] || (graphState.ending || {})[edge.targetId];
     if (!destNode) throw new Error('Destination node not found');
 
     let nextFlagValues = { ...state.currentFlagValues };
 
-    // CHANGED: removes edge.sideEffects application (field removed from schema).
+
 
     // Apply destination node side effects
     if (destNode.data && destNode.data.sideEffects) {

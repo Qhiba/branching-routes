@@ -3,10 +3,22 @@ import { useNarrativeStore, useUIStore } from 'store';
 
 export default function NodeInspector() {
   const selectedNodeId = useUIStore(state => state.selectedNodeId);
-  // PLAN GAP (Phase 3): state.nodes no longer exists (removed in Phase 1). This selector
-  // always returns undefined. Phase 3 replaces this with a sub-collection lookup:
-  // state.common[id] ?? state.choice[id] ?? state.ending[id]
-  const node = useNarrativeStore(state => state.nodes?.find(n => n.id === selectedNodeId));
+  const nodeType = useNarrativeStore(state => {
+    if (!selectedNodeId) return undefined;
+    if (state.common[selectedNodeId]) return 'common';
+    if (state.choice[selectedNodeId]) return 'choice';
+    if (state.ending[selectedNodeId]) return 'ending';
+    return undefined;
+  });
+
+  const node = useNarrativeStore(state => {
+    if (!selectedNodeId) return undefined;
+    if (state.common[selectedNodeId]) return state.common[selectedNodeId];
+    if (state.choice[selectedNodeId]) return state.choice[selectedNodeId];
+    if (state.ending[selectedNodeId]) return state.ending[selectedNodeId];
+    return undefined;
+  });
+
   const flags = useNarrativeStore(state => state.flags);
   const updateNode = useNarrativeStore(state => state.updateNode);
   const setStartNode = useNarrativeStore(state => state.setStartNode);
@@ -78,13 +90,16 @@ export default function NodeInspector() {
         />
       </div>
 
-      <button
-        onClick={handleStartNodeClick}
-        disabled={data.isStartNode}
-        style={{ padding: '8px', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', cursor: data.isStartNode ? 'default' : 'pointer', opacity: data.isStartNode ? 0.7 : 1 }}
-      >
-        {data.isStartNode ? 'Start Node ✓' : 'Set as Start Node'}
-      </button>
+      {nodeType !== 'ending' && (
+        <button
+          onClick={handleStartNodeClick}
+          disabled={data.isStartNode}
+          style={{ padding: '8px', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', cursor: data.isStartNode ? 'default' : 'pointer', opacity: data.isStartNode ? 0.7 : 1 }}
+        >
+          {data.isStartNode ? 'Start Node ✓' : 'Set as Start Node'}
+        </button>
+      )}
+
 
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
         <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-text-primary)' }}>Side Effects</h4>

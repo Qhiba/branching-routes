@@ -52,7 +52,7 @@
 ## `src/store/`
 
 ### `src/store/narrativeStore.js` (RENAMED FROM graphStore.js — 14-04-2026)
-- **Purpose:** Zustand store owning the canonical graph: `nodes[]`, `edges[]`, `flags[]`, and `meta`. Exposes CRUD actions for narrative entity types, graph import/export, and new graph creation. Cross-coordinates with `uiStore` on deletions and loads.
+- **Purpose:** Zustand store owning the canonical graph: `common{}`, `choice{}`, `ending{}`, `edges[]`, `flags[]`, and `meta`. Exposes CRUD actions for narrative entity types, graph import/export, and new graph creation. Cross-coordinates with `uiStore` on deletions and loads.
 - **Key exports:** `useNarrativeStore` (Zustand hook)
 - **Dependencies:** `utils` (barrel — `generateId`)
 - **Actions:** `addNode`, `updateNode`, `deleteNode`, `setStartNode`, `addEdge`, `updateEdge`, `deleteEdge`, `addFlag`, `updateFlag`, `deleteFlag`, `updateMeta`, `loadGraph`, `newGraph`, `exportGraph`
@@ -88,7 +88,7 @@
 - **Dependencies:** None.
 
 ### `src/utils/fileSystem.js`
-- **Purpose:** Browser File System Access API wrappers for save and open. Falls back to `<a download>` / `<input type="file">` when the API is unavailable. Validates `schemaVersion` on import.
+- **Purpose:** Browser File System Access API wrappers for save and open. Falls back to `<a download>` / `<input type="file">` when the API is unavailable. Validates `schemaVersion` on import, redistributes legacy `nodes[]` into sub-collections, and strips legacy edge `sideEffects`.
 - **Key exports:** `exportProject(graphData, defaultTitle): Promise<void>`, `importProject(): Promise<GraphData | null>`
 - **Dependencies:** None.
 
@@ -107,9 +107,9 @@
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`), `utils` (barrel — `exportProject`, `importProject`), `dagre`
 
 ### `src/components/GraphCanvas.jsx`
-- **Purpose:** React Flow canvas wrapper. Transforms store state into React Flow format, registers custom node/edge types, handles interactions (click, connect, drag, double-click-to-add-node), manages simulation advance-by-click, and applies simulation mode CSS class.
+- **Purpose:** React Flow canvas wrapper. Derives React Flow nodes from the three sub-collections, registers custom node/edge types, handles interactions (click, connect, drag, double-click-to-add-node), manages simulation advance-by-click, and applies simulation mode CSS class.
 - **Key exports:** `default GraphCanvas`
-- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`), `@xyflow/react`, `components/nodes/StoryNode`, `components/edges/ConditionalEdge`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`), `@xyflow/react`, `components/nodes/CommonNode`, `components/nodes/ChoiceNode`, `components/nodes/EndingNode`, `components/edges/ConditionalEdge`
 
 ### `src/components/Sidebar.jsx`
 - **Purpose:** Right-side panel with two tabs: Inspector (shows NodeInspector or EdgeInspector based on selection) and Flags (always shows FlagManager).
@@ -117,12 +117,12 @@
 - **Dependencies:** `store` (barrel — `useUIStore`), `NodeInspector`, `EdgeInspector`, `FlagManager`
 
 ### `src/components/NodeInspector.jsx`
-- **Purpose:** Form panel for editing the selected node's label, content, side effects, and start node status. Includes node deletion.
+- **Purpose:** Form panel for editing a selected node's properties based on its type (label, content, side effects, start node status). Performs multi-collection lookups to locate nodes. Includes node deletion.
 - **Key exports:** `default NodeInspector`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`)
 
 ### `src/components/EdgeInspector.jsx`
-- **Purpose:** Form panel for editing a selected edge's label, condition (AND/OR operator + clauses), and side effects. Shows execution order hint. Includes edge deletion.
+- **Purpose:** Form panel for editing a selected edge's label and condition (AND/OR operator + clauses). Includes edge deletion.
 - **Key exports:** `default EdgeInspector`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`)
 
@@ -131,9 +131,19 @@
 - **Key exports:** `default FlagManager`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`)
 
-### `src/components/nodes/StoryNode.jsx`
-- **Purpose:** Custom React Flow node renderer. Displays label, truncated content preview, side-effect count badge. Applies simulation state CSS classes (`--active`, `--visited`, `--reachable`). Uses `React.memo` with targeted selectors (RISK-01 mitigation). Hides outgoing handle on ending nodes (AR-12).
-- **Key exports:** `default StoryNode`
+### `src/components/nodes/CommonNode.jsx`
+- **Purpose:** Custom React Flow node renderer for standard narrative components. Displays label, truncated content preview, side-effect count badge. Applies simulation state CSS classes (`--active`, `--visited`, `--reachable`). Uses `React.memo` with targeted selectors.
+- **Key exports:** `default CommonNode`
+- **Dependencies:** `store` (barrel — `useSimulationStore`), `@xyflow/react`
+
+### `src/components/nodes/ChoiceNode.jsx`
+- **Purpose:** Custom React Flow node renderer for choice points. Displays label, truncated content preview, side-effect count, and `[Choice]` indicator. Applies simulation state CSS classes. Uses `React.memo`.
+- **Key exports:** `default ChoiceNode`
+- **Dependencies:** `store` (barrel — `useSimulationStore`), `@xyflow/react`
+
+### `src/components/nodes/EndingNode.jsx`
+- **Purpose:** Custom React Flow node renderer for terminal states. Omits outgoing handle for structural AR-12 compliance. Applies simulation state CSS classes. Uses `React.memo`.
+- **Key exports:** `default EndingNode`
 - **Dependencies:** `store` (barrel — `useSimulationStore`), `@xyflow/react`
 
 ### `src/components/edges/ConditionalEdge.jsx`
@@ -143,12 +153,25 @@
 
 ### `src/components/index.js`
 - **Purpose:** Barrel re-export for all components.
-- **Key exports:** `GraphCanvas`, `StoryNode`, `ConditionalEdge`, `TopBar`, `Sidebar`, `NodeInspector`, `EdgeInspector`, `FlagManager`
+- **Key exports:** `GraphCanvas`, `CommonNode`, `ChoiceNode`, `EndingNode`, `ConditionalEdge`, `TopBar`, `Sidebar`, `NodeInspector`, `EdgeInspector`, `FlagManager`
 - **Dependencies:** All files in `components/`
 
 ---
 
 ## Changelog
+
+## [2026-04-15] — Data Model, Canvas, State Management Iteration
+### Changed
+- `narrativeStore` now holds `common{}`, `choice{}`, `ending{}` sub-collections instead of a flat `nodes[]` array.
+- `GraphCanvas.jsx` derives React Flow nodes directly from the three new sub-collections.
+- Node rendering architecture split from a single component into dedicated `CommonNode`, `ChoiceNode`, and `EndingNode` renderers.
+- `meta` schema enriched with `commonNodeTypes` and `endingTypes` tracking arrays.
+### Deprecated
+- The flat `nodes[]` array schema is strictly un-supported for new documents.
+- The `sideEffects` field on edges is completely removed (one-way).
+- `StoryNode.jsx` has been completely deleted and functionally replaced.
+### Migration
+- yes — `fileSystem.js` transparently distributes legacy `nodes[]` into the correct sub-collections upon load, and actively removes `sideEffects` from edges under `schemaVersion: 1`. Save files are now emitted as `schemaVersion: 2`.
 
 ## [2026-04-14] — Structural Refactor
 ### Changed

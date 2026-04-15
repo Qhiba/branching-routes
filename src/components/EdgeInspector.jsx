@@ -52,35 +52,7 @@ export default function EdgeInspector() {
     updateEdge(edge.id, { condition: { ...edge.condition, clauses: updated } });
   };
 
-  // PLAN GAP (Phase 4): edge.sideEffects field removed from schema in Phase 1.
-  // The three handlers below (addSideEffect, updateSideEffect, removeSideEffect) write
-  // to edge.sideEffects which no longer exists. Phase 4 removes these handlers entirely
-  // and removes the full sideEffects UI section from the JSX below.
-  const addSideEffect = () => {
-    const newSideEffect = { flagId: flags[0]?.id || '', operation: 'set', value: flags[0]?.type === 'boolean' ? false : 0 };
-    updateEdge(edge.id, { sideEffects: [...(edge.sideEffects || []), newSideEffect] });
-  };
 
-  const updateSideEffect = (index, patch) => {
-    const updated = [...(edge.sideEffects || [])];
-    updated[index] = { ...updated[index], ...patch };
-
-    if (patch.flagId) {
-      const newFlag = flags.find(f => f.id === patch.flagId);
-      if (newFlag) {
-        updated[index].value = newFlag.type === 'boolean' ? false : 0;
-        updated[index].operation = 'set';
-      }
-    }
-
-    updateEdge(edge.id, { sideEffects: updated });
-  };
-
-  const removeSideEffect = (index) => {
-    const updated = [...(edge.sideEffects || [])];
-    updated.splice(index, 1);
-    updateEdge(edge.id, { sideEffects: updated });
-  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -190,78 +162,7 @@ export default function EdgeInspector() {
         )}
       </div>
 
-      {/* PLAN GAP (Phase 4): This entire sideEffects section must be removed.
-           edge.sideEffects no longer exists (field removed from schema in Phase 1).
-           The section renders nothing (edge.sideEffects is undefined → falls back to []).
-           Phase 4 deletes this block and all three handlers above. */}
-      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
-        <h4 style={{ margin: '0 0 4px 0', color: 'var(--color-text-primary)' }}>Side Effects</h4>
-        <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-          Edge effects run first, then the destination node's effects.
-        </p>
 
-        {(edge.sideEffects || []).map((se, index) => {
-          const flag = flags.find(f => f.id === se.flagId);
-          return (
-            <div key={index} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginBottom: '8px', background: 'var(--color-bg-base)', padding: '8px', border: '1px solid var(--color-border)' }}>
-              <select
-                name={`se-flag-${index}`}
-                value={se.flagId}
-                onChange={(e) => updateSideEffect(index, { flagId: e.target.value })}
-                style={{ flex: 1, padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-              >
-                {!se.flagId && <option value="">Select flag...</option>}
-                {flags.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-              </select>
-
-              {flag && (
-                <>
-                  <select
-                    name={`se-op-${index}`}
-                    value={se.operation}
-                    onChange={(e) => updateSideEffect(index, { operation: e.target.value })}
-                    style={{ width: '80px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-                  >
-                    <option value="set">set</option>
-                    {flag.type === 'number' && (
-                      <>
-                        <option value="add">add</option>
-                        <option value="subtract">sub</option>
-                      </>
-                    )}
-                  </select>
-
-                  {flag.type === 'boolean' ? (
-                    <input
-                      type="checkbox"
-                      name={`se-val-bool-${index}`}
-                      checked={se.value}
-                      onChange={(e) => updateSideEffect(index, { value: e.target.checked })}
-                    />
-                  ) : (
-                    <input
-                      type="number"
-                      name={`se-val-num-${index}`}
-                      value={se.value}
-                      onChange={(e) => updateSideEffect(index, { value: Number(e.target.value) })}
-                      style={{ width: '60px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-                    />
-                  )}
-                </>
-              )}
-
-              <button onClick={() => removeSideEffect(index)} style={{ padding: '4px', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '1.2rem', marginLeft: 'auto' }}>🗑️</button>
-            </div>
-          );
-        })}
-
-        <button
-          onClick={addSideEffect}
-          style={{ width: '100%', padding: '8px', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px dashed var(--color-border)', cursor: 'pointer', marginTop: '8px' }}
-        >
-          Add Side Effect
-        </button>
-      </div>
 
       <div style={{ marginTop: 'auto', paddingTop: '24px' }}>
         <button

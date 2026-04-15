@@ -24,6 +24,7 @@ function ConditionalEdge(props) {
   const label = data?.label;
   const condition = data?.condition;
 
+
   return (
     <>
       <BaseEdge path={edgePath} markerEnd={markerEnd} className={className} interactionWidth={20} />

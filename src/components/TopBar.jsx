@@ -8,7 +8,7 @@ export default function TopBar() {
   const updateMeta = useNarrativeStore(s => s.updateMeta);
   const snapToGrid = useUIStore(s => s.snapToGrid);
   const toggleSnapToGrid = useUIStore(s => s.toggleSnapToGrid);
-  // PLAN GAP: nodes[] removed in Phase 1. Deriving isEmpty from sub-collections as interim shim until Phase 3.
+
   const common = useNarrativeStore(s => s.common);
   const choice = useNarrativeStore(s => s.choice);
   const endingNodes = useNarrativeStore(s => s.ending);
@@ -45,7 +45,7 @@ export default function TopBar() {
   };
 
   const handleTidyLayout = () => {
-    // PLAN GAP: nodes[] removed in Phase 1. Flattening sub-collections as interim shim until Phase 3.
+
     const graphState = useNarrativeStore.getState();
     const storeNodes = [
       ...Object.values(graphState.common || {}),
