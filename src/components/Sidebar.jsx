@@ -3,6 +3,7 @@ import { useNarrativeStore, useUIStore } from 'store';
 import NodeInspector from './NodeInspector';
 import EdgeInspector from './EdgeInspector';
 import FlagManager from './FlagManager';
+import StatusManager from './StatusManager';
 
 export default function Sidebar() {
   const [activeTab, setActiveTab] = useState('inspector');
@@ -24,6 +25,13 @@ export default function Sidebar() {
         >
           Flags
         </button>
+        {/* CHANGED: 2 tabs (inspector, flags) → 3 tabs (inspector, flags, status) */}
+        <button 
+          style={{ flex: 1, padding: '12px', background: activeTab === 'status' ? 'var(--color-bg-base)' : 'transparent', color: activeTab === 'status' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', border: 'none', borderBottom: activeTab === 'status' ? '2px solid var(--color-primary)' : '2px solid transparent', cursor: 'pointer' }}
+          onClick={() => setActiveTab('status')}
+        >
+          Status
+        </button>
       </div>
       
       <div className="sidebar-content" style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
@@ -39,6 +47,8 @@ export default function Sidebar() {
           </>
         )}
         {activeTab === 'flags' && <FlagManager />}
+        {/* CHANGED: render only Inspector and FlagManager → also render StatusManager for status tab */}
+        {activeTab === 'status' && <StatusManager />}
       </div>
     </div>
   );

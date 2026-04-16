@@ -1,0 +1,1 @@
+PASS — Phase 4 safely rewired `useSimulationStore` to consume the separated `flag{}` and `status{}` maps natively and successfully decoupled side effects into `applyFlagsSet` and `applyStatusSet` without leaking out of the planned behavior delta.

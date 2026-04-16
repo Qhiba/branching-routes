@@ -9,3 +9,4 @@ export { default as Sidebar } from './Sidebar';
 export { default as NodeInspector } from './NodeInspector';
 export { default as EdgeInspector } from './EdgeInspector';
 export { default as FlagManager } from './FlagManager';
+export { default as StatusManager } from './StatusManager';

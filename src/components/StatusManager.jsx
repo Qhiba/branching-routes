@@ -1,35 +1,42 @@
 import React, { useState } from 'react';
 import { useNarrativeStore } from 'store';
 
-export default function FlagManager() {
-  const flagDict = useNarrativeStore(state => state.flag);
-  const flags = Object.values(flagDict);
-  const addFlag = useNarrativeStore(state => state.addFlag);
-  const deleteFlag = useNarrativeStore(state => state.deleteFlag);
+export default function StatusManager() {
+  const statusDict = useNarrativeStore(state => state.status);
+  const statuses = Object.values(statusDict);
+  const addStatus = useNarrativeStore(state => state.addStatus);
+  const deleteStatus = useNarrativeStore(state => state.deleteStatus);
   
   const [newName, setNewName] = useState('');
-  const [newState, setNewState] = useState(false);
+  const [newValue, setNewValue] = useState(0);
+  const [newMinValue, setNewMinValue] = useState('');
+  const [newMaxValue, setNewMaxValue] = useState('');
 
   const [deleteError, setDeleteError] = useState(null);
 
-  const isNameValid = /^[a-zA-Z0-9_]+$/.test(newName) && !flags.some(f => f.name === newName);
+  const isNameValid = /^[a-zA-Z0-9_]+$/.test(newName) && !statuses.some(s => s.name === newName);
   const hasTypedName = newName.length > 0;
 
-  const handleAddFlag = (e) => {
+  const handleAddStatus = (e) => {
     e.preventDefault();
     if (!isNameValid) return;
     
-    // CHANGED: addFlag takes type and default bool/num → addFlag takes only boolean state
-    addFlag(newName, newState);
+    const minVal = newMinValue === '' ? null : Number(newMinValue);
+    const maxVal = newMaxValue === '' ? null : Number(newMaxValue);
+    
+    // CHANGED: addStatus with value, minValue, maxValue
+    addStatus(newName, newValue, minVal, maxVal);
     
     // reset form
     setNewName('');
-    setNewState(false);
+    setNewValue(0);
+    setNewMinValue('');
+    setNewMaxValue('');
   };
 
   const handleDelete = (id) => {
     setDeleteError(null);
-    const result = deleteFlag(id);
+    const result = deleteStatus(id);
     if (result && result.blocked) {
       // PRESERVED: Referential Integrity behavior
       setDeleteError({ id, references: result.references });
@@ -39,32 +46,37 @@ export default function FlagManager() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <h4 style={{ margin: 0, color: 'var(--color-text-primary)' }}>Existing Flags</h4>
+        <h4 style={{ margin: 0, color: 'var(--color-text-primary)' }}>Existing Statuses</h4>
         
-        {flags.length === 0 ? (
+        {statuses.length === 0 ? (
           <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', padding: '12px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
-            No flags defined. Add one below.
+            No statuses defined. Add one below.
           </div>
         ) : (
-          flags.map(flagObj => (
-            <div key={flagObj.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
+          statuses.map(statusObj => (
+            <div key={statusObj.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <code style={{ color: 'var(--color-accent)', fontWeight: 'bold' }}>{flagObj.name}</code>
+                  <code style={{ color: 'var(--color-accent)', fontWeight: 'bold' }}>{statusObj.name}</code>
                   <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-                    Default: <strong>{String(flagObj.state)}</strong>
+                    Default: <strong>{String(statusObj.value)}</strong>
+                    {(statusObj.minValue !== null || statusObj.maxValue !== null) && (
+                      <span style={{ marginLeft: '8px', color: 'var(--color-text-secondary)' }}>
+                        [Min: {statusObj.minValue !== null ? statusObj.minValue : 'None'}, Max: {statusObj.maxValue !== null ? statusObj.maxValue : 'None'}]
+                      </span>
+                    )}
                   </div>
                 </div>
                 
                 <button 
-                  onClick={() => handleDelete(flagObj.id)}
+                  onClick={() => handleDelete(statusObj.id)}
                   style={{ padding: '4px 8px', background: 'rgba(255, 68, 68, 0.1)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px', cursor: 'pointer' }}
                 >
                   Delete
                 </button>
               </div>
 
-              {deleteError && deleteError.id === flagObj.id && (
+              {deleteError && deleteError.id === statusObj.id && (
                 <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(255, 68, 68, 0.1)', border: '1px solid var(--color-danger)', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--color-danger)' }}>
                   <strong>Cannot delete. Referenced by:</strong>
                   <ul style={{ margin: '4px 0 0 0', paddingLeft: '20px' }}>
@@ -79,17 +91,17 @@ export default function FlagManager() {
       </div>
 
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
-        <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-text-primary)' }}>Add New Flag</h4>
+        <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-text-primary)' }}>Add New Status</h4>
         
-        <form onSubmit={handleAddFlag} style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
+        <form onSubmit={handleAddStatus} style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Name (alphanumeric_)</label>
             <input 
               type="text" 
-              name="new-flag-name"
+              name="new-status-name"
               value={newName} 
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. has_key"
+              placeholder="e.g. courage"
               style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
             />
             {hasTypedName && !isNameValid && (
@@ -101,15 +113,38 @@ export default function FlagManager() {
 
           <div>
             <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Default Value</label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-primary)' }}>
+            <input 
+              type="number" 
+              name="new-status-default-num"
+              value={newValue} 
+              onChange={(e) => setNewValue(Number(e.target.value))}
+              style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Min Value (Optional)</label>
               <input 
-                type="checkbox" 
-                name="new-flag-default-bool"
-                checked={newState} 
-                onChange={(e) => setNewState(e.target.checked)}
+                type="number" 
+                name="new-status-min"
+                value={newMinValue} 
+                onChange={(e) => setNewMinValue(e.target.value)}
+                placeholder="None"
+                style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
               />
-              True
-            </label>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Max Value (Optional)</label>
+              <input 
+                type="number" 
+                name="new-status-max"
+                value={newMaxValue} 
+                onChange={(e) => setNewMaxValue(e.target.value)}
+                placeholder="None"
+                style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+              />
+            </div>
           </div>
 
           <button 
@@ -117,7 +152,7 @@ export default function FlagManager() {
             disabled={!hasTypedName || !isNameValid}
             style={{ marginTop: '8px', padding: '10px', background: (!hasTypedName || !isNameValid) ? 'var(--color-bg-hover)' : 'var(--color-accent)', color: (!hasTypedName || !isNameValid) ? 'var(--color-text-secondary)' : 'white', border: (!hasTypedName || !isNameValid) ? '1px solid var(--color-border)' : '1px solid var(--color-accent)', cursor: (!hasTypedName || !isNameValid) ? 'not-allowed' : 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
           >
-            Add Flag
+            Add Status
           </button>
         </form>
       </div>

@@ -4,7 +4,8 @@ import { useNarrativeStore, useUIStore } from 'store';
 export default function EdgeInspector() {
   const selectedEdgeId = useUIStore(state => state.selectedEdgeId);
   const edge = useNarrativeStore(state => state.edges.find(e => e.id === selectedEdgeId));
-  const flags = useNarrativeStore(state => state.flags);
+  const flags = Object.values(useNarrativeStore(state => state.flag));
+  const statuses = Object.values(useNarrativeStore(state => state.status));
   const updateEdge = useNarrativeStore(state => state.updateEdge);
   const deleteEdge = useNarrativeStore(state => state.deleteEdge);
 
@@ -18,7 +19,7 @@ export default function EdgeInspector() {
     if (edge.condition) {
       updateEdge(edge.id, { condition: null });
     } else {
-      updateEdge(edge.id, { condition: { operator: 'AND', clauses: [] } });
+      updateEdge(edge.id, { condition: { operator: 'and', conditions: [] } });
     }
   };
 
@@ -26,30 +27,28 @@ export default function EdgeInspector() {
     updateEdge(edge.id, { condition: { ...edge.condition, operator } });
   };
 
-  const addClause = () => {
-    const newClause = { flagId: flags[0]?.id || '', comparator: '==', value: flags[0]?.type === 'boolean' ? true : 0 };
-    updateEdge(edge.id, { condition: { ...edge.condition, clauses: [...edge.condition.clauses, newClause] } });
+  // CHANGED: added newClause with flagId, comparator, value → added newClause with flag, state
+  const addFlagClause = () => {
+    const newClause = { flag: flags[0]?.id || '', state: true };
+    updateEdge(edge.id, { condition: { ...edge.condition, conditions: [...edge.condition.conditions, newClause] } });
+  };
+
+  // CHANGED: added newClause with flagId, comparator, value → added newClause with status, min
+  const addStatusClause = () => {
+    const newClause = { status: statuses[0]?.id || '', min: 0 };
+    updateEdge(edge.id, { condition: { ...edge.condition, conditions: [...edge.condition.conditions, newClause] } });
   };
 
   const updateClause = (index, patch) => {
-    const updated = [...edge.condition.clauses];
+    const updated = [...edge.condition.conditions];
     updated[index] = { ...updated[index], ...patch };
-
-    if (patch.flagId) {
-      const newFlag = flags.find(f => f.id === patch.flagId);
-      if (newFlag) {
-        updated[index].value = newFlag.type === 'boolean' ? true : 0;
-        updated[index].comparator = '==';
-      }
-    }
-
-    updateEdge(edge.id, { condition: { ...edge.condition, clauses: updated } });
+    updateEdge(edge.id, { condition: { ...edge.condition, conditions: updated } });
   };
 
   const removeClause = (index) => {
-    const updated = [...edge.condition.clauses];
+    const updated = [...edge.condition.conditions];
     updated.splice(index, 1);
-    updateEdge(edge.id, { condition: { ...edge.condition, clauses: updated } });
+    updateEdge(edge.id, { condition: { ...edge.condition, conditions: updated } });
   };
 
 
@@ -78,9 +77,9 @@ export default function EdgeInspector() {
           </button>
         </div>
 
-        {flags.length === 0 && edge.condition && (
+        {flags.length === 0 && statuses.length === 0 && edge.condition && (
           <div style={{ color: 'var(--color-warning)', fontSize: '0.85rem', marginBottom: '8px' }}>
-            No flags defined yet. Add flags in the Flags tab first.
+            No flags or statuses defined yet. Add them in their respective tabs.
           </div>
         )}
 
@@ -88,76 +87,91 @@ export default function EdgeInspector() {
           <div style={{ background: 'var(--color-bg-base)', padding: '12px', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-text-primary)' }}>
-                <input type="radio" name="edge-condition-op" checked={edge.condition.operator === 'AND'} onChange={() => updateConditionOperator('AND')} /> AND
+                <input type="radio" name="edge-condition-op" checked={edge.condition.operator === 'and'} onChange={() => updateConditionOperator('and')} /> AND
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-text-primary)' }}>
-                <input type="radio" name="edge-condition-op" checked={edge.condition.operator === 'OR'} onChange={() => updateConditionOperator('OR')} /> OR
+                <input type="radio" name="edge-condition-op" checked={edge.condition.operator === 'or'} onChange={() => updateConditionOperator('or')} /> OR
               </label>
             </div>
 
-            {edge.condition.clauses.map((clause, index) => {
-              const flag = flags.find(f => f.id === clause.flagId);
-              return (
-                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                  <select
-                    name={`clause-flag-${index}`}
-                    value={clause.flagId}
-                    onChange={(e) => updateClause(index, { flagId: e.target.value })}
-                    style={{ flex: 1, minWidth: '100px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-                  >
-                    {!clause.flagId && <option value="">Select flag...</option>}
-                    {flags.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                  </select>
+            {edge.condition.conditions.map((clause, index) => {
+              if ('flag' in clause) {
+                // Flag clause
+                return (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.8rem', padding: '2px 4px', background: 'var(--color-bg-hover)', color: 'var(--color-text-secondary)', borderRadius: '4px' }}>Flag</span>
+                    <select
+                      value={clause.flag || ''}
+                      onChange={(e) => updateClause(index, { flag: e.target.value })}
+                      style={{ flex: 1, minWidth: '100px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+                    >
+                      {!clause.flag && <option value="">Select flag...</option>}
+                      {flags.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    </select>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--color-text-primary)' }}>
+                      <input
+                        type="checkbox"
+                        checked={clause.state}
+                        onChange={(e) => updateClause(index, { state: e.target.checked })}
+                      />
+                      Is True
+                    </label>
+                    <button onClick={() => removeClause(index)} style={{ padding: '4px', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '1.2rem', marginLeft: 'auto' }}>🗑️</button>
+                  </div>
+                );
+              } else if ('status' in clause) {
+                // Status clause
+                return (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.8rem', padding: '2px 4px', background: 'var(--color-bg-hover)', color: 'var(--color-text-secondary)', borderRadius: '4px' }}>Status</span>
+                    {/* CHANGED: map flags to flagId → map statuses to statusId */}
+                    <select
+                      value={clause.status || ''}
+                      onChange={(e) => updateClause(index, { status: e.target.value })}
+                      style={{ flex: 1, minWidth: '100px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+                    >
+                      {!clause.status && <option value="">Select status...</option>}
+                      {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
 
-                  {flag && (
-                    <>
-                      <select
-                        name={`clause-comp-${index}`}
-                        value={clause.comparator}
-                        onChange={(e) => updateClause(index, { comparator: e.target.value })}
-                        style={{ width: '60px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-                      >
-                        <option value="==">==</option>
-                        <option value="!=">!=</option>
-                        {flag.type === 'number' && (
-                          <>
-                            <option value=">">&gt;</option>
-                            <option value=">=">&gt;=</option>
-                            <option value="<">&lt;</option>
-                            <option value="<=">&lt;=</option>
-                          </>
-                        )}
-                      </select>
+                    {/* CHANGED: read clause.value → read clause.min and clause.max for range bounds */}
+                    <input
+                      type="number"
+                      placeholder="Min (opt)"
+                      value={clause.min !== undefined ? clause.min : ''}
+                      onChange={(e) => updateClause(index, { min: e.target.value === '' ? undefined : Number(e.target.value) })}
+                      style={{ width: '60px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+                    />
+                    <span style={{color: 'var(--color-text-secondary)', fontSize: '0.85rem'}}>≤ eval ≤</span>
+                    <input
+                      type="number"
+                      placeholder="Max (opt)"
+                      value={clause.max !== undefined ? clause.max : ''}
+                      onChange={(e) => updateClause(index, { max: e.target.value === '' ? undefined : Number(e.target.value) })}
+                      style={{ width: '60px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+                    />
 
-                      {flag.type === 'boolean' ? (
-                        <input
-                          type="checkbox"
-                          name={`clause-val-bool-${index}`}
-                          checked={clause.value}
-                          onChange={(e) => updateClause(index, { value: e.target.checked })}
-                        />
-                      ) : (
-                        <input
-                          type="number"
-                          name={`clause-val-num-${index}`}
-                          value={clause.value}
-                          onChange={(e) => updateClause(index, { value: Number(e.target.value) })}
-                          style={{ width: '60px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-                        />
-                      )}
-                    </>
-                  )}
-                  <button onClick={() => removeClause(index)} style={{ padding: '4px', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '1.2rem', marginLeft: 'auto' }}>🗑️</button>
-                </div>
-              );
+                    <button onClick={() => removeClause(index)} style={{ padding: '4px', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '1.2rem', marginLeft: 'auto' }}>🗑️</button>
+                  </div>
+                );
+              }
+              return null;
             })}
 
-            <button
-              onClick={addClause}
-              style={{ padding: '4px 8px', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px dashed var(--color-border)', cursor: 'pointer', fontSize: '0.85rem' }}
-            >
-              + Add Clause
-            </button>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+              <button
+                onClick={addFlagClause}
+                style={{ padding: '4px 8px', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px dashed var(--color-border)', cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                + Add Flag Clause
+              </button>
+              <button
+                onClick={addStatusClause}
+                style={{ padding: '4px 8px', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px dashed var(--color-border)', cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                + Add Status Clause
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -19,7 +19,8 @@ export default function NodeInspector() {
     return undefined;
   });
 
-  const flags = useNarrativeStore(state => state.flags);
+  const flags = Object.values(useNarrativeStore(state => state.flag));
+  const statuses = Object.values(useNarrativeStore(state => state.status));
   const updateNode = useNarrativeStore(state => state.updateNode);
   const setStartNode = useNarrativeStore(state => state.setStartNode);
   const deleteNode = useNarrativeStore(state => state.deleteNode);
@@ -39,31 +40,30 @@ export default function NodeInspector() {
     setStartNode(node.id);
   };
 
-  const addSideEffect = () => {
-    const newSideEffect = { flagId: flags[0]?.id || '', operation: 'set', value: flags[0]?.type === 'boolean' ? false : 0 };
-    updateNode(node.id, { data: { ...data, sideEffects: [...(data.sideEffects || []), newSideEffect] } });
+  // CHANGED: unified sideEffects[] array → split side effect logic into boolean flags_set and numeric status_set
+  const toggleFlag = (flagId) => {
+    const currentFlags = data.flags_set || [];
+    const newFlags = currentFlags.includes(flagId)
+      ? currentFlags.filter(id => id !== flagId)
+      : [...currentFlags, flagId];
+    updateNode(node.id, { data: { ...data, flags_set: newFlags } });
   };
 
-  const updateSideEffect = (index, patch) => {
-    const updated = [...(data.sideEffects || [])];
+  const addStatusEffect = () => {
+    const defaultStatusId = statuses[0]?.id || '';
+    updateNode(node.id, { data: { ...data, status_set: [...(data.status_set || []), { statusId: defaultStatusId, amount: 0 }] } });
+  };
+
+  const updateStatusEffect = (index, patch) => {
+    const updated = [...(data.status_set || [])];
     updated[index] = { ...updated[index], ...patch };
-
-    // reset value type if flag id changed
-    if (patch.flagId) {
-      const newFlag = flags.find(f => f.id === patch.flagId);
-      if (newFlag) {
-        updated[index].value = newFlag.type === 'boolean' ? false : 0;
-        updated[index].operation = 'set';
-      }
-    }
-
-    updateNode(node.id, { data: { ...data, sideEffects: updated } });
+    updateNode(node.id, { data: { ...data, status_set: updated } });
   };
 
-  const removeSideEffect = (index) => {
-    const updated = [...(data.sideEffects || [])];
+  const removeStatusEffect = (index) => {
+    const updated = [...(data.status_set || [])];
     updated.splice(index, 1);
-    updateNode(node.id, { data: { ...data, sideEffects: updated } });
+    updateNode(node.id, { data: { ...data, status_set: updated } });
   };
 
   return (
@@ -102,68 +102,62 @@ export default function NodeInspector() {
 
 
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
-        <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-text-primary)' }}>Side Effects</h4>
+        <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-text-primary)' }}>Set Flags (True)</h4>
 
-        {(data.sideEffects || []).map((se, index) => {
-          const flag = flags.find(f => f.id === se.flagId);
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+          {flags.length === 0 ? (
+            <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>No flags available.</div>
+          ) : (
+            flags.map(f => {
+              const checked = (data.flags_set || []).includes(f.id);
+              return (
+                <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-text-primary)' }}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleFlag(f.id)}
+                  />
+                  {f.name}
+                </label>
+              );
+            })
+          )}
+        </div>
+
+        <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-text-primary)', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>Status Modifiers</h4>
+
+        {(data.status_set || []).map((se, index) => {
           return (
             <div key={index} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginBottom: '8px', background: 'var(--color-bg-base)', padding: '8px', border: '1px solid var(--color-border)' }}>
               <select
-                name={`se-flag-${index}`}
-                value={se.flagId}
-                onChange={(e) => updateSideEffect(index, { flagId: e.target.value })}
+                name={`se-status-${index}`}
+                value={se.statusId || ''}
+                onChange={(e) => updateStatusEffect(index, { statusId: e.target.value })}
                 style={{ flex: 1, padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
               >
-                {!se.flagId && <option value="">Select flag...</option>}
-                {flags.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                {!se.statusId && <option value="">Select status...</option>}
+                {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
 
-              {flag && (
-                <>
-                  <select
-                    name={`se-op-${index}`}
-                    value={se.operation}
-                    onChange={(e) => updateSideEffect(index, { operation: e.target.value })}
-                    style={{ width: '80px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-                  >
-                    <option value="set">set</option>
-                    {flag.type === 'number' && (
-                      <>
-                        <option value="add">add</option>
-                        <option value="subtract">sub</option>
-                      </>
-                    )}
-                  </select>
+              <input
+                type="number"
+                name={`se-amount-${index}`}
+                value={se.amount !== undefined ? se.amount : 0}
+                onChange={(e) => updateStatusEffect(index, { amount: Number(e.target.value) })}
+                style={{ width: '80px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+                placeholder="Amount"
+              />
 
-                  {flag.type === 'boolean' ? (
-                    <input
-                      type="checkbox"
-                      name={`se-val-bool-${index}`}
-                      checked={se.value}
-                      onChange={(e) => updateSideEffect(index, { value: e.target.checked })}
-                    />
-                  ) : (
-                    <input
-                      type="number"
-                      name={`se-val-num-${index}`}
-                      value={se.value}
-                      onChange={(e) => updateSideEffect(index, { value: Number(e.target.value) })}
-                      style={{ width: '60px', padding: '4px', background: 'var(--color-bg-surface)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
-                    />
-                  )}
-                </>
-              )}
-
-              <button onClick={() => removeSideEffect(index)} style={{ padding: '4px', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '1.2rem', marginLeft: 'auto' }}>🗑️</button>
+              <button onClick={() => removeStatusEffect(index)} style={{ padding: '4px', background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '1.2rem', marginLeft: 'auto' }}>🗑️</button>
             </div>
           );
         })}
 
         <button
-          onClick={addSideEffect}
+          onClick={addStatusEffect}
           style={{ width: '100%', padding: '8px', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px dashed var(--color-border)', cursor: 'pointer', marginTop: '8px' }}
         >
-          Add Side Effect
+          Add Status Modifier
         </button>
       </div>
 

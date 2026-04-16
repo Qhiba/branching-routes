@@ -3,6 +3,7 @@ import { useNarrativeStore } from 'store';
 import { evaluateCondition } from 'utils';
 
 function computeReachable(activeNodeId, edges, currentFlagValues) {
+  // PRESERVED: AR-07 (Condition Evaluation in Evaluator)
   const reachableEdges = edges.filter(e => e.sourceId === activeNodeId && evaluateCondition(e.condition, currentFlagValues));
   const reachableNodeIds = reachableEdges.map(e => e.targetId);
   return { 
@@ -11,23 +12,22 @@ function computeReachable(activeNodeId, edges, currentFlagValues) {
   };
 }
 
-function applySideEffects(sideEffects, currentFlagValues) {
-
-  if (!sideEffects) return currentFlagValues;
+// CHANGED: simulationStore previously used applySideEffects for unified sideEffects[] array → now uses applyFlagsSet and applyStatusSet for decoupled collections
+function applyFlagsSet(flagsSet, currentFlagValues) {
+  if (!flagsSet) return currentFlagValues;
   const nextVals = { ...currentFlagValues };
-  sideEffects.forEach(se => {
-    const val = se.value;
-    const op = se.operation || 'set';
-    if (op === 'set') {
-      nextVals[se.flagId] = val;
-    } else if (op === 'add') {
-      if (typeof nextVals[se.flagId] === 'number') {
-        nextVals[se.flagId] += val;
-      }
-    } else if (op === 'subtract') {
-       if (typeof nextVals[se.flagId] === 'number') {
-        nextVals[se.flagId] -= val;
-      }
+  flagsSet.forEach(flagId => {
+    nextVals[flagId] = true;
+  });
+  return nextVals;
+}
+
+function applyStatusSet(statusSet, currentFlagValues) {
+  if (!statusSet) return currentFlagValues;
+  const nextVals = { ...currentFlagValues };
+  statusSet.forEach(({ statusId, amount }) => {
+    if (typeof nextVals[statusId] === 'number') {
+      nextVals[statusId] += amount;
     }
   });
   return nextVals;
@@ -56,10 +56,18 @@ export const useSimulationStore = create((set, get) => ({
       throw new Error('No start node exists');
     }
 
+    // CHANGED: Reads graphState.flag and graphState.status (objects) instead of graphState.flags (array) to construct initial values
     const initialFlags = {};
-    graphState.flags.forEach(f => {
-      initialFlags[f.id] = f.defaultValue;
-    });
+    if (graphState.flag) {
+      Object.values(graphState.flag).forEach(f => {
+        initialFlags[f.id] = f.state;
+      });
+    }
+    if (graphState.status) {
+      Object.values(graphState.status).forEach(s => {
+        initialFlags[s.id] = s.value;
+      });
+    }
 
     const { reachableEdgeIds, reachableNodeIds } = computeReachable(startNode.id, graphState.edges, initialFlags);
 
@@ -94,9 +102,10 @@ export const useSimulationStore = create((set, get) => ({
 
 
 
-    // Apply destination node side effects
-    if (destNode.data && destNode.data.sideEffects) {
-      nextFlagValues = applySideEffects(destNode.data.sideEffects, nextFlagValues);
+    // CHANGED: Apply destination node side effects from flags_set[] and status_set[] instead of sideEffects[]
+    if (destNode.data) {
+      nextFlagValues = applyFlagsSet(destNode.data.flags_set, nextFlagValues);
+      nextFlagValues = applyStatusSet(destNode.data.status_set, nextFlagValues);
     }
 
     if (isEnding) {
@@ -122,6 +131,7 @@ export const useSimulationStore = create((set, get) => ({
   },
 
   reset: () => {
+    // PRESERVED: Simulation lifecycle (start, advance, reset) unchanged structure; internal payload reading adapts.
     set({
       isRunning: false,
       activeNodeId: null,
