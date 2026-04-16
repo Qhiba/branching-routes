@@ -10,7 +10,9 @@ export const useNarrativeStore = create((set, get) => ({
   choice: {},
   ending: {},
   edges: [],
-  flags: [],
+  // CHANGED: flags[] -> flag{} and status{} dictionaries
+  flag: {},
+  status: {},
 
 
 
@@ -27,7 +29,9 @@ export const useNarrativeStore = create((set, get) => ({
         label: 'Node',
         content: '',
         isStartNode,
-        sideEffects: []
+        // CHANGED: sideEffects: [] -> flags_set: [] and status_set: []
+        flags_set: [],
+        status_set: []
       }
     };
 
@@ -137,42 +141,73 @@ export const useNarrativeStore = create((set, get) => ({
     useUIStore.getState().clearIfSelected(id, 'edge');
   },
 
-  addFlag: (name, type, defaultValue) => set((state) => {
+  // CHANGED: addFlag signature changed to accept state instead of type/defaultValue, writes to flag{}
+  addFlag: (name, stateVal) => set((state) => {
     if (!/^[a-zA-Z0-9_]+$/.test(name)) {
       throw new Error('Invalid flag name');
     }
+    const id = generateId('f');
     const newFlag = {
-
-      id: generateId('f'),
+      id,
       name,
-      type,
-      defaultValue
+      state: stateVal
     };
     return {
-      flags: [...state.flags, newFlag],
+      flag: { ...state.flag, [id]: newFlag },
       meta: { ...state.meta, updatedAt: Date.now() }
     };
   }),
 
-  updateFlag: (id, patch) => set((state) => ({
-    flags: state.flags.map(f => f.id === id ? { ...f, ...patch } : f),
-    meta: { ...state.meta, updatedAt: Date.now() }
-  })),
+  // CHANGED: addStatus added to manage numeric status points in status{}
+  addStatus: (name, value, minValue, maxValue) => set((state) => {
+    if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+      throw new Error('Invalid status name');
+    }
+    const id = generateId('sp');
+    const newStatus = {
+      id,
+      name,
+      value,
+      minValue,
+      maxValue
+    };
+    return {
+      status: { ...state.status, [id]: newStatus },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
 
+  // CHANGED: updateFlag signature kept but operates on flag{}
+  updateFlag: (id, patch) => set((state) => {
+    if (!state.flag[id]) return state;
+    return {
+      flag: { ...state.flag, [id]: { ...state.flag[id], ...patch } },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  // CHANGED: updateStatus added to operate on status{}
+  updateStatus: (id, patch) => set((state) => {
+    if (!state.status[id]) return state;
+    return {
+      status: { ...state.status, [id]: { ...state.status[id], ...patch } },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  // CHANGED: deleteFlag checks conditions[] for flag and flags_set[] on nodes
   deleteFlag: (id) => {
-
     const state = get();
     const references = [];
 
     state.edges.forEach(e => {
-      if (e.condition && e.condition.clauses) {
-        if (e.condition.clauses.some(c => c.flagId === id)) {
+      // PRESERVED: Referential Integrity behavior
+      if (e.condition && e.condition.conditions) {
+        if (e.condition.conditions.some(c => c.flag === id)) {
           references.push(`edge_condition:${e.id}`);
         }
       }
-
     });
-
 
     const allNodes = [
       ...Object.values(state.common),
@@ -181,7 +216,7 @@ export const useNarrativeStore = create((set, get) => ({
     ];
 
     allNodes.forEach(n => {
-      if (n.data && n.data.sideEffects && n.data.sideEffects.some(se => se.flagId === id)) {
+      if (n.data && n.data.flags_set && n.data.flags_set.includes(id)) {
         references.push(`node_sideEffect:${n.id}`);
       }
     });
@@ -190,10 +225,55 @@ export const useNarrativeStore = create((set, get) => ({
       return { blocked: true, references };
     }
 
-    set((state) => ({
-      flags: state.flags.filter(f => f.id !== id),
-      meta: { ...state.meta, updatedAt: Date.now() }
-    }));
+    set((state) => {
+      const nextFlag = { ...state.flag };
+      delete nextFlag[id];
+      return {
+        flag: nextFlag,
+        meta: { ...state.meta, updatedAt: Date.now() }
+      };
+    });
+    return { blocked: false };
+  },
+
+  // CHANGED: deleteStatus added to check conditions[] for status and status_set[] on nodes
+  deleteStatus: (id) => {
+    const state = get();
+    const references = [];
+
+    state.edges.forEach(e => {
+      // PRESERVED: Referential Integrity behavior
+      if (e.condition && e.condition.conditions) {
+        if (e.condition.conditions.some(c => c.status === id)) {
+          references.push(`edge_condition:${e.id}`);
+        }
+      }
+    });
+
+    const allNodes = [
+      ...Object.values(state.common),
+      ...Object.values(state.choice),
+      ...Object.values(state.ending)
+    ];
+
+    allNodes.forEach(n => {
+      if (n.data && n.data.status_set && n.data.status_set.some(se => se.statusId === id)) {
+        references.push(`node_sideEffect:${n.id}`);
+      }
+    });
+
+    if (references.length > 0) {
+      return { blocked: true, references };
+    }
+
+    set((state) => {
+      const nextStatus = { ...state.status };
+      delete nextStatus[id];
+      return {
+        status: nextStatus,
+        meta: { ...state.meta, updatedAt: Date.now() }
+      };
+    });
     return { blocked: false };
   },
 
@@ -218,7 +298,9 @@ export const useNarrativeStore = create((set, get) => ({
       choice: graphData.choice || {},
       ending: graphData.ending || {},
       edges: graphData.edges || [],
-      flags: graphData.flags || []
+      // CHANGED: flags -> flag, status
+      flag: graphData.flag || {},
+      status: graphData.status || {}
     });
 
     // INVARIANT: BI-16
@@ -233,7 +315,9 @@ export const useNarrativeStore = create((set, get) => ({
       choice: {},
       ending: {},
       edges: [],
-      flags: []
+      // CHANGED: flags -> flag, status for new empty graphs
+      flag: {},
+      status: {}
     });
 
     // INVARIANT: BI-16
@@ -251,7 +335,8 @@ export const useNarrativeStore = create((set, get) => ({
 
     return {
 
-      schemaVersion: 2,
+      // CHANGED: schemaVersion 2 -> 3
+      schemaVersion: 3,
       meta: {
         ...state.meta,
         createdAt: formatTs(state.meta.createdAt),
@@ -263,7 +348,9 @@ export const useNarrativeStore = create((set, get) => ({
       choice: state.choice,
       ending: state.ending,
       edges: state.edges,
-      flags: state.flags
+      // CHANGED: flags -> flag, status
+      flag: state.flag,
+      status: state.status
     };
   }
 }));

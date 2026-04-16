@@ -1,40 +1,29 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "meta": {
     "title": "The Enchanted Forest",
-    "createdAt": "11-04-2026",
+    "createdAt": "04-11-2026",
     "updatedAt": "15-04-2026",
     "commonNodeTypes": [],
     "endingTypes": []
   },
-  "flags": [
-    {
-      "id": "f-00100000-0000-4000-8000-000000000001",
-      "name": "has_lantern",
-      "type": "boolean",
-      "defaultValue": false
-    },
-    {
-      "id": "f-00200000-0000-4000-8000-000000000002",
-      "name": "courage",
-      "type": "number",
-      "defaultValue": 0
-    }
-  ],
   "common": {
     "n-00100000-0000-4000-8000-000000000001": {
       "id": "n-00100000-0000-4000-8000-000000000001",
       "type": "common",
-      "position": { "x": 0, "y": 100 },
+      "position": {
+        "x": 0,
+        "y": 100
+      },
       "data": {
         "label": "Forest Entrance",
         "content": "You stand at the edge of a dense forest. A narrow path leads into the darkness, and a faint glow flickers to the east.",
         "isStartNode": true,
-        "sideEffects": [
+        "flags_set": [],
+        "status_set": [
           {
-            "flagId": "f-00200000-0000-4000-8000-000000000002",
-            "operation": "add",
-            "value": 1
+            "statusId": "f-00200000-0000-4000-8000-000000000002",
+            "amount": 1
           }
         ]
       }
@@ -42,29 +31,33 @@
     "n-00200000-0000-4000-8000-000000000002": {
       "id": "n-00200000-0000-4000-8000-000000000002",
       "type": "common",
-      "position": { "x": 300, "y": 0 },
+      "position": {
+        "x": 300,
+        "y": 0
+      },
       "data": {
         "label": "Old Campsite",
         "content": "A ruined campsite. Among the debris you find a battered but functional lantern.",
         "isStartNode": false,
-        "sideEffects": [
-          {
-            "flagId": "f-00100000-0000-4000-8000-000000000001",
-            "operation": "set",
-            "value": true
-          }
-        ]
+        "flags_set": [
+          "f-00100000-0000-4000-8000-000000000001"
+        ],
+        "status_set": []
       }
     },
     "n-00400000-0000-4000-8000-000000000004": {
       "id": "n-00400000-0000-4000-8000-000000000004",
       "type": "common",
-      "position": { "x": 600, "y": 100 },
+      "position": {
+        "x": 600,
+        "y": 100
+      },
       "data": {
         "label": "Underground Lake",
         "content": "Your lantern reveals a vast underground lake. A stone bridge leads to an island with a glowing crystal.",
         "isStartNode": false,
-        "sideEffects": []
+        "flags_set": [],
+        "status_set": []
       }
     }
   },
@@ -72,16 +65,19 @@
     "n-00300000-0000-4000-8000-000000000003": {
       "id": "n-00300000-0000-4000-8000-000000000003",
       "type": "choice",
-      "position": { "x": 300, "y": 200 },
+      "position": {
+        "x": 300,
+        "y": 200
+      },
       "data": {
         "label": "Dark Cave",
         "content": "The cave entrance yawns before you. Without a light source, you can barely see a few steps inside.",
         "isStartNode": false,
-        "sideEffects": [
+        "flags_set": [],
+        "status_set": [
           {
-            "flagId": "f-00200000-0000-4000-8000-000000000002",
-            "operation": "add",
-            "value": 2
+            "statusId": "f-00200000-0000-4000-8000-000000000002",
+            "amount": 2
           }
         ]
       }
@@ -91,23 +87,31 @@
     "n-00500000-0000-4000-8000-000000000005": {
       "id": "n-00500000-0000-4000-8000-000000000005",
       "type": "ending",
-      "position": { "x": 900, "y": 100 },
+      "position": {
+        "x": 900,
+        "y": 100
+      },
       "data": {
         "label": "Crystal Chamber",
         "content": "You grasp the crystal and the forest fills with light. The enchantment is broken. You are free.",
         "isStartNode": false,
-        "sideEffects": []
+        "flags_set": [],
+        "status_set": []
       }
     },
     "n-00600000-0000-4000-8000-000000000006": {
       "id": "n-00600000-0000-4000-8000-000000000006",
       "type": "ending",
-      "position": { "x": 600, "y": 300 },
+      "position": {
+        "x": 600,
+        "y": 300
+      },
       "data": {
         "label": "Lost in Darkness",
         "content": "Without a lantern, the darkness swallows you whole. You wander for hours and eventually find yourselves back at the forest entrance, defeated.",
         "isStartNode": false,
-        "sideEffects": []
+        "flags_set": [],
+        "status_set": []
       }
     }
   },
@@ -139,12 +143,12 @@
       "targetId": "n-00400000-0000-4000-8000-000000000004",
       "label": "Venture deeper",
       "condition": {
-        "operator": "AND",
-        "clauses": [
+        "operator": "and",
+        "conditions": [
           {
-            "flagId": "f-00100000-0000-4000-8000-000000000001",
-            "comparator": "==",
-            "value": true
+            "id": "cond-ea13ec9c-2d65-4ae4-a990-193061eb8047",
+            "flag": "f-00100000-0000-4000-8000-000000000001",
+            "state": true
           }
         ]
       }
@@ -155,12 +159,12 @@
       "targetId": "n-00600000-0000-4000-8000-000000000006",
       "label": "Stumble in the dark",
       "condition": {
-        "operator": "AND",
-        "clauses": [
+        "operator": "and",
+        "conditions": [
           {
-            "flagId": "f-00100000-0000-4000-8000-000000000001",
-            "comparator": "==",
-            "value": false
+            "id": "cond-b8438902-a3b0-42e7-80bd-95a81949554b",
+            "flag": "f-00100000-0000-4000-8000-000000000001",
+            "state": false
           }
         ]
       }
@@ -171,15 +175,31 @@
       "targetId": "n-00500000-0000-4000-8000-000000000005",
       "label": "Cross the bridge",
       "condition": {
-        "operator": "AND",
-        "clauses": [
+        "operator": "and",
+        "conditions": [
           {
-            "flagId": "f-00200000-0000-4000-8000-000000000002",
-            "comparator": ">=",
-            "value": 3
+            "id": "cond-7027e92c-e132-403c-ad3c-1af0ee49d02d",
+            "status": "f-00200000-0000-4000-8000-000000000002",
+            "min": 3
           }
         ]
       }
     }
-  ]
+  ],
+  "flag": {
+    "f-00100000-0000-4000-8000-000000000001": {
+      "id": "f-00100000-0000-4000-8000-000000000001",
+      "name": "has_lantern",
+      "state": false
+    }
+  },
+  "status": {
+    "f-00200000-0000-4000-8000-000000000002": {
+      "id": "f-00200000-0000-4000-8000-000000000002",
+      "name": "courage",
+      "value": 0,
+      "minValue": null,
+      "maxValue": null
+    }
+  }
 }

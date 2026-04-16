@@ -26,43 +26,37 @@ Save to: `/informations/runs/[DD-MM-YYYY]_iteration/ran_0302_scope.md`
 ## Part 1 — User fills
 
 ### What I am changing
-Canvas
+Data Model, Condition Evaluation, Form Layer
 
 ### Why this needs to change
-The current single StoryNode renderer applies uniform visual treatment across all node types, with no distinction between a narrative beat, a decision point, and a terminal state. As the data model moves to typed sub-collections, the renderer must reflect that separation visually — designers need to identify node types at a glance without reading labels or opening the inspector.
-
-Each type receives a distinct accent color applied to borders, badges, and header strips rather than card fills, preserving canvas readability at scale. Common nodes use a green accent to signal neutral continuity. Choice nodes use a blue accent with a treatment that suggests branching — option count, wider body, or a decision icon. Ending nodes use an orange accent with a terminal treatment such as a filled accent bar or stop indicator.
-
-All three types share the existing dark card background from the design system. A type label pill is included on each node as a redundancy layer beyond color, ensuring type remains legible regardless of how the designer perceives the accent palette.
+The current `flags[]` array needs to be refactored into distinct `flag{}` and `status{}` objects to better separate boolean flags from stateful statuses. Because of this structural change, the condition evaluator must be extended to support status-based conditions. Additionally, node side-effects will be updated to explicitly apply state changes using `flags_set[]` and `status_set[]`.
 
 ### New behavior after this push
-**Contains:** Distinct visual identity per node type. Each type gets a unique color scheme, border treatment, and type indicator so designers can instantly identify node types on the canvas at a glance.
-
-**Design direction:**
-- **Common nodes** — Green accent (`#4ade80` family). Solid left border or top accent stripe. Clean, neutral body — these are the workhorses, shouldn't scream.
-- **Choice nodes** — Blue accent (`#60a5fa` family). Distinctive shape treatment (e.g., wider body, option count badge, or branching icon). Must visually suggest "decision point."
-- **Ending nodes** — King orange accent (`#fb923c` family). Terminal feel — perhaps a double border, filled accent bar, or stop icon. Must feel final.
-- All three types share the same dark card background from the app theme. Color appears as accents (borders, badges, header strips), not as full card fills — keeps the canvas readable at scale.
-- Type label badge (small pill: "Common" / "Choice" / "Ending") on each node for redundancy beyond color.
+Split `flags[]` into `flag{}` + `status{}`. Extend condition evaluator for status conditions. Side effects use `flags_set[]` + `status_set[]` on nodes.
 
 ### Accepted blast radius
 <!-- Which dependencies from ran_0301 are you okay with changing —
 even if they appear in the preservation list?
 These are conscious decisions, not oversights. -->
-**Graph visual derivation:**
-**Simulation advancing:** on aesthetics design perspective
+**Simulation Sandbox Logic:**
+**Inspector Binding:**
 
 ### Definition of done
 | Action | File | Detail |
 |--------|------|--------|
-| MODIFY | `src/components/nodes/CommonNode.jsx` | Green accent styling, type badge |
-| MODIFY | `src/components/nodes/ChoiceNode.jsx` | Blue accent styling, type badge, option count indicator |
-| MODIFY | `src/components/nodes/EndingNode.jsx` | Orange accent styling, type badge, terminal visual treatment |
-| MODIFY | `src/styles/tokens.css` | Node type color tokens: `--color-node-common`, `--color-node-choice`, `--color-node-ending` |
-| MODIFY | `src/styles/global.css` | Node type CSS classes |
+| MODIFY | `src/store/narrativeStore.js` | Replace `flags[]` with `flag{}` + `status{}` CRUD; update node side effect fields |
+| MODIFY | `src/utils/conditionEvaluator.js` | Add status clause evaluation: `min`, `max`, range |
+| MODIFY | `src/components/FlagManager.jsx` | Boolean flags only |
+| ADD | `src/components/StatusManager.jsx` | Status point CRUD: name, value, minValue, maxValue |
+| MODIFY | `src/components/NodeInspector.jsx` | `flags_set` + `status_set` UI |
+| MODIFY | `src/components/EdgeInspector.jsx` | Condition builder with flag + status clause types |
+| MODIFY | `src/components/Sidebar.jsx` | Add Status tab or section |
+| MODIFY | `src/utils/fileSystem.js` | Export/import flag{} + status{} |
+| MODIFY | `src/utils/index.js` | Re-exports |
+
 
 ### Assumptions I am making
-NONE
+It need a `migration` for `flags[]` → `flag{}` + `status{}`; side effect format changes from `sideEffects[]` to `flags_set[]` + `status_set[]`
 
 ---
 
