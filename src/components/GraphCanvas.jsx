@@ -95,6 +95,8 @@ function GraphCanvasInner() {
       id: edge.id,
       source: edge.sourceId,
       target: edge.targetId,
+      // ADDED: ensure the edge anchors to the correct option handle
+      sourceHandle: edge.optionId || null,
       type: 'conditionalEdge',
       selected: edge.id === selectedEdgeId,
       markerEnd: {
@@ -132,7 +134,12 @@ function GraphCanvasInner() {
 
   const onConnect = useCallback((params) => {
     try {
-      addEdge(params.source, params.target);
+      // ADDED: Pass optionId if the connection originates from an option handle
+      if (params.sourceHandle && params.sourceHandle.startsWith('opt-')) {
+        addEdge(params.source, params.target, params.sourceHandle);
+      } else {
+        addEdge(params.source, params.target);
+      }
     } catch (e) {
       console.error(e.message);
     }

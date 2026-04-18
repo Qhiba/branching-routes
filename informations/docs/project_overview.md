@@ -40,7 +40,7 @@ branching-routes/
 │   │
 │   ├── store/
 │   │   ├── narrativeStore.js # Zustand store: canonical graph (common, choice, ending, edges, flag, status, path, chapter, meta)
-│   │   ├── uiStore.js      # Zustand store: UI state (selection, snap-to-grid)
+│   │   ├── uiStore.js      # Zustand store: UI state (selection, snap-to-grid, choice display mode)
 │   │   ├── simulationStore.js  # Zustand store: simulation state (active node, flags, reachable sets)
 │   │   └── index.js        # Barrel re-export for all stores
 │   │
@@ -52,16 +52,18 @@ branching-routes/
 │   │
 │   └── components/
 │       ├── TopBar.jsx       # App title, file actions, simulation controls, tidy layout
-│       ├── GraphCanvas.jsx  # React Flow canvas wrapper with interaction handlers
+│       ├── GraphCanvas.jsx  # React Flow canvas wrapper with interaction handlers and option-aware edge stamping
 │       ├── Sidebar.jsx      # Tab panel: Inspector / Flags / Status / Paths
-│       ├── NodeInspector.jsx    # Form for editing node label, content, side effects, path/chapter assignment
-│       ├── EdgeInspector.jsx    # Form for editing edge label and conditions
+│       ├── NodeInspector.jsx    # Form for editing node label, content, side effects, path/chapter, variants (common), options (choice)
+│       ├── EdgeInspector.jsx    # Form for editing edge label, conditions, and option provenance display
+│       ├── VariantEditor.jsx    # Variant list editor for common nodes (label, text, requires)
+│       ├── OptionEditor.jsx     # Option list editor for choice nodes (label, requires, flags_set, status_set)
 │       ├── FlagManager.jsx      # Flag CRUD with name validation and reference checking
 │       ├── StatusManager.jsx    # Status CRUD with name validation and reference checking
 │       ├── PathChapterManager.jsx # Path and Chapter CRUD management UI
 │       ├── nodes/
 │       │   ├── CommonNode.jsx   # Custom React Flow node for standard narrative stops
-│       │   ├── ChoiceNode.jsx   # Custom React Flow node for player choices
+│       │   ├── ChoiceNode.jsx   # Custom React Flow node for player choices with per-option source handles
 │       │   └── EndingNode.jsx   # Custom React Flow node for terminal states (no source handle)
 │       ├── edges/
 │       │   └── ConditionalEdge.jsx  # Custom React Flow edge with condition badges

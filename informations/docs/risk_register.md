@@ -19,6 +19,12 @@
 | RISK-PCE-03 | `loadGraph`/`newGraph` Omit New Collections | High | High | Both functions initialise `path`/`chapter` | RESOLVED |
 | RISK-PCE-04 | NodeInspector Dropdown Re-Render Storms | Medium | Medium | Targeted Zustand selectors | RESOLVED |
 | RISK-PCE-05 | Empty Path/Chapter Names | Medium | Low | Store validation + UI guard | RESOLVED |
+| RISK-VNO-01 | Referential integrity gap in deleteFlag/deleteStatus | High | High | Extended scans in deleteFlag/deleteStatus | RESOLVED |
+| RISK-VNO-02 | ChoiceNode crash on legacy nodes without data.options | High | High | Default to `[]` with `?? []` guard | RESOLVED |
+| RISK-VNO-03 | React Flow handle ID collision breaks connect events | Low | High | `opt-` prefix for all option IDs | RESOLVED |
+| RISK-VNO-04 | deleteOption leaves dangling optionId on edges | Medium | Medium | deleteOption cascades edge removal | RESOLVED |
+| RISK-VNO-05 | ChoiceNode re-render storms from data.options | Medium | Medium | Options read from React Flow `data` prop | RESOLVED |
+| RISK-VNO-06 | Zustand selector returns new array literal causing infinite re-render | Medium | High | Return `undefined` from selector; default outside hook (AR-14) | RESOLVED |
 
 ---
 
@@ -220,3 +226,86 @@
 
 **Status:** RESOLVED — `narrativeStore.js` L287–289 (path) and L333–335 (chapter) validate; `PathChapterManager.jsx` disables confirm on empty input.
 
+---
+
+## RISK-VNO-01 — Referential Integrity Gap in deleteFlag/deleteStatus
+
+**Description:** The `variants[].requires`, `options[].requires`, `options[].flags_set`, and `options[].status_set` fields create new locations that reference flag and status IDs. Without extending the scan, deletions silently orphan references.
+
+**Likelihood:** High
+
+**Impact:** High
+
+**Mitigation Strategy:** `deleteFlag` and `deleteStatus` scans extended to cover `variants[].requires.conditions`, `options[].requires.conditions`, `options[].flags_set`, and `options[].status_set`.
+
+**Status:** RESOLVED — `narrativeStore.js` L232–254 (deleteFlag) and L298–320 (deleteStatus) implement the extended scans. Verified in Phase 1 tests.
+
+---
+
+## RISK-VNO-02 — ChoiceNode Crash on Legacy Nodes Without data.options
+
+**Description:** Existing choice nodes in saved files have no `options` field. Reading `data.options.map()` without a guard crashes the canvas.
+
+**Likelihood:** High
+
+**Impact:** High
+
+**Mitigation Strategy:** Every consumer of `data.options` uses `data.options ?? []`.
+
+**Status:** RESOLVED — `ChoiceNode.jsx` defaults to `[]`; `NodeInspector.jsx` passes `data.options ?? []` to `OptionEditor`. Verified in Phase 2 self-review.
+
+---
+
+## RISK-VNO-03 — React Flow Handle ID Collision Breaks Connect Events
+
+**Description:** Per-option source handles use `handleId` equal to the option's `id`. If IDs collide with React Flow internal keys, connect events misroute.
+
+**Likelihood:** Low
+
+**Impact:** High
+
+**Mitigation Strategy:** Use the `opt-` prefix for all option IDs, distinct from all other entity prefixes.
+
+**Status:** RESOLVED — `generateId('opt')` produces `opt-{uuid}`. Verified in Phase 2 by creating multiple options.
+
+---
+
+## RISK-VNO-04 — deleteOption Leaves Dangling optionId References on Edges
+
+**Description:** Deleting an option without cleaning up edges leaves orphaned `optionId` references. `EdgeInspector` shows broken metadata.
+
+**Likelihood:** Medium
+
+**Impact:** Medium
+
+**Mitigation Strategy:** `deleteOption` cascades to remove all edges where `edge.optionId === optionId` within the same `set()` call.
+
+**Status:** RESOLVED — `narrativeStore.js` L431–L455 (`deleteOption`) filters edges in the same mutation. Verified in Phase 1 tests.
+
+---
+
+## RISK-VNO-05 — ChoiceNode Re-Render Storms from data.options Subscription
+
+**Description:** Subscribing to `data.options` via a Zustand selector that returns a new array reference risks breaking `React.memo`.
+
+**Likelihood:** Medium
+
+**Impact:** Medium
+
+**Mitigation Strategy:** `ChoiceNode` reads `data.options` from the React Flow `data` prop (already memoized by React Flow), not from a new `useNarrativeStore` selector.
+
+**Status:** RESOLVED — `ChoiceNode.jsx` reads from `data` prop. Verified in Phase 2 self-review.
+
+---
+
+## RISK-VNO-06 — Zustand Selector Returns New Array Literal Causing Infinite Re-Render
+
+**Description:** `EdgeInspector` initially crashed with an infinite re-render loop because a selector returned `[]` (new reference every call). Zustand detected a "change" on every cycle.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** Selectors return `undefined` for absent data; consuming components default outside the hook. Formalized as AR-14.
+
+**Status:** RESOLVED — `EdgeInspector.jsx` L10–L16 returns `undefined` from selector, defaults to `[]` outside. Verified in Bug 3 fix.

@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { useSimulationStore, useNarrativeStore } from 'store';
+// MODIFIED: added useUIStore to select choiceDisplayMode
+import { useSimulationStore, useNarrativeStore, useUIStore } from 'store';
 
 function ChoiceNode({ id, data }) {
   const isActive    = useSimulationStore(s => s.activeNodeId === id);
@@ -10,6 +11,9 @@ function ChoiceNode({ id, data }) {
   );
 
   const outgoingEdgeCount = useNarrativeStore(s => s.edges.filter(e => e.sourceId === id).length);
+
+  // ADDED: selector for choiceDisplayMode
+  const choiceDisplayMode = useUIStore(s => s.choiceDisplayMode);
 
   let className = 'story-node choice-node';
   if (isActive)     className += ' story-node--active';
@@ -23,7 +27,8 @@ function ChoiceNode({ id, data }) {
       <div className="story-node__type-bar choice-node__type-bar">
         <span className="story-node__type-label">CHOICE</span>
         <div className="story-node__meta-group">
-          {data.sideEffects && data.sideEffects.length > 0 && (
+          {/* MODIFIED: fix stale sideEffects guard — replaced with flags_set/status_set lengths */}
+          {((data.flags_set?.length || 0) + (data.status_set?.length || 0)) > 0 && (
             <>
               <span className="story-node__meta-badge">
                 <svg className="story-node__meta-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -31,7 +36,7 @@ function ChoiceNode({ id, data }) {
                   <path d="M11 5l3-1-1 3-2-2z" fill="currentColor"/>
                   <path d="M10 6l-2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
-                {data.sideEffects.length} effect{data.sideEffects.length !== 1 ? 's' : ''}
+                {(data.flags_set?.length || 0) + (data.status_set?.length || 0)} effect{((data.flags_set?.length || 0) + (data.status_set?.length || 0)) !== 1 ? 's' : ''}
               </span>
               <span className="story-node__meta-sep">•</span>
             </>
@@ -50,9 +55,32 @@ function ChoiceNode({ id, data }) {
         {data.content && (
           <p className="story-node__content-text">{data.content}</p>
         )}
+        {/* ADDED: render options labels and Handles inside the node body */}
+        {Array.isArray(data.options) && data.options.length > 0 && (
+          <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {data.options.map(opt => {
+              const displayLabel = choiceDisplayMode === 'full' ? opt.label : (opt.label.length > 25 ? opt.label.slice(0, 22) + '...' : opt.label);
+              return (
+                <div key={opt.id} style={{ position: 'relative', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px', padding: '6px 8px', fontSize: '0.85rem', color: 'var(--color-text-secondary)', zIndex: 1 }}>
+                  {displayLabel || (<i>Unnamed Option</i>)}
+                  <Handle
+                    type="source"
+                    position={Position.Right}
+                    id={opt.id}
+                    className="choice-node__handle choice-node__handle--source"
+                    style={{ top: '50%', right: '-12px' }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      <Handle type="source" position={Position.Right} className="choice-node__handle choice-node__handle--source" />
+      {/* MODIFIED: fallback single source handle if no options exist */}
+      {(!data.options || data.options.length === 0) && (
+        <Handle type="source" position={Position.Right} className="choice-node__handle choice-node__handle--source" />
+      )}
     </div>
   );
 }

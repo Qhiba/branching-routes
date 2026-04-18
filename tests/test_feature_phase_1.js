@@ -4,6 +4,10 @@ const assert = require('assert').strict;
 let idCounter = 0;
 const generateId = (prefix) => `${prefix}_${++idCounter}`;
 
+const mockUIStore = {
+  clearIfSelected: () => {}
+};
+
 // -- INLINED LOGIC UNDER TEST --
 let state = {
   meta: { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now(), commonNodeTypes: [], endingTypes: [] },
@@ -31,84 +35,115 @@ const useNarrativeStore = {
     const target = type === 'ending' ? 'ending' : type === 'choice' ? 'choice' : 'common';
     return { [target]: { ...state[target], [newNode.id]: newNode }, meta: { ...state.meta, updatedAt: Date.now() } };
   }),
-  updateNode: (id, patch) => set((state) => {
-    let target = null; let node = null;
-    if (state.common[id]) { target = 'common'; node = state.common[id]; }
-    else if (state.choice[id]) { target = 'choice'; node = state.choice[id]; }
-    else if (state.ending[id]) { target = 'ending'; node = state.ending[id]; }
-    if (!target) return state;
-    return { [target]: { ...state[target], [id]: { ...node, ...patch, data: { ...node.data, ...patch.data } } }, meta: { ...state.meta, updatedAt: Date.now() } };
+  addEdge: (sourceId, targetId, optionId = null) => set((state) => {
+    if (sourceId in state.ending) throw new Error("Cannot add an edge from an 'ending' node");
+    if (state.edges.some(e => e.sourceId === sourceId && e.targetId === targetId)) throw new Error("Edge already exists between these nodes");
+    const newEdge = { id: generateId('e'), sourceId, targetId, label: '', condition: null, optionId: optionId || null };
+    return { edges: [...state.edges, newEdge], meta: { ...state.meta, updatedAt: Date.now() } };
   }),
-  addPath: (name) => set((state) => {
-    if (!name || name.trim().length === 0) throw new Error('Path name cannot be empty');
-    const id = generateId('p');
-    return { path: { ...state.path, [id]: { id, name: name.trim() } }, meta: { ...state.meta, updatedAt: Date.now() } };
+  addFlag: (name, stateVal) => set((state) => {
+    const id = generateId('f');
+    return { flag: { ...state.flag, [id]: { id, name, state: stateVal } } };
   }),
-  updatePath: (id, patch) => set((state) => {
-    if (!state.path[id]) return state;
-    return { path: { ...state.path, [id]: { ...state.path[id], ...patch } }, meta: { ...state.meta, updatedAt: Date.now() } };
+  addStatus: (name, value, minValue, maxValue) => set((state) => {
+    const id = generateId('sp');
+    return { status: { ...state.status, [id]: { id, name, value, minValue, maxValue } } };
   }),
-  deletePath: (id) => set((state) => {
-    const nextPath = { ...state.path }; delete nextPath[id];
-    const updateCollection = (col) => {
-      const nextCol = {};
-      for (const [key, val] of Object.entries(col)) {
-        if (val.data && val.data.pathId === id) { nextCol[key] = { ...val, data: { ...val.data, pathId: null } }; }
-        else { nextCol[key] = val; }
+  deleteFlag: (id) => {
+    const state = get(); const references = [];
+    state.edges.forEach(e => {
+      if (e.condition && e.condition.conditions && e.condition.conditions.some(c => c.flag === id)) references.push(`edge_condition:${e.id}`);
+    });
+    const allNodes = [...Object.values(state.common), ...Object.values(state.choice), ...Object.values(state.ending)];
+    allNodes.forEach(n => {
+      if (n.data && n.data.flags_set && n.data.flags_set.includes(id)) references.push(`node_sideEffect:${n.id}`);
+      if (n.data && Array.isArray(n.data.variants)) {
+        n.data.variants.forEach(v => {
+          if (v.requires && Array.isArray(v.requires.conditions) && v.requires.conditions.some(c => c.flag === id)) references.push(`variant_requires:${n.id}:${v.id}`);
+        });
       }
-      return nextCol;
-    };
-    return { path: nextPath, common: updateCollection(state.common), choice: updateCollection(state.choice), ending: updateCollection(state.ending), meta: { ...state.meta, updatedAt: Date.now() } };
-  }),
-  addChapter: (name) => set((state) => {
-    if (!name || name.trim().length === 0) throw new Error('Chapter name cannot be empty');
-    const id = generateId('c');
-    return { chapter: { ...state.chapter, [id]: { id, name: name.trim() } }, meta: { ...state.meta, updatedAt: Date.now() } };
-  }),
-  updateChapter: (id, patch) => set((state) => {
-    if (!state.chapter[id]) return state;
-    return { chapter: { ...state.chapter, [id]: { ...state.chapter[id], ...patch } }, meta: { ...state.meta, updatedAt: Date.now() } };
-  }),
-  deleteChapter: (id) => set((state) => {
-    const nextChapter = { ...state.chapter }; delete nextChapter[id];
-    const updateCollection = (col) => {
-      const nextCol = {};
-      for (const [key, val] of Object.entries(col)) {
-        if (val.data && val.data.chapterId === id) { nextCol[key] = { ...val, data: { ...val.data, chapterId: null } }; }
-        else { nextCol[key] = val; }
+      if (n.data && Array.isArray(n.data.options)) {
+        n.data.options.forEach(opt => {
+          if (opt.requires && Array.isArray(opt.requires.conditions) && opt.requires.conditions.some(c => c.flag === id)) references.push(`option_requires:${n.id}:${opt.id}`);
+          if (Array.isArray(opt.flags_set) && opt.flags_set.includes(id)) references.push(`option_flags_set:${n.id}:${opt.id}`);
+        });
       }
-      return nextCol;
-    };
-    return { chapter: nextChapter, common: updateCollection(state.common), choice: updateCollection(state.choice), ending: updateCollection(state.ending), meta: { ...state.meta, updatedAt: Date.now() } };
+    });
+    if (references.length > 0) return { blocked: true, references };
+    set((state) => { const nextFlag = { ...state.flag }; delete nextFlag[id]; return { flag: nextFlag }; });
+    return { blocked: false };
+  },
+  deleteStatus: (id) => {
+    const state = get(); const references = [];
+    state.edges.forEach(e => {
+      if (e.condition && e.condition.conditions && e.condition.conditions.some(c => c.status === id)) references.push(`edge_condition:${e.id}`);
+    });
+    const allNodes = [...Object.values(state.common), ...Object.values(state.choice), ...Object.values(state.ending)];
+    allNodes.forEach(n => {
+      if (n.data && n.data.status_set && n.data.status_set.some(se => se.statusId === id)) references.push(`node_sideEffect:${n.id}`);
+      if (n.data && Array.isArray(n.data.variants)) {
+        n.data.variants.forEach(v => {
+          if (v.requires && Array.isArray(v.requires.conditions) && v.requires.conditions.some(c => c.status === id)) references.push(`variant_requires:${n.id}:${v.id}`);
+        });
+      }
+      if (n.data && Array.isArray(n.data.options)) {
+        n.data.options.forEach(opt => {
+          if (opt.requires && Array.isArray(opt.requires.conditions) && opt.requires.conditions.some(c => c.status === id)) references.push(`option_requires:${n.id}:${opt.id}`);
+          if (Array.isArray(opt.status_set) && opt.status_set.some(se => se.statusId === id)) references.push(`option_status_set:${n.id}:${opt.id}`);
+        });
+      }
+    });
+    if (references.length > 0) return { blocked: true, references };
+    set((state) => { const nextStatus = { ...state.status }; delete nextStatus[id]; return { status: nextStatus }; });
+    return { blocked: false };
+  },
+  addVariant: (nodeId, variantData = {}) => set((state) => {
+    const node = state.common[nodeId];
+    if (!node) return state;
+    const newVariant = { id: generateId('v'), label: variantData.label || '', text: variantData.text || '', requires: variantData.requires || null };
+    const currentVariants = Array.isArray(node.data.variants) ? node.data.variants : [];
+    return { common: { ...state.common, [nodeId]: { ...node, data: { ...node.data, variants: [...currentVariants, newVariant] } } } };
   }),
-  loadGraph: (graphData) => set({
-    meta: { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now(), commonNodeTypes: [], endingTypes: [], ...graphData.meta },
-    common: graphData.common || {}, choice: graphData.choice || {}, ending: graphData.ending || {}, edges: graphData.edges || [],
-    flag: graphData.flag || {}, status: graphData.status || {}, path: graphData.path || {}, chapter: graphData.chapter || {}
+  updateVariant: (nodeId, variantId, patch) => set((state) => {
+    const node = state.common[nodeId];
+    if (!node) return state;
+    const currentVariants = Array.isArray(node.data.variants) ? node.data.variants : [];
+    const nextVariants = currentVariants.map(v => v.id === variantId ? { ...v, ...patch } : v);
+    return { common: { ...state.common, [nodeId]: { ...node, data: { ...node.data, variants: nextVariants } } } };
+  }),
+  deleteVariant: (nodeId, variantId) => set((state) => {
+    const node = state.common[nodeId];
+    if (!node) return state;
+    const currentVariants = Array.isArray(node.data.variants) ? node.data.variants : [];
+    return { common: { ...state.common, [nodeId]: { ...node, data: { ...node.data, variants: currentVariants.filter(v => v.id !== variantId) } } } };
+  }),
+  addOption: (nodeId, optionData = {}) => set((state) => {
+    const node = state.choice[nodeId];
+    if (!node) return state;
+    const newOption = { id: generateId('opt'), label: optionData.label || '', requires: optionData.requires || null, flags_set: Array.isArray(optionData.flags_set) ? optionData.flags_set : [], status_set: Array.isArray(optionData.status_set) ? optionData.status_set : [] };
+    const currentOptions = Array.isArray(node.data.options) ? node.data.options : [];
+    return { choice: { ...state.choice, [nodeId]: { ...node, data: { ...node.data, options: [...currentOptions, newOption] } } } };
+  }),
+  updateOption: (nodeId, optionId, patch) => set((state) => {
+    const node = state.choice[nodeId];
+    if (!node) return state;
+    const currentOptions = Array.isArray(node.data.options) ? node.data.options : [];
+    const nextOptions = currentOptions.map(opt => opt.id === optionId ? { ...opt, ...patch } : opt);
+    return { choice: { ...state.choice, [nodeId]: { ...node, data: { ...node.data, options: nextOptions } } } };
+  }),
+  deleteOption: (nodeId, optionId) => set((state) => {
+    const node = state.choice[nodeId];
+    if (!node) return state;
+    const currentOptions = Array.isArray(node.data.options) ? node.data.options : [];
+    return {
+      choice: { ...state.choice, [nodeId]: { ...node, data: { ...node.data, options: currentOptions.filter(opt => opt.id !== optionId) } } },
+      edges: state.edges.filter(e => e.optionId !== optionId)
+    };
   }),
   newGraph: () => set({
     meta: { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now(), commonNodeTypes: [], endingTypes: [] },
     common: {}, choice: {}, ending: {}, edges: [], flag: {}, status: {}, path: {}, chapter: {}
-  }),
-  exportGraph: () => {
-    const s = get();
-    return {
-      schemaVersion: 4,
-      meta: { ...s.meta, createdAt: s.meta.createdAt, updatedAt: s.meta.updatedAt },
-      common: s.common, choice: s.choice, ending: s.ending, edges: s.edges,
-      flag: s.flag, status: s.status, path: s.path, chapter: s.chapter
-    };
-  }
-};
-
-const importProjectLogic = (data) => {
-  if (![1, 2, 3, 4].includes(data.schemaVersion)) throw new Error('unsupported_schema_version');
-  if (data.schemaVersion === 1) data.schemaVersion = 3;
-  else if (data.schemaVersion === 2) data.schemaVersion = 3;
-  if (data.schemaVersion === 3) {
-    data.path = data.path || {}; data.chapter = data.chapter || {}; data.schemaVersion = 4;
-  }
-  return data;
+  })
 };
 
 // -- TEST HARNESS --
@@ -125,55 +160,123 @@ const runTest = (name, testFn, isIntegration = false) => {
 };
 
 console.log('--- Group A: Feature Verification ---');
-runTest('addPath - correctly inserts a path', () => {
-  useNarrativeStore.addPath('Route A');
-  const s = useNarrativeStore.getState();
-  assert.equal(Object.values(s.path).length, 1);
-  assert.equal(Object.values(s.path)[0].name, 'Route A');
-});
 
-runTest('addPath - throws error on empty name', () => {
-  assert.throws(() => useNarrativeStore.addPath('   '), /empty/);
-});
-
-runTest('updatePath - correctly updates a path', () => {
-  useNarrativeStore.addPath('Route A');
-  const pId = Object.keys(useNarrativeStore.getState().path)[0];
-  useNarrativeStore.updatePath(pId, { name: 'Route B' });
-  assert.equal(useNarrativeStore.getState().path[pId].name, 'Route B');
-});
-
-runTest('deletePath - removes path and cascades to node data', () => {
-  useNarrativeStore.addPath('Delete Me');
-  const pId = Object.keys(useNarrativeStore.getState().path)[0];
+// Variant CRUD
+runTest('addVariant - adds a variant to a common node with proper defaults', () => {
   useNarrativeStore.addNode({x:0, y:0}, 'common');
   const nId = Object.keys(useNarrativeStore.getState().common)[0];
-  useNarrativeStore.updateNode(nId, { data: { pathId: pId } });
+  useNarrativeStore.addVariant(nId, { label: 'V1', text: 'T1' });
   
-  assert.equal(useNarrativeStore.getState().common[nId].data.pathId, pId);
-  useNarrativeStore.deletePath(pId);
-  assert.equal(Object.keys(useNarrativeStore.getState().path).length, 0);
-  assert.equal(useNarrativeStore.getState().common[nId].data.pathId, null);
+  const variants = useNarrativeStore.getState().common[nId].data.variants;
+  assert.equal(variants.length, 1);
+  assert.equal(variants[0].label, 'V1');
+  assert.equal(variants[0].requires, null);
+  assert.equal(variants[0].id.startsWith('v_'), true);
 });
 
-runTest('importProject - migrating v3 graph instantiates empty path/chapter safely', () => {
-  const result = importProjectLogic({ schemaVersion: 3 });
-  assert.equal(result.schemaVersion, 4);
-  assert.deepEqual(result.path, {});
-  assert.deepEqual(result.chapter, {});
+runTest('updateVariant - updates only the targeted variant', () => {
+  useNarrativeStore.addNode({x:0, y:0}, 'common');
+  const nId = Object.keys(useNarrativeStore.getState().common)[0];
+  useNarrativeStore.addVariant(nId, { label: 'V1' });
+  const vId = useNarrativeStore.getState().common[nId].data.variants[0].id;
+  
+  useNarrativeStore.updateVariant(nId, vId, { label: 'V1_Updated' });
+  assert.equal(useNarrativeStore.getState().common[nId].data.variants[0].label, 'V1_Updated');
+});
+
+runTest('deleteVariant - correctly removes targeted variant', () => {
+  useNarrativeStore.addNode({x:0, y:0}, 'common');
+  const nId = Object.keys(useNarrativeStore.getState().common)[0];
+  useNarrativeStore.addVariant(nId, { label: 'V1' });
+  const vId = useNarrativeStore.getState().common[nId].data.variants[0].id;
+  
+  useNarrativeStore.deleteVariant(nId, vId);
+  const variants = useNarrativeStore.getState().common[nId].data.variants;
+  assert.equal(variants.length, 0);
+});
+
+// Option CRUD
+runTest('addOption - adds an option to a choice node with proper defaults', () => {
+  useNarrativeStore.addNode({x:0, y:0}, 'choice');
+  const cId = Object.keys(useNarrativeStore.getState().choice)[0];
+  useNarrativeStore.addOption(cId, { label: 'Opt1' });
+
+  const options = useNarrativeStore.getState().choice[cId].data.options;
+  assert.equal(options.length, 1);
+  assert.equal(options[0].label, 'Opt1');
+  assert.equal(options[0].id.startsWith('opt_'), true);
+  assert.deepEqual(options[0].flags_set, []);
+});
+
+runTest('deleteOption - cascades to delete edges tied to the option', () => {
+  useNarrativeStore.addNode({x:0, y:0}, 'choice');
+  useNarrativeStore.addNode({x:1, y:1}, 'common');
+  const s = useNarrativeStore.getState();
+  const cId = Object.keys(s.choice)[0];
+  const targetId = Object.keys(s.common)[0];
+  
+  useNarrativeStore.addOption(cId, { label: 'Opt1' });
+  const optId = useNarrativeStore.getState().choice[cId].data.options[0].id;
+
+  useNarrativeStore.addEdge(cId, targetId, optId);
+  assert.equal(useNarrativeStore.getState().edges.length, 1);
+  assert.equal(useNarrativeStore.getState().edges[0].optionId, optId);
+  
+  useNarrativeStore.deleteOption(cId, optId);
+  assert.equal(useNarrativeStore.getState().choice[cId].data.options.length, 0);
+  assert.equal(useNarrativeStore.getState().edges.length, 0); // Edge removed!
+});
+
+runTest('deleteFlag - prevents deletion if flag is used in variant requires', () => {
+  useNarrativeStore.addFlag('f1', false);
+  const fId = Object.keys(useNarrativeStore.getState().flag)[0];
+  
+  useNarrativeStore.addNode({x:0, y:0}, 'common');
+  const nId = Object.keys(useNarrativeStore.getState().common)[0];
+  useNarrativeStore.addVariant(nId, { requires: { conditions: [{ flag: fId }] } });
+
+  const result = useNarrativeStore.deleteFlag(fId);
+  assert.equal(result.blocked, true);
+  assert.equal(result.references[0].startsWith('variant_requires:'), true);
+});
+
+runTest('deleteFlag - prevents deletion if flag is used in option flags_set', () => {
+  useNarrativeStore.addFlag('f2', false);
+  const fId = Object.keys(useNarrativeStore.getState().flag)[0];
+  
+  useNarrativeStore.addNode({x:0, y:0}, 'choice');
+  const cId = Object.keys(useNarrativeStore.getState().choice)[0];
+  useNarrativeStore.addOption(cId, { flags_set: [fId] });
+
+  const result = useNarrativeStore.deleteFlag(fId);
+  assert.equal(result.blocked, true);
+  assert.equal(result.references[0].startsWith('option_flags_set:'), true);
 });
 
 console.log('--- Group B: Integration Suite ---');
-runTest('existing behaviors - addNode executes cleanly without corruption', () => {
-  useNarrativeStore.addNode({x:0,y:0}, 'common');
-  assert.equal(Object.keys(useNarrativeStore.getState().common).length, 1);
+runTest('addEdge - supports standard two-argument call (no optionId)', () => {
+  useNarrativeStore.addNode({x:0, y:0}, 'common');
+  useNarrativeStore.addNode({x:1, y:1}, 'common');
+  const nodes = Object.keys(useNarrativeStore.getState().common);
+  useNarrativeStore.addEdge(nodes[0], nodes[1]);
+  assert.equal(useNarrativeStore.getState().edges.length, 1);
+  assert.equal(useNarrativeStore.getState().edges[0].optionId, null);
 }, true);
 
-runTest('exportGraph - outputs path and chapter correctly along with schemaVersion 4', () => {
-  useNarrativeStore.addPath('Export Path');
-  const d = useNarrativeStore.exportGraph();
-  assert.equal(d.schemaVersion, 4);
-  assert.equal(Object.values(d.path)[0].name, 'Export Path');
+runTest('deleteFlag - still prevents deletion if flag is used in edge condition (legacy)', () => {
+  useNarrativeStore.addFlag('f3', false);
+  const fId = Object.keys(useNarrativeStore.getState().flag)[0];
+
+  useNarrativeStore.addNode({x:0, y:0}, 'common');
+  useNarrativeStore.addNode({x:1, y:1}, 'common');
+  const nodes = Object.keys(useNarrativeStore.getState().common);
+  useNarrativeStore.addEdge(nodes[0], nodes[1]);
+  const s = useNarrativeStore.getState();
+  
+  useNarrativeStore.getState().edges[0].condition = { conditions: [{ flag: fId }] };
+  const result = useNarrativeStore.deleteFlag(fId);
+  assert.equal(result.blocked, true);
+  assert.equal(result.references[0].startsWith('edge_condition:'), true);
 }, true);
 
 console.log(`\nTests Completed: ${passed} passed, ${failed} failed`);

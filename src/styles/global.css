@@ -81,7 +81,7 @@ input:focus, textarea:focus, select:focus {
   max-width: 280px;
   color: var(--color-text-primary);
   box-shadow: var(--shadow-md);
-  overflow: hidden;
+  /* overflow: hidden removed to prevent React Flow handles from being clipped in half */
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   padding: 0; /* type-bar handles its own padding */
 }
@@ -100,6 +100,8 @@ input:focus, textarea:focus, select:focus {
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   flex-wrap: wrap;
+  border-top-left-radius: calc(var(--radius-md) - 2px);
+  border-top-right-radius: calc(var(--radius-md) - 2px);
 }
 
 .story-node__type-label {
@@ -196,8 +198,6 @@ input:focus, textarea:focus, select:focus {
 .choice-node__handle {
   background: var(--color-node-choice) !important;
   border-color: var(--color-bg-elevated) !important;
-  width: 10px !important;
-  height: 10px !important;
 }
 
 .choice-node__outgoing {
@@ -227,6 +227,8 @@ input:focus, textarea:focus, select:focus {
   background: rgba(251, 146, 60, 0.12);
   border-top: 2px solid var(--color-node-ending);
   box-shadow: 0 0 12px rgba(251, 146, 60, 0.25);
+  border-bottom-left-radius: calc(var(--radius-md) - 2px);
+  border-bottom-right-radius: calc(var(--radius-md) - 2px);
 }
 
 .ending-node__terminal-icon {

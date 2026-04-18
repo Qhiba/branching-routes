@@ -1,5 +1,9 @@
 import React from 'react';
 import { useNarrativeStore, useUIStore } from 'store';
+// ADDED: Import OptionEditor for choice node options
+import OptionEditor from './OptionEditor';
+// ADDED: Import VariantEditor for common node variants
+import VariantEditor from './VariantEditor';
 
 export default function NodeInspector() {
   const selectedNodeId = useUIStore(state => state.selectedNodeId);
@@ -196,6 +200,16 @@ export default function NodeInspector() {
           Add Status Modifier
         </button>
       </div>
+
+      {/* ADDED: Mount VariantEditor for common nodes */}
+      {nodeType === 'common' && (
+        <VariantEditor nodeId={node.id} variants={Array.isArray(data.variants) ? data.variants : []} />
+      )}
+
+      {/* ADDED: Mount OptionEditor for choice nodes */}
+      {nodeType === 'choice' && (
+        <OptionEditor nodeId={node.id} options={Array.isArray(data.options) ? data.options : []} />
+      )}
 
       <div style={{ marginTop: 'auto', paddingTop: '24px' }}>
         <button

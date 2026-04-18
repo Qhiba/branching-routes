@@ -6,10 +6,21 @@ export default function EdgeInspector() {
   const edge = useNarrativeStore(state => state.edges.find(e => e.id === selectedEdgeId));
   const flags = Object.values(useNarrativeStore(state => state.flag));
   const statuses = Object.values(useNarrativeStore(state => state.status));
+  // ADDED: Safe selector to fetch options to prevent crashes
+  const rawSourceOptions = useNarrativeStore(state => {
+    const currentEdge = state.edges.find(e => e.id === selectedEdgeId);
+    if (!currentEdge) return undefined;
+    const choiceNode = state.choice[currentEdge.sourceId];
+    return choiceNode?.data?.options;
+  });
+  const sourceOptions = rawSourceOptions || [];
   const updateEdge = useNarrativeStore(state => state.updateEdge);
   const deleteEdge = useNarrativeStore(state => state.deleteEdge);
 
   if (!edge) return null;
+
+  // ADDED: Find the option if this edge originated from one
+  const sourceOption = sourceOptions.find(opt => opt.id === edge.optionId);
 
   const handleLabelChange = (e) => {
     updateEdge(edge.id, { label: e.target.value });
@@ -65,6 +76,19 @@ export default function EdgeInspector() {
           style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
         />
       </div>
+
+      {/* ADDED: Read-only display of the source option label */}
+      {sourceOption && (
+        <div style={{ marginTop: '-8px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>Connected from option</label>
+          <input
+            type="text"
+            value={sourceOption.label || 'Unnamed Option'}
+            readOnly
+            style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-hover)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+          />
+        </div>
+      )}
 
       <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>

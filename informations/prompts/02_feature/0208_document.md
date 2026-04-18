@@ -61,6 +61,10 @@ Evaluate against: RULE CANDIDATE flags in audit §6.
 - If no RULE CANDIDATE was flagged: write NO CHANGE REQUIRED
   and skip this file.
 
+- If a **RULE CONFLICT** was flagged in the audit:
+  Confirm architecture_rules.md reflects what was decided.
+  Update if it does not yet reflect the change.
+
 ### 4. `risk_register.md`
 Evaluate against: `ran_0202_risks.md` and NEW RISK flags
 in audit §6.

@@ -107,13 +107,14 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  addEdge: (sourceId, targetId) => set((state) => {
+  // MODIFIED: added optional optionId third argument — stamped on edge when provided (Phase 1)
+  addEdge: (sourceId, targetId, optionId = null) => set((state) => {
 
     if (sourceId in state.ending) {
       throw new Error("Cannot add an edge from an 'ending' node");
     }
-    if (state.edges.some(e => e.sourceId === sourceId && e.targetId === targetId)) {
-      throw new Error("Edge already exists between these nodes");
+    if (state.edges.some(e => e.sourceId === sourceId && e.targetId === targetId && e.optionId === optionId)) {
+      throw new Error("Edge already exists between these nodes for this specific option or fallback");
     }
 
     const newEdge = {
@@ -122,7 +123,9 @@ export const useNarrativeStore = create((set, get) => ({
       sourceId,
       targetId,
       label: '',
-      condition: null
+      condition: null,
+      // ADDED: optionId links this edge to a specific option handle on a choice node (null if not from an option handle)
+      optionId: optionId || null
 
     };
 
@@ -201,12 +204,13 @@ export const useNarrativeStore = create((set, get) => ({
   }),
 
   // CHANGED: deleteFlag checks conditions[] for flag and flags_set[] on nodes
+  // MODIFIED: extended scan to also cover variants[].requires and options[].requires + options[].flags_set (Phase 1)
   deleteFlag: (id) => {
     const state = get();
     const references = [];
 
     state.edges.forEach(e => {
-      // PRESERVED: Referential Integrity behavior
+      // PROTECTED: Referential Integrity behavior — edge condition scan preserved
       if (e.condition && e.condition.conditions) {
         if (e.condition.conditions.some(c => c.flag === id)) {
           references.push(`edge_condition:${e.id}`);
@@ -221,8 +225,32 @@ export const useNarrativeStore = create((set, get) => ({
     ];
 
     allNodes.forEach(n => {
+      // PROTECTED: node flags_set scan preserved
       if (n.data && n.data.flags_set && n.data.flags_set.includes(id)) {
         references.push(`node_sideEffect:${n.id}`);
+      }
+      // ADDED: scan variants[].requires.conditions for flag references (Phase 1)
+      if (n.data && Array.isArray(n.data.variants)) {
+        n.data.variants.forEach(v => {
+          if (v.requires && Array.isArray(v.requires.conditions)) {
+            if (v.requires.conditions.some(c => c.flag === id)) {
+              references.push(`variant_requires:${n.id}:${v.id}`);
+            }
+          }
+        });
+      }
+      // ADDED: scan options[].requires.conditions and options[].flags_set for flag references (Phase 1)
+      if (n.data && Array.isArray(n.data.options)) {
+        n.data.options.forEach(opt => {
+          if (opt.requires && Array.isArray(opt.requires.conditions)) {
+            if (opt.requires.conditions.some(c => c.flag === id)) {
+              references.push(`option_requires:${n.id}:${opt.id}`);
+            }
+          }
+          if (Array.isArray(opt.flags_set) && opt.flags_set.includes(id)) {
+            references.push(`option_flags_set:${n.id}:${opt.id}`);
+          }
+        });
       }
     });
 
@@ -242,12 +270,13 @@ export const useNarrativeStore = create((set, get) => ({
   },
 
   // CHANGED: deleteStatus added to check conditions[] for status and status_set[] on nodes
+  // MODIFIED: extended scan to also cover variants[].requires and options[].requires + options[].status_set (Phase 1)
   deleteStatus: (id) => {
     const state = get();
     const references = [];
 
     state.edges.forEach(e => {
-      // PRESERVED: Referential Integrity behavior
+      // PROTECTED: Referential Integrity behavior — edge condition scan preserved
       if (e.condition && e.condition.conditions) {
         if (e.condition.conditions.some(c => c.status === id)) {
           references.push(`edge_condition:${e.id}`);
@@ -262,8 +291,32 @@ export const useNarrativeStore = create((set, get) => ({
     ];
 
     allNodes.forEach(n => {
+      // PROTECTED: node status_set scan preserved
       if (n.data && n.data.status_set && n.data.status_set.some(se => se.statusId === id)) {
         references.push(`node_sideEffect:${n.id}`);
+      }
+      // ADDED: scan variants[].requires.conditions for status references (Phase 1)
+      if (n.data && Array.isArray(n.data.variants)) {
+        n.data.variants.forEach(v => {
+          if (v.requires && Array.isArray(v.requires.conditions)) {
+            if (v.requires.conditions.some(c => c.status === id)) {
+              references.push(`variant_requires:${n.id}:${v.id}`);
+            }
+          }
+        });
+      }
+      // ADDED: scan options[].requires.conditions and options[].status_set for status references (Phase 1)
+      if (n.data && Array.isArray(n.data.options)) {
+        n.data.options.forEach(opt => {
+          if (opt.requires && Array.isArray(opt.requires.conditions)) {
+            if (opt.requires.conditions.some(c => c.status === id)) {
+              references.push(`option_requires:${n.id}:${opt.id}`);
+            }
+          }
+          if (Array.isArray(opt.status_set) && opt.status_set.some(se => se.statusId === id)) {
+            references.push(`option_status_set:${n.id}:${opt.id}`);
+          }
+        });
       }
     });
 
@@ -281,6 +334,116 @@ export const useNarrativeStore = create((set, get) => ({
     });
     return { blocked: false };
   },
+
+  // ─── VARIANT CRUD (Phase 1) ────────────────────────────────────────────────
+
+  // ADDED: addVariant — appends a new variant to common[nodeId].data.variants[] (Phase 1)
+  // variants[] is display-only; which variant is active is a simulation concern deferred to a later update
+  addVariant: (nodeId, variantData = {}) => set((state) => {
+    const node = state.common[nodeId];
+    if (!node) return state;
+    const newVariant = {
+      id: generateId('v'),
+      label: variantData.label || '',
+      text: variantData.text || '',
+      requires: variantData.requires || null
+    };
+    const currentVariants = Array.isArray(node.data.variants) ? node.data.variants : [];
+    return {
+      common: {
+        ...state.common,
+        [nodeId]: { ...node, data: { ...node.data, variants: [...currentVariants, newVariant] } }
+      },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  // ADDED: updateVariant — patches a single variant in common[nodeId].data.variants[] by variantId (Phase 1)
+  updateVariant: (nodeId, variantId, patch) => set((state) => {
+    const node = state.common[nodeId];
+    if (!node) return state;
+    const currentVariants = Array.isArray(node.data.variants) ? node.data.variants : [];
+    const nextVariants = currentVariants.map(v => v.id === variantId ? { ...v, ...patch } : v);
+    return {
+      common: {
+        ...state.common,
+        [nodeId]: { ...node, data: { ...node.data, variants: nextVariants } }
+      },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  // ADDED: deleteVariant — removes a variant from common[nodeId].data.variants[] by variantId (Phase 1)
+  deleteVariant: (nodeId, variantId) => set((state) => {
+    const node = state.common[nodeId];
+    if (!node) return state;
+    const currentVariants = Array.isArray(node.data.variants) ? node.data.variants : [];
+    return {
+      common: {
+        ...state.common,
+        [nodeId]: { ...node, data: { ...node.data, variants: currentVariants.filter(v => v.id !== variantId) } }
+      },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  // ─── OPTION CRUD (Phase 1) ─────────────────────────────────────────────────
+
+  // ADDED: addOption — appends a new option to choice[nodeId].data.options[] (Phase 1)
+  // each option gets a dedicated source handle on ChoiceNode (Phase 2)
+  addOption: (nodeId, optionData = {}) => set((state) => {
+    const node = state.choice[nodeId];
+    if (!node) return state;
+    const newOption = {
+      id: generateId('opt'),
+      label: optionData.label || '',
+      requires: optionData.requires || null,
+      flags_set: Array.isArray(optionData.flags_set) ? optionData.flags_set : [],
+      status_set: Array.isArray(optionData.status_set) ? optionData.status_set : []
+    };
+    const currentOptions = Array.isArray(node.data.options) ? node.data.options : [];
+    return {
+      choice: {
+        ...state.choice,
+        [nodeId]: { ...node, data: { ...node.data, options: [...currentOptions, newOption] } }
+      },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  // ADDED: updateOption — patches a single option in choice[nodeId].data.options[] by optionId (Phase 1)
+  updateOption: (nodeId, optionId, patch) => set((state) => {
+    const node = state.choice[nodeId];
+    if (!node) return state;
+    const currentOptions = Array.isArray(node.data.options) ? node.data.options : [];
+    const nextOptions = currentOptions.map(opt => opt.id === optionId ? { ...opt, ...patch } : opt);
+    return {
+      choice: {
+        ...state.choice,
+        [nodeId]: { ...node, data: { ...node.data, options: nextOptions } }
+      },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  // ADDED: deleteOption — removes an option from choice[nodeId].data.options[] and cascades to remove
+  // all edges where edge.optionId === optionId, preventing dangling handle references (RISK-VNO-04) (Phase 1)
+  deleteOption: (nodeId, optionId) => set((state) => {
+    const node = state.choice[nodeId];
+    if (!node) return state;
+    const currentOptions = Array.isArray(node.data.options) ? node.data.options : [];
+    return {
+      choice: {
+        ...state.choice,
+        [nodeId]: { ...node, data: { ...node.data, options: currentOptions.filter(opt => opt.id !== optionId) } }
+      },
+      // Cascade: remove edges that originated from this option's handle
+      edges: state.edges.filter(e => e.optionId !== optionId),
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  // ─── PATH / CHAPTER MANAGEMENT ────────────────────────────────────────────
 
   // ADDED: path management actions with cascading pathId nullification
   addPath: (name) => set((state) => {

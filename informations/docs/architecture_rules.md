@@ -98,3 +98,27 @@ Side effects exist only on nodes. When the simulation advances along an edge, on
 Ending nodes are stored in a dedicated ending{} sub-collection. Because they are structurally separated from connectable node types, narrativeStore.addEdge() must validate that the source ID does not belong to the ending collection and throw if it does. The UI must hide the outgoing handle on EndingNode to reinforce this at the interaction layer.
 
 **Rationale:** The enforcement mechanism is the same but the lookup target changed — from a type field on a flat array entry to sub-collection identity.
+
+---
+
+## AR-13 — Sub-Array CRUD via Dedicated Store Actions
+
+Nested arrays inside `node.data` (e.g., `variants[]`, `options[]`) must be managed exclusively through dedicated store actions (e.g., `addVariant`, `updateVariant`, `deleteVariant`) rather than generic `updateNode` patches that replace the entire array. Each action must perform its own validation and cascading cleanup (e.g., `deleteOption` removes edges with matching `optionId`).
+
+**Rationale:** Dedicated actions prevent accidental full-array overwrites, enforce referential integrity cascades, and make store mutations auditable through named action calls. Validated through the Variants_on_nodes_and_Options_on_choices feature implementation.
+
+---
+
+## AR-14 — Zustand Selector Stability
+
+Zustand selectors must never return new object or array literals (e.g., `[]`, `{}`) as fallback values. Returning a new reference on every call causes Zustand to detect a state change on every render cycle, triggering infinite re-render loops. Selectors must return `undefined` or `null` for absent data; the consuming component defaults outside the hook.
+
+**Rationale:** A `return []` inside a selector creates a new array reference on every evaluation. Zustand uses strict equality (`===`) to detect changes, so a new reference triggers a re-render, which re-evaluates the selector, which returns another new reference — producing an infinite loop that crashes the UI.
+
+---
+
+## AR-15 — Edge Uniqueness Tuple
+
+The duplicate-edge check in `narrativeStore.addEdge()` uses the tuple `(sourceId, targetId, optionId)` to determine uniqueness. Two edges between the same source and target nodes are permitted if and only if they originate from different option handles (i.e., have different `optionId` values). Edges with `optionId: null` (non-option edges) are still subject to the standard one-edge-per-pair constraint.
+
+**Rationale:** Multiple choice options on the same node may legitimately route to the same target with different side effects. The previous `(sourceId, targetId)` check blocked this valid authoring pattern.

@@ -3,7 +3,7 @@
   "meta": {
     "title": "The Enchanted Forest",
     "createdAt": "04-11-2026",
-    "updatedAt": "17-04-2026",
+    "updatedAt": "18-04-2026",
     "commonNodeTypes": [],
     "endingTypes": []
   },
@@ -27,7 +27,23 @@
           }
         ],
         "pathId": "p-00100000-0000-4000-8000-000000000001",
-        "chapterId": "c-00100000-0000-4000-8000-000000000001"
+        "chapterId": "c-00100000-0000-4000-8000-000000000001",
+        "variants": [
+          {
+            "id": "v-00100000-0000-4000-8000-000000000001",
+            "label": "Lantern glow variant",
+            "text": "You stand at the edge of a dense forest. Your lantern casts a warm glow over the path. The darkness feels less threatening now.",
+            "requires": {
+              "operator": "and",
+              "conditions": [
+                {
+                  "flag": "f-00100000-0000-4000-8000-000000000001",
+                  "state": true
+                }
+              ]
+            }
+          }
+        ]
       }
     },
     "n-00200000-0000-4000-8000-000000000002": {
@@ -46,7 +62,8 @@
         ],
         "status_set": [],
         "pathId": "p-00100000-0000-4000-8000-000000000001",
-        "chapterId": "c-00100000-0000-4000-8000-000000000001"
+        "chapterId": "c-00100000-0000-4000-8000-000000000001",
+        "variants": []
       }
     },
     "n-00400000-0000-4000-8000-000000000004": {
@@ -63,7 +80,8 @@
         "flags_set": [],
         "status_set": [],
         "pathId": "p-00200000-0000-4000-8000-000000000002",
-        "chapterId": "c-00200000-0000-4000-8000-000000000002"
+        "chapterId": "c-00200000-0000-4000-8000-000000000002",
+        "variants": []
       }
     }
   },
@@ -87,7 +105,44 @@
           }
         ],
         "pathId": "p-00200000-0000-4000-8000-000000000002",
-        "chapterId": null
+        "chapterId": null,
+        "options": [
+          {
+            "id": "opt-00100000-0000-4000-8000-000000000001",
+            "label": "Venture deeper with lantern",
+            "requires": {
+              "operator": "and",
+              "conditions": [
+                {
+                  "flag": "f-00100000-0000-4000-8000-000000000001",
+                  "state": true
+                }
+              ]
+            },
+            "flags_set": [],
+            "status_set": [
+              {
+                "statusId": "f-00200000-0000-4000-8000-000000000002",
+                "amount": 1
+              }
+            ]
+          },
+          {
+            "id": "opt-00200000-0000-4000-8000-000000000002",
+            "label": "Stumble into the darkness",
+            "requires": {
+              "operator": "and",
+              "conditions": [
+                {
+                  "flag": "f-00100000-0000-4000-8000-000000000001",
+                  "state": false
+                }
+              ]
+            },
+            "flags_set": [],
+            "status_set": []
+          }
+        ]
       }
     }
   },
@@ -133,21 +188,24 @@
       "sourceId": "n-00100000-0000-4000-8000-000000000001",
       "targetId": "n-00200000-0000-4000-8000-000000000002",
       "label": "Investigate the glow",
-      "condition": null
+      "condition": null,
+      "optionId": null
     },
     {
       "id": "e-00200000-0000-4000-8000-000000000002",
       "sourceId": "n-00100000-0000-4000-8000-000000000001",
       "targetId": "n-00300000-0000-4000-8000-000000000003",
       "label": "Enter the cave directly",
-      "condition": null
+      "condition": null,
+      "optionId": null
     },
     {
       "id": "e-00300000-0000-4000-8000-000000000003",
       "sourceId": "n-00200000-0000-4000-8000-000000000002",
       "targetId": "n-00300000-0000-4000-8000-000000000003",
       "label": "Head to the cave with lantern",
-      "condition": null
+      "condition": null,
+      "optionId": null
     },
     {
       "id": "e-00400000-0000-4000-8000-000000000004",
@@ -163,7 +221,8 @@
             "state": true
           }
         ]
-      }
+      },
+      "optionId": "opt-00100000-0000-4000-8000-000000000001"
     },
     {
       "id": "e-00500000-0000-4000-8000-000000000005",
@@ -179,7 +238,8 @@
             "state": false
           }
         ]
-      }
+      },
+      "optionId": "opt-00200000-0000-4000-8000-000000000002"
     },
     {
       "id": "e-00600000-0000-4000-8000-000000000006",
@@ -195,7 +255,8 @@
             "min": 3
           }
         ]
-      }
+      },
+      "optionId": null
     }
   ],
   "flag": {

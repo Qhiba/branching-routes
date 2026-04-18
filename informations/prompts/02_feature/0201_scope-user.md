@@ -30,21 +30,35 @@ Save to: `/informations/runs/[DD-MM-YYYY]_feature/ran_0201_scope.md`
 
 ### Feature name
 <!-- [SNAKE_CASE NAME] -->
-Path_Chapter_Entities
+Variants_on_nodes_and_Options_on_choices
 
 ### What this feature does
 <!-- [ONE SENTENCE — from the user's perspective] -->
-Allows designers to assign nodes to named paths and chapters, giving the graph an organizational layer that groups related nodes without changing how they connect or simulate.
+- Variants on Common Node:
+    Allows designers to define alternate text on a common node that displays conditionally based on flag and status state, so a single node can show different content without duplicating nodes in the graph.
+
+- Options on Choice Node
+    Allows designers to define multiple selectable options on a choice node — each with its own conditions, side effects, and a dedicated source handle — so edges can be anchored to a specific option rather than the node as a whole.
 
 ### What this feature does NOT do
 <!-- [EXPLICIT BOUNDARIES — at least 2 items] -->
-- It does not affect edge connections, condition evaluation, or simulation behavior — grouping is metadata only.
-- It does not visually render groups as containers or regions on the canvas; nodes carry the reference, the canvas does not draw boundaries around them.
-- The CRUD UI is a temporary Sidebar tab.
+- Variants on Common Node:
+    - It does not affect routing or edge behavior — variants are display-only, not branching points.
+    - It does not render variant switching on the canvas; which variant is active is a simulation concern handled in later update.
+    - It does not finalize the variant editor UI — form styling is deferred to later update.
+
+- Options on Choice Node
+    - It does not change how edges evaluate conditions — option conditions gate availability, routing logic stays on the edge.
+    - It does not affect common node or ending node edge behavior — per-option source handles exist only on choice nodes.
+    - It does not finalize the option editor UI — form styling is deferred to later update.
 
 ### Why this feature is needed now
 <!-- [ONE SENTENCE — the real reason, not the nice-to-have reason] -->
-Without grouping, the typed sub-collections introduced in the data model refactor have no organizational context — as node count grows, the canvas becomes unnavigable and the flat list of nodes in the inspector carries no narrative structure.
+- Variants on Common Node:
+    Without variants, designers must duplicate common nodes to express minor conditional text differences, bloating the graph with structurally identical nodes that differ only in content.
+
+- Options on Choice Node
+    - The flag and status system from previous iteration update has nowhere to apply at the choice level — without options, choice nodes cannot express what the player selects, what state changes on selection, or which specific option an outgoing edge belongs to.
 
 ### Definition of done
 <!-- [ ] Condition 1
@@ -52,11 +66,13 @@ Without grouping, the typed sub-collections introduced in the data model refacto
 [ ] Condition 3 -->
 | Action | File | Detail |
 |--------|------|--------|
-| MODIFY | `src/store/narrativeStore.js` | Add `path{}` + `chapter{}` CRUD |
-| ADD | `src/components/PathChapterManager.jsx` | Path + Chapter management UI |
-| MODIFY | `src/components/NodeInspector.jsx` | Path/chapter selection dropdowns |
-| MODIFY | `src/components/Sidebar.jsx` | Add Path/Chapter section |
-| MODIFY | `src/utils/fileSystem.js` | Export/import path{} + chapter{} |
+| MODIFY | `src/store/narrativeStore.js` | Variant + option CRUD actions |
+| ADD | `src/components/VariantEditor.jsx` | Variant list + conditional text editing |
+| ADD | `src/components/OptionEditor.jsx` | Option editing: label, requires, flags_set, status_set |
+| MODIFY | `src/components/NodeInspector.jsx` | Mount VariantEditor for common nodes, OptionEditor for choices |
+| MODIFY | `src/components/nodes/ChoiceNode.jsx` | Render option labels, per-option source handles, medium/full toggle |
+| MODIFY | `src/store/uiStore.js` | Option display mode setting (medium/full) |
+| MODIFY | `src/components/EdgeInspector.jsx` | Show which option an edge connects from |
 
 
 ### Assumptions I am making
