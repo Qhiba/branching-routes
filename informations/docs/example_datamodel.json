@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "meta": {
     "title": "The Enchanted Forest",
     "createdAt": "04-11-2026",
-    "updatedAt": "15-04-2026",
+    "updatedAt": "17-04-2026",
     "commonNodeTypes": [],
     "endingTypes": []
   },
@@ -25,7 +25,9 @@
             "statusId": "f-00200000-0000-4000-8000-000000000002",
             "amount": 1
           }
-        ]
+        ],
+        "pathId": "p-00100000-0000-4000-8000-000000000001",
+        "chapterId": "c-00100000-0000-4000-8000-000000000001"
       }
     },
     "n-00200000-0000-4000-8000-000000000002": {
@@ -42,7 +44,9 @@
         "flags_set": [
           "f-00100000-0000-4000-8000-000000000001"
         ],
-        "status_set": []
+        "status_set": [],
+        "pathId": "p-00100000-0000-4000-8000-000000000001",
+        "chapterId": "c-00100000-0000-4000-8000-000000000001"
       }
     },
     "n-00400000-0000-4000-8000-000000000004": {
@@ -57,7 +61,9 @@
         "content": "Your lantern reveals a vast underground lake. A stone bridge leads to an island with a glowing crystal.",
         "isStartNode": false,
         "flags_set": [],
-        "status_set": []
+        "status_set": [],
+        "pathId": "p-00200000-0000-4000-8000-000000000002",
+        "chapterId": "c-00200000-0000-4000-8000-000000000002"
       }
     }
   },
@@ -79,7 +85,9 @@
             "statusId": "f-00200000-0000-4000-8000-000000000002",
             "amount": 2
           }
-        ]
+        ],
+        "pathId": "p-00200000-0000-4000-8000-000000000002",
+        "chapterId": null
       }
     }
   },
@@ -96,7 +104,9 @@
         "content": "You grasp the crystal and the forest fills with light. The enchantment is broken. You are free.",
         "isStartNode": false,
         "flags_set": [],
-        "status_set": []
+        "status_set": [],
+        "pathId": "p-00200000-0000-4000-8000-000000000002",
+        "chapterId": "c-00200000-0000-4000-8000-000000000002"
       }
     },
     "n-00600000-0000-4000-8000-000000000006": {
@@ -111,7 +121,9 @@
         "content": "Without a lantern, the darkness swallows you whole. You wander for hours and eventually find yourselves back at the forest entrance, defeated.",
         "isStartNode": false,
         "flags_set": [],
-        "status_set": []
+        "status_set": [],
+        "pathId": null,
+        "chapterId": null
       }
     }
   },
@@ -200,6 +212,26 @@
       "value": 0,
       "minValue": null,
       "maxValue": null
+    }
+  },
+  "path": {
+    "p-00100000-0000-4000-8000-000000000001": {
+      "id": "p-00100000-0000-4000-8000-000000000001",
+      "name": "Forest Route"
+    },
+    "p-00200000-0000-4000-8000-000000000002": {
+      "id": "p-00200000-0000-4000-8000-000000000002",
+      "name": "Cave Route"
+    }
+  },
+  "chapter": {
+    "c-00100000-0000-4000-8000-000000000001": {
+      "id": "c-00100000-0000-4000-8000-000000000001",
+      "name": "Chapter 1 — The Arrival"
+    },
+    "c-00200000-0000-4000-8000-000000000002": {
+      "id": "c-00200000-0000-4000-8000-000000000002",
+      "name": "Chapter 2 — Into the Depths"
     }
   }
 }

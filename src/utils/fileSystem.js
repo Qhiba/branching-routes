@@ -52,6 +52,7 @@ export async function importProject() {
       return null;
     }
   } else {
+    // PROTECTED: Fallback behavior via standard HTML file input preserved
     // Fallback
     file = await new Promise((resolve) => {
       const input = document.createElement('input');
@@ -68,7 +69,8 @@ export async function importProject() {
   let data = JSON.parse(text);
 
 
-  if (![1, 2, 3].includes(data.schemaVersion)) {
+  // MODIFIED: Added 4 to supported schema versions
+  if (![1, 2, 3, 4].includes(data.schemaVersion)) {
     throw new Error('unsupported_schema_version');
   }
 
@@ -147,6 +149,7 @@ export async function importProject() {
     });
   };
 
+  // PROTECTED: Schema version 1 migration path is explicitly protected from interference
   if (data.schemaVersion === 1) {
 
     
@@ -209,6 +212,7 @@ export async function importProject() {
       schemaVersion: 3
     };
   } else if (data.schemaVersion === 2) {
+    // PROTECTED: Schema version 2 migration path is explicitly protected from interference
     // MIGRATION: Parallel Support strategy for flags
     const baseFlags = data.flags || [];
     const { flag, status } = generateTypedCollections(baseFlags);
@@ -227,6 +231,12 @@ export async function importProject() {
     data.schemaVersion = 3;
   }
 
+  // ADDED: Migration v3 -> v4 to initialize path and chapter dictionaries
+  if (data.schemaVersion === 3) {
+    data.path = data.path || {};
+    data.chapter = data.chapter || {};
+    data.schemaVersion = 4;
+  }
 
   return data;
 }

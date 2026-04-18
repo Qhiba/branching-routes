@@ -21,9 +21,15 @@ export default function NodeInspector() {
 
   const flags = Object.values(useNarrativeStore(state => state.flag));
   const statuses = Object.values(useNarrativeStore(state => state.status));
+  // ADDED: Targeted selectors for paths and chapters
+  const paths = Object.values(useNarrativeStore(state => state.path));
+  const chapters = Object.values(useNarrativeStore(state => state.chapter));
   const updateNode = useNarrativeStore(state => state.updateNode);
   const setStartNode = useNarrativeStore(state => state.setStartNode);
   const deleteNode = useNarrativeStore(state => state.deleteNode);
+  // PROTECTED: All existing handlers (handleLabelChange, handleContentChange, handleStartNodeClick,
+  // toggleFlag, addStatusEffect, updateStatusEffect, removeStatusEffect, deleteNode) and the visual
+  // structure (Label, Content, Start Node, Set Flags, Status Modifiers, Delete) are preserved unchanged.
 
   if (!node) return null;
   const data = node.data || {};
@@ -88,6 +94,36 @@ export default function NodeInspector() {
           rows={5}
           style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', resize: 'vertical' }}
         />
+      </div>
+
+      {/* ADDED: Path assignment dropdown */}
+      <div>
+        <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>Path</label>
+        <select
+          value={data.pathId || ''}
+          onChange={(e) => updateNode(node.id, { data: { ...data, pathId: e.target.value || null } })}
+          style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+        >
+          <option value="">None</option>
+          {paths.map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* ADDED: Chapter assignment dropdown */}
+      <div>
+        <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>Chapter</label>
+        <select
+          value={data.chapterId || ''}
+          onChange={(e) => updateNode(node.id, { data: { ...data, chapterId: e.target.value || null } })}
+          style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
+        >
+          <option value="">None</option>
+          {chapters.map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
       </div>
 
       {nodeType !== 'ending' && (

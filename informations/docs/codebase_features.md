@@ -52,10 +52,10 @@
 ## `src/store/`
 
 ### `src/store/narrativeStore.js` (RENAMED FROM graphStore.js — 14-04-2026)
-- **Purpose:** Zustand store owning the canonical graph: `common{}`, `choice{}`, `ending{}`, `edges[]`, `flags[]`, and `meta`. Exposes CRUD actions for narrative entity types, graph import/export, and new graph creation. Cross-coordinates with `uiStore` on deletions and loads.
+- **Purpose:** Zustand store owning the canonical graph: `common{}`, `choice{}`, `ending{}`, `edges[]`, `flag{}`, `status{}`, `path{}`, `chapter{}`, and `meta`. Exposes CRUD actions for all narrative entity types including path/chapter management with cascading deletion, graph import/export at `schemaVersion: 4`, and new graph creation. Cross-coordinates with `uiStore` on deletions and loads.
 - **Key exports:** `useNarrativeStore` (Zustand hook)
 - **Dependencies:** `utils` (barrel — `generateId`)
-- **Actions:** `addNode`, `updateNode`, `deleteNode`, `setStartNode`, `addEdge`, `updateEdge`, `deleteEdge`, `addFlag`, `updateFlag`, `deleteFlag`, `updateMeta`, `loadGraph`, `newGraph`, `exportGraph`
+- **Actions:** `addNode`, `updateNode`, `deleteNode`, `setStartNode`, `addEdge`, `updateEdge`, `deleteEdge`, `addFlag`, `updateFlag`, `deleteFlag`, `addStatus`, `updateStatus`, `deleteStatus`, `addPath`, `updatePath`, `deletePath`, `addChapter`, `updateChapter`, `deleteChapter`, `updateMeta`, `loadGraph`, `newGraph`, `exportGraph`
 
 ### `src/store/uiStore.js`
 - **Purpose:** Zustand store owning UI state: `selectedNodeId`, `selectedEdgeId`, and `snapToGrid`. Designed to prevent re-render storms in the canvas while editing.
@@ -88,9 +88,9 @@
 - **Dependencies:** None.
 
 ### `src/utils/fileSystem.js`
-- **Purpose:** Browser File System Access API wrappers for save and open. Falls back to `<a download>` / `<input type="file">` when the API is unavailable. Validates `schemaVersion` on import, redistributes legacy `nodes[]` into sub-collections, and strips legacy edge `sideEffects`.
+- **Purpose:** Browser File System Access API wrappers for save and open. Falls back to `<a download>` / `<input type="file">` when the API is unavailable. Validates `schemaVersion` on import (accepts v1–v4), runs migration chains (v1→v3, v2→v3, v3→v4), redistributes legacy `nodes[]` into sub-collections, strips legacy edge `sideEffects`, and initialises `path{}` and `chapter{}` for pre-v4 files.
 - **Key exports:** `exportProject(graphData, defaultTitle): Promise<void>`, `importProject(): Promise<GraphData | null>`
-- **Dependencies:** None.
+- **Dependencies:** `utils/uuid` (`generateId`)
 
 ### `src/utils/index.js`
 - **Purpose:** Barrel re-export for all utilities.
@@ -112,12 +112,12 @@
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`), `@xyflow/react`, `components/nodes/CommonNode`, `components/nodes/ChoiceNode`, `components/nodes/EndingNode`, `components/edges/ConditionalEdge`
 
 ### `src/components/Sidebar.jsx`
-- **Purpose:** Right-side panel with two tabs: Inspector (shows NodeInspector or EdgeInspector based on selection) and Flags (always shows FlagManager).
+- **Purpose:** Right-side panel with four tabs: Inspector (shows NodeInspector or EdgeInspector based on selection), Flags (shows FlagManager), Status (shows StatusManager), and Paths (shows PathChapterManager).
 - **Key exports:** `default Sidebar`
-- **Dependencies:** `store` (barrel — `useUIStore`), `NodeInspector`, `EdgeInspector`, `FlagManager`
+- **Dependencies:** `store` (barrel — `useUIStore`), `NodeInspector`, `EdgeInspector`, `FlagManager`, `StatusManager`, `PathChapterManager`
 
 ### `src/components/NodeInspector.jsx`
-- **Purpose:** Form panel for editing a selected node's properties based on its type (label, content, side effects, start node status). Performs multi-collection lookups to locate nodes. Includes node deletion.
+- **Purpose:** Form panel for editing a selected node's properties based on its type (label, content, path/chapter assignment, side effects, start node status). Performs multi-collection lookups to locate nodes. Includes path and chapter assignment dropdowns that write `pathId`/`chapterId` to `node.data` via `updateNode`. Includes node deletion.
 - **Key exports:** `default NodeInspector`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`)
 
@@ -127,8 +127,18 @@
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`)
 
 ### `src/components/FlagManager.jsx`
-- **Purpose:** Panel listing all flags with name, type badge, and default value. Add-flag form with live name validation. Delete with referential integrity checking (RISK-02 mitigation).
+- **Purpose:** Panel listing all flags with name and default boolean value. Add-flag form with live name validation. Delete with referential integrity checking (RISK-02 mitigation).
 - **Key exports:** `default FlagManager`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`)
+
+### `src/components/StatusManager.jsx`
+- **Purpose:** Panel listing all status points with name, value, min/max. Add-status form with live name validation. Delete with referential integrity checking.
+- **Key exports:** `default StatusManager`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`)
+
+### `src/components/PathChapterManager.jsx`
+- **Purpose:** Panel with two sections (Paths and Chapters) providing list, add, rename, and delete UI for both entity types. All mutations go through store actions. Local state is limited to add-form text inputs (AR-03 compliant).
+- **Key exports:** `default PathChapterManager`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`)
 
 ### `src/components/nodes/CommonNode.jsx`
@@ -153,12 +163,24 @@
 
 ### `src/components/index.js`
 - **Purpose:** Barrel re-export for all components.
-- **Key exports:** `GraphCanvas`, `CommonNode`, `ChoiceNode`, `EndingNode`, `ConditionalEdge`, `TopBar`, `Sidebar`, `NodeInspector`, `EdgeInspector`, `FlagManager`
+- **Key exports:** `GraphCanvas`, `CommonNode`, `ChoiceNode`, `EndingNode`, `ConditionalEdge`, `TopBar`, `Sidebar`, `NodeInspector`, `EdgeInspector`, `FlagManager`, `StatusManager`, `PathChapterManager`
 - **Dependencies:** All files in `components/`
 
 ---
 
 ## Changelog
+
+## [2026-04-17] — Path_Chapter_Entities
+### Added
+- `PathChapterManager.jsx`: New CRUD management UI for paths and chapters, mounted in a new "Paths" tab in the Sidebar.
+- `narrativeStore.js`: `path{}` and `chapter{}` dictionaries with full CRUD actions (`addPath`, `updatePath`, `deletePath`, `addChapter`, `updateChapter`, `deleteChapter`) including cascading `pathId`/`chapterId` nullification on deletion.
+- `NodeInspector.jsx`: Two new `<select>` dropdowns (Path, Chapter) for assigning nodes to organizational groups via `updateNode`.
+- `fileSystem.js`: v3→v4 migration pass initialising `path: {}` and `chapter: {}` for legacy files.
+### Changed
+- `narrativeStore.js`: `exportGraph()` now emits `schemaVersion: 4` with `path` and `chapter` dictionaries. `loadGraph()` and `newGraph()` initialise both collections.
+- `fileSystem.js`: Version guard now accepts `schemaVersion: 4`.
+- `Sidebar.jsx`: Tab bar expanded from 3 tabs (Inspector, Flags, Status) to 4 tabs (+ Paths).
+- `components/index.js`: Added `PathChapterManager` export.
 
 ## [2026-04-15] — Canvas Visual Identity Iteration
 ### Changed

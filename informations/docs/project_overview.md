@@ -39,7 +39,7 @@ branching-routes/
 │   │   └── global.css      # CSS reset, base styles, component styles, simulation mode overrides
 │   │
 │   ├── store/
-│   │   ├── narrativeStore.js # Zustand store: canonical graph (common, choice, ending, edges, flags, meta)
+│   │   ├── narrativeStore.js # Zustand store: canonical graph (common, choice, ending, edges, flag, status, path, chapter, meta)
 │   │   ├── uiStore.js      # Zustand store: UI state (selection, snap-to-grid)
 │   │   ├── simulationStore.js  # Zustand store: simulation state (active node, flags, reachable sets)
 │   │   └── index.js        # Barrel re-export for all stores
@@ -53,10 +53,12 @@ branching-routes/
 │   └── components/
 │       ├── TopBar.jsx       # App title, file actions, simulation controls, tidy layout
 │       ├── GraphCanvas.jsx  # React Flow canvas wrapper with interaction handlers
-│       ├── Sidebar.jsx      # Tab panel: Inspector / Flags
-│       ├── NodeInspector.jsx    # Form for editing node label, content, side effects
+│       ├── Sidebar.jsx      # Tab panel: Inspector / Flags / Status / Paths
+│       ├── NodeInspector.jsx    # Form for editing node label, content, side effects, path/chapter assignment
 │       ├── EdgeInspector.jsx    # Form for editing edge label and conditions
 │       ├── FlagManager.jsx      # Flag CRUD with name validation and reference checking
+│       ├── StatusManager.jsx    # Status CRUD with name validation and reference checking
+│       ├── PathChapterManager.jsx # Path and Chapter CRUD management UI
 │       ├── nodes/
 │       │   ├── CommonNode.jsx   # Custom React Flow node for standard narrative stops
 │       │   ├── ChoiceNode.jsx   # Custom React Flow node for player choices

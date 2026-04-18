@@ -14,6 +14,11 @@
 | RISK-08 | Badge styling overlaps with existing `story-node__badge` | High | Low | See details below | MITIGATED |
 | RISK-09 | `choice-node` and `ending-node` classes already exist | Medium | Low | See details below | MITIGATED |
 | RISK-10 | EndingNode accent color visually clashes with active state | High | Low | See details below | ACKNOWLEDGED |
+| RISK-PCE-01 | Orphaned Node References After Path/Chapter Deletion | High | Medium | Cascading nullification in `deletePath`/`deleteChapter` | RESOLVED |
+| RISK-PCE-02 | Schema Version Guard Breaks Legacy Imports | High | High | v3→v4 migration in `fileSystem.js` | RESOLVED |
+| RISK-PCE-03 | `loadGraph`/`newGraph` Omit New Collections | High | High | Both functions initialise `path`/`chapter` | RESOLVED |
+| RISK-PCE-04 | NodeInspector Dropdown Re-Render Storms | Medium | Medium | Targeted Zustand selectors | RESOLVED |
+| RISK-PCE-05 | Empty Path/Chapter Names | Medium | Low | Store validation + UI guard | RESOLVED |
 
 ---
 
@@ -144,3 +149,74 @@
 **Mitigation Strategy:** Acknowledged as acceptable design overlap for now; no code mitigation was planned.
 
 **Status:** ACKNOWLEDGED — Audit Preservation AR-2 confirms this visual impact was contained and accepted.
+
+---
+
+## RISK-PCE-01 — Orphaned Node References After Path/Chapter Deletion
+
+**Description:** When a designer deletes a path or chapter, any node whose `data.pathId` or `data.chapterId` matches the deleted ID becomes invalid unless the cascade sweep nullifies those references.
+
+**Likelihood:** High
+
+**Impact:** Medium
+
+**Mitigation Strategy:** `deletePath` and `deleteChapter` perform a full sweep of `common`, `choice`, and `ending` within the same `set()` call, nullifying matching references before removing the entity.
+
+**Status:** RESOLVED — `narrativeStore.js` L305–329 (path) and L351–375 (chapter) implement cascading nullification. Verified in Phase 1 tests.
+
+---
+
+## RISK-PCE-02 — Schema Version Guard Breaks Legacy Imports
+
+**Description:** The version guard in `fileSystem.js` must accept `schemaVersion: 4` after the bump, and existing v1–v3 files must still import correctly.
+
+**Likelihood:** High
+
+**Impact:** High
+
+**Mitigation Strategy:** Add `4` to the accepted versions array and add a v3→v4 migration branch.
+
+**Status:** RESOLVED — `fileSystem.js` L73 accepts `[1, 2, 3, 4]`; L234–239 initialises `path: {}` and `chapter: {}` for v3 files. Verified in Phase 1 tests.
+
+---
+
+## RISK-PCE-03 — `loadGraph` and `newGraph` Omit New Collections, Causing Undefined State
+
+**Description:** If `loadGraph` or `newGraph` are not updated to initialise `path: {}` and `chapter: {}`, those keys will be `undefined` and components reading them will crash.
+
+**Likelihood:** High
+
+**Impact:** High
+
+**Mitigation Strategy:** Both functions must initialise both keys in the same commit as the initial state addition.
+
+**Status:** RESOLVED — `narrativeStore.js` L403–404 (`loadGraph`) and L423–424 (`newGraph`) both initialise `path` and `chapter`.
+
+---
+
+## RISK-PCE-04 — `NodeInspector` Dropdown Triggers Unnecessary Re-Renders
+
+**Description:** If the Zustand selector subscribes to the full store instead of a targeted key, every store mutation will trigger `NodeInspector` re-renders.
+
+**Likelihood:** Medium
+
+**Impact:** Medium
+
+**Mitigation Strategy:** Use targeted selectors: `useNarrativeStore(state => state.path)` and `useNarrativeStore(state => state.chapter)`.
+
+**Status:** RESOLVED — `NodeInspector.jsx` L25–26 use targeted selectors. Verified in Phase 3 self-review.
+
+---
+
+## RISK-PCE-05 — Path Name Validation Not Applied, Allowing Empty Names
+
+**Description:** Without validation, designers can create empty-named paths/chapters, degrading the dropdown UX.
+
+**Likelihood:** Medium
+
+**Impact:** Low
+
+**Mitigation Strategy:** Store actions validate `name.trim().length > 0`; UI disables the confirm button when input is empty.
+
+**Status:** RESOLVED — `narrativeStore.js` L287–289 (path) and L333–335 (chapter) validate; `PathChapterManager.jsx` disables confirm on empty input.
+

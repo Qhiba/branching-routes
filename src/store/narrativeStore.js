@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { generateId } from 'utils';
 import { useUIStore } from './uiStore.js';
 
+// PROTECTED: INVARIANT HS-08 (Do not import simulationStore to avoid circular dependence) is preserved
 // INVARIANT: HS-08 (Do not import simulationStore to avoid circular dependence)
 
 export const useNarrativeStore = create((set, get) => ({
@@ -13,9 +14,13 @@ export const useNarrativeStore = create((set, get) => ({
   // CHANGED: flags[] -> flag{} and status{} dictionaries
   flag: {},
   status: {},
+  // ADDED: path{} and chapter{} for node grouping metadata
+  path: {},
+  chapter: {},
 
 
 
+  // PROTECTED: Existing CRUD actions remain unchanged
   addNode: (position, type = 'common') => set((state) => {
 
     const isEmpty = Object.keys(state.common).length === 0 && Object.keys(state.choice).length === 0 && Object.keys(state.ending).length === 0;
@@ -277,6 +282,99 @@ export const useNarrativeStore = create((set, get) => ({
     return { blocked: false };
   },
 
+  // ADDED: path management actions with cascading pathId nullification
+  addPath: (name) => set((state) => {
+    if (!name || name.trim().length === 0) {
+      throw new Error('Path name cannot be empty');
+    }
+    const id = generateId('p');
+    return {
+      path: { ...state.path, [id]: { id, name: name.trim() } },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  updatePath: (id, patch) => set((state) => {
+    if (!state.path[id]) return state;
+    return {
+      path: { ...state.path, [id]: { ...state.path[id], ...patch } },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  deletePath: (id) => set((state) => {
+    const nextPath = { ...state.path };
+    delete nextPath[id];
+
+    // Cascade: nullify data.pathId on all nodes
+    const updateCollection = (col) => {
+      const nextCol = {};
+      for (const [key, val] of Object.entries(col)) {
+        if (val.data && val.data.pathId === id) {
+          nextCol[key] = { ...val, data: { ...val.data, pathId: null } };
+        } else {
+          nextCol[key] = val;
+        }
+      }
+      return nextCol;
+    };
+
+    return {
+      path: nextPath,
+      common: updateCollection(state.common),
+      choice: updateCollection(state.choice),
+      ending: updateCollection(state.ending),
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  // ADDED: chapter management actions with cascading chapterId nullification
+  addChapter: (name) => set((state) => {
+    if (!name || name.trim().length === 0) {
+      throw new Error('Chapter name cannot be empty');
+    }
+    const id = generateId('c');
+    return {
+      chapter: { ...state.chapter, [id]: { id, name: name.trim() } },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  updateChapter: (id, patch) => set((state) => {
+    if (!state.chapter[id]) return state;
+    return {
+      chapter: { ...state.chapter, [id]: { ...state.chapter[id], ...patch } },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  deleteChapter: (id) => set((state) => {
+    const nextChapter = { ...state.chapter };
+    delete nextChapter[id];
+
+    // Cascade: nullify data.chapterId on all nodes
+    const updateCollection = (col) => {
+      const nextCol = {};
+      for (const [key, val] of Object.entries(col)) {
+        if (val.data && val.data.chapterId === id) {
+          nextCol[key] = { ...val, data: { ...val.data, chapterId: null } };
+        } else {
+          nextCol[key] = val;
+        }
+      }
+      return nextCol;
+    };
+
+    return {
+      chapter: nextChapter,
+      common: updateCollection(state.common),
+      choice: updateCollection(state.choice),
+      ending: updateCollection(state.ending),
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  // PROTECTED: updateMeta action preserves meta-update tracking behavior
   updateMeta: (patch) => set((state) => ({
     meta: { ...state.meta, ...patch, updatedAt: Date.now() }
   })),
@@ -300,7 +398,10 @@ export const useNarrativeStore = create((set, get) => ({
       edges: graphData.edges || [],
       // CHANGED: flags -> flag, status
       flag: graphData.flag || {},
-      status: graphData.status || {}
+      status: graphData.status || {},
+      // ADDED: load path and chapter or default to empty objects
+      path: graphData.path || {},
+      chapter: graphData.chapter || {}
     });
 
     // INVARIANT: BI-16
@@ -317,7 +418,10 @@ export const useNarrativeStore = create((set, get) => ({
       edges: [],
       // CHANGED: flags -> flag, status for new empty graphs
       flag: {},
-      status: {}
+      status: {},
+      // ADDED: initialize path and chapter to empty objects
+      path: {},
+      chapter: {}
     });
 
     // INVARIANT: BI-16
@@ -335,8 +439,8 @@ export const useNarrativeStore = create((set, get) => ({
 
     return {
 
-      // CHANGED: schemaVersion 2 -> 3
-      schemaVersion: 3,
+      // MODIFIED: schemaVersion 3 -> 4
+      schemaVersion: 4,
       meta: {
         ...state.meta,
         createdAt: formatTs(state.meta.createdAt),
@@ -350,11 +454,15 @@ export const useNarrativeStore = create((set, get) => ({
       edges: state.edges,
       // CHANGED: flags -> flag, status
       flag: state.flag,
-      status: state.status
+      status: state.status,
+      // ADDED: export path and chapter
+      path: state.path,
+      chapter: state.chapter
     };
   }
 }));
 
+// PROTECTED: window.useNarrativeStore debug export hook is kept active
 if (typeof window !== 'undefined') {
   window.useNarrativeStore = useNarrativeStore;
 }
