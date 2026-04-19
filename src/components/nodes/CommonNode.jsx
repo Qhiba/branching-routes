@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { useSimulationStore } from 'store';
+import { useSimulationStore, useUIStore, useNarrativeStore } from 'store';
 
 function CommonNode({ id, data }) {
   const nodeState = useSimulationStore(s => s.nodeStates[id]);
@@ -9,7 +9,14 @@ function CommonNode({ id, data }) {
   const isOrphaned = useSimulationStore(s => s.orphanedNodeIds.includes(id));
   const isUnreachable = useSimulationStore(s => s.unreachableNodeIds.includes(id));
 
+  // ADDED: Phase 2 label display mode
+  const labelDisplayMode = useUIStore(s => s.labelDisplayMode);
+  const flagDict = useNarrativeStore(s => s.flag);
+  const statusDict = useNarrativeStore(s => s.status);
+
   const className = `story-node common-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen ? 'story-node--seen' : ''}`.trim();
+
+  const sideEffectsCount = (data.flags_set?.length || 0) + (data.status_set?.length || 0);
 
   return (
     <div className={className}>
@@ -27,14 +34,14 @@ function CommonNode({ id, data }) {
             ⚠️ Unreachable
           </span>
         )}
-        {data.sideEffects && data.sideEffects.length > 0 && (
+        {sideEffectsCount > 0 && (
           <span className="story-node__meta-badge">
             <svg className="story-node__meta-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="2" y="1" width="9" height="12" rx="1" stroke="currentColor" strokeWidth="1.5"/>
               <path d="M11 5l3-1-1 3-2-2z" fill="currentColor"/>
               <path d="M10 6l-2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
-            {data.sideEffects.length} effect{data.sideEffects.length !== 1 ? 's' : ''}
+            {sideEffectsCount} effect{sideEffectsCount !== 1 ? 's' : ''}
           </span>
         )}
       </div>
@@ -43,6 +50,18 @@ function CommonNode({ id, data }) {
         <h4 className="story-node__title">{data.label}</h4>
         {data.content && (
           <p className="story-node__content-text">{data.content}</p>
+        )}
+        
+        {/* ADDED: Phase 2 verbose display */}
+        {labelDisplayMode === 'verbose' && sideEffectsCount > 0 && (
+          <div style={{ marginTop: '8px', fontSize: '10px', color: 'var(--color-primary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+            {data.flags_set?.map(flagId => (
+              <div key={`f-${flagId}`}>• {flagDict[flagId]?.name || 'Unknown'} = true</div>
+            ))}
+            {data.status_set?.map(se => (
+              <div key={`s-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: {se.value > 0 ? '+' : ''}{se.value}</div>
+            ))}
+          </div>
         )}
       </div>
 

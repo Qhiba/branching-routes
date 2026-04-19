@@ -3,20 +3,35 @@ import { create } from 'zustand';
 export const useUIStore = create((set, get) => ({
   selectedNodeId: null,
   selectedEdgeId: null,
+  selectedNodeIds: [], // ADDED: track multi-selection
   snapToGrid: true,
   choiceDisplayMode: 'medium',
+  labelDisplayMode: 'compact', // ADDED: Phase 2 display mode state
 
   toggleSnapToGrid: () => set(state => ({ snapToGrid: !state.snapToGrid })),
-  setChoiceDisplayMode: (mode) => set({ choiceDisplayMode: mode }),
-  selectNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }),
+  toggleLabelDisplayMode: () => set(state => ({ labelDisplayMode: state.labelDisplayMode === 'compact' ? 'verbose' : 'compact' })), // ADDED: Phase 2 toggle
+  setChoiceDisplayMode: (mode) => set({ choiceDisplayMode: mode }), // PROTECTED: Integrations unchanged
+  selectNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }), // PROTECTED: Primary single-select semantics
   selectEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),
-  clearSelection: () => set({ selectedNodeId: null, selectedEdgeId: null }),
+  
+  // ADDED: multi-select setter with shallow compare to prevent infinite re-render loops from React Flow
+  setSelectedNodeIds: (ids) => set(state => {
+    if (state.selectedNodeIds.length === ids.length) {
+      const currentSet = new Set(state.selectedNodeIds);
+      if (ids.every(id => currentSet.has(id))) return state; // Order-independent comparison
+    }
+    return { selectedNodeIds: ids };
+  }),
+  
+  // MODIFIED: clear selectedNodeIds on clearSelection
+  clearSelection: () => set({ selectedNodeId: null, selectedEdgeId: null, selectedNodeIds: [] }),
 
+  // PROTECTED: clearIfSelected and resetSelection interfaces
   clearIfSelected: (id, type) => {
     const state = get();
     if (type === 'node' && state.selectedNodeId === id) set({ selectedNodeId: null });
     if (type === 'edge' && state.selectedEdgeId === id) set({ selectedEdgeId: null });
   },
 
-  resetSelection: () => set({ selectedNodeId: null, selectedEdgeId: null })
+  resetSelection: () => set({ selectedNodeId: null, selectedEdgeId: null, selectedNodeIds: [] }) // MODIFIED: keep consistent with clearSelection
 }));

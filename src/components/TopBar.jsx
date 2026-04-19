@@ -3,6 +3,7 @@ import { useNarrativeStore, useSimulationStore, useUIStore, useCampaignStore } f
 import { exportProject, importProject, clearIndexedDB, clearCampaignsIndexedDB } from 'utils';
 import dagre from 'dagre';
 import CampaignSelector from './CampaignSelector.jsx';
+import CreationBar from './CreationBar.jsx'; // ADDED: Phase 4
 
 export default function TopBar() {
   const meta = useNarrativeStore(s => s.meta);
@@ -143,6 +144,9 @@ export default function TopBar() {
           className="topbar__title-input"
         />
       </div>
+      {/* ADDED: Phase 4 proxy to disable authoring inputs during simulation */}
+      <CreationBar disabled={isCampaignActive} />
+      {/* PROTECTED: TopBar existing controls and layout preserved */}
       <div className="topbar__right">
         {isCampaignActive && (
           <span style={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}>

@@ -12,7 +12,7 @@ risks or rule candidates the feature introduced.
      re-run 0207 as pass 2, max 2 passes -->
 
 ## CONTEXT
-Audit pass: 2
+Audit pass: 1
 <!-- Start at 1. Only change to 2 if previous audit returned HOLD. -->
 
 Load these files:

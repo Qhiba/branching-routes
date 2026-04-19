@@ -30,29 +30,25 @@ Save to: `/informations/runs/[DD-MM-YYYY]_feature/ran_0201_scope.md`
 
 ### Feature name
 <!-- [SNAKE_CASE NAME] -->
-Campaign_Sheets
+Context_menus_keyboard_shortcuts_creation_bar
 
 ### What this feature does
 <!-- [ONE SENTENCE — from the user's perspective] -->
-Adds persistent simulation snapshots. Users can create named campaigns ("good_ending_run", "chapter_2_test"), each storing its own `nodeStates`, `flagOverrides`, and `statusOverrides`. Campaigns are saved to IndexedDB alongside narrative data and survive across sessions.
-The Previous Update Enter/Exit Campaign Mode toggle becomes a campaign selector dropdown in the TopBar. Selecting a campaign hydrates `simulationStore` with that campaign's saved state and activates simulation mode. Switching campaigns auto-saves the outgoing one before loading the incoming one. Exiting returns to editing mode.
-Export format upgrades to `.zip` when campaigns exist (containing `datamodel.json` + `campaigns/{name}.json`). Campaign-less projects continue exporting as `.json`.
+Adds three power-user interaction layers to the canvas. Right-click context menus surface actions based on what was clicked (canvas, node, edge, or multi-selection). A global keyboard shortcut system (N/C/E/F/S/Del/Space/V/I/L/R/Escape) triggers entity creation, deletion, and view actions from anywhere in the app. A dedicated creation bar in the top bar provides buttons for each entity type — Common, Choice, Ending, Flag, Status, Path, Chapter. Multi-select via Ctrl+click and drag-box enables bulk operations.
 
 ### What this feature does NOT do
 <!-- [EXPLICIT BOUNDARIES — at least 2 items] -->
-- Does not change the narrative data model. `narrativeStore` is untouched; campaigns only reference narrative IDs.
-- Does not mutate authored flag/status values. Campaign overrides hydrate `simulationStore` only — AR-08 applies.
-- Does not auto-generate campaigns. Users explicitly create them.
-- Does not add new simulation mechanics. Six-state enum, seen tracking, sandbox overrides — all from previous update, unchanged.
-- Does not add route tracing (later update), UI shell changes (later update), or any new narrative entity types.
-- Does not migrate existing data. Projects without campaigns continue working identically.
+- Does not add Ctrl+K command palette (Later Update).
+- Does not add toast notifications (Later Update) or minimap (Later Update).
+- Does not restyle any existing UI — purely additive. later update handles polish.
+- Does not change data model, simulation, or persistence.
+- Does not add undo/redo — out of V3 scope.
+- Does not add bulk drag-to-move beyond React Flow defaults.
 
 ### Why this feature is needed now
-Previous update gave the app a working simulation but no way to preserve a run. Every Enter Campaign Mode starts from scratch — the moment you exit, the traversal is gone. For a tool designed to validate branching narratives, this makes serious testing impractical: you can't compare "good ending run" against "bad ending run" side-by-side, can't return to a half-tested path, can't share a reproducible scenario.
+Current version only supports double-click-to-add-node and click-based interactions. For any non-trivial narrative, this is slow: every flag, status, path, chapter, and non-common node requires navigating to a sidebar tab and clicking "add." Context menus and shortcuts collapse these into single gestures.
 
-Previous update made persistence automatic for narrative data. Campaigns are the natural next persisted entity — the plumbing (IndexedDB, auto-save subscriber, ZIP-capable export) already exists, so this is the lowest-cost moment to add them. Delaying would either mean shipping an unusable simulation layer or retrofitting persistence onto campaigns later, duplicating work.
-
-Later update (route tracing) also depends on campaign-mode simulation being fully featured, so this unblocks downstream work.
+Multi-select specifically unblocks the bulk operations that become viable in later update's command palette ("delete all selected") and the next update route tracing ("trace from any of these nodes").
 
 
 ### Definition of done
@@ -61,17 +57,28 @@ Later update (route tracing) also depends on campaign-mode simulation being full
 [ ] Condition 3 -->
 | Action | File | Detail |
 |--------|------|--------|
-| ADD | `src/store/campaignStore.js` | Campaign CRUD, persistence, active campaign management |
-| ADD | `src/components/CampaignSelector.jsx` | Campaign create/switch/reset UI |
-| MODIFY | `src/store/simulationStore.js` | Integration with active campaign |
-| MODIFY | `src/store/index.js` | Re-export campaignStore |
-| MODIFY | `src/utils/fileSystem.js` | ZIP export/import for campaigns |
-| MODIFY | `src/components/TopBar.jsx` | Campaign selector mount point |
+| ADD | `src/components/ContextMenu.jsx` | Right-click menus for canvas/node/edge/multi-select |
+| ADD | `src/hooks/useKeyboardShortcuts.js` | Global shortcut handler |
+| ADD | `src/components/CreationBar.jsx` | Buttons for each entity type |
+| MODIFY | `src/components/GraphCanvas.jsx` | Context menu triggers, multi-select, shortcut integration |
+| MODIFY | `src/components/TopBar.jsx` | Mount creation bar |
+| MODIFY | `vite.config.js` | Add `hooks/` path alias |
 
 
 ### Assumptions I am making
 <!-- [LIST OR "NONE"] -->
-NONE
+This will come with a risk that I don't know how to mitigate:
+- **Shortcut conflicts with browser defaults**. Ctrl+K is reserved for Push 12 command palette.     Don't claim it here. Avoid Ctrl+S (browser save), Ctrl+W (close tab), Ctrl+N (new window). Single-letter shortcuts only fire when canvas has focus.
+
+- **Shortcut conflicts with form inputs**. Pressing N in a text field must type "n", not create a node. Handler must check `event.target` — bail if input/textarea/contenteditable.
+
+- **Context menu vs. React Flow pane events**. React Flow has its own `onPaneContextMenu`. Wiring custom menu must call `event.preventDefault()` and suppress React Flow's default.
+
+- **Multi-select state model breaking existing code**. `uiStore.selectedNodeId` is read by NodeInspector, GraphCanvas, ChoiceNode. Changing to array breaks all consumers. Keep `selectedNodeId` as "primary selection" and add `selectedNodeIds` for multi — or migrate cleanly with a compatibility selector.
+
+- **Context menu positioning off-screen**. Right-click near viewport edge puts menu off-screen. Detect bounds, flip to left/up side.
+
+- **Escape key already handled**. GraphCanvas clears selection on Escape (per codebase_features). Keyboard shortcuts hook must not double-handle or conflict.
 
 ---
 

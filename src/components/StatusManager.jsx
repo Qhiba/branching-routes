@@ -1,11 +1,23 @@
 import React, { useState } from 'react';
 import { useNarrativeStore } from 'store';
 
+function getNodeLabel(ref, common, choice, ending) {
+  const parts = ref.split(':');
+  const kind = parts[0];
+  if (kind.startsWith('edge_')) return null;
+  const nodeId = parts[1];
+  const node = common[nodeId] || choice[nodeId] || ending[nodeId];
+  return node ? { label: node.data?.label || nodeId, nodeId } : null;
+}
+
 export default function StatusManager() {
   const statusDict = useNarrativeStore(state => state.status);
   const statuses = Object.values(statusDict);
   const addStatus = useNarrativeStore(state => state.addStatus);
   const deleteStatus = useNarrativeStore(state => state.deleteStatus);
+  const common = useNarrativeStore(state => state.common);
+  const choice = useNarrativeStore(state => state.choice);
+  const ending = useNarrativeStore(state => state.ending);
   
   const [newName, setNewName] = useState('');
   const [newValue, setNewValue] = useState(0);
@@ -78,7 +90,22 @@ export default function StatusManager() {
                 <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(255, 68, 68, 0.1)', border: '1px solid var(--color-danger)', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--color-danger)' }}>
                   <strong>Cannot delete. Referenced by:</strong>
                   <ul style={{ margin: '4px 0 0 0', paddingLeft: '20px' }}>
-                    {deleteError.references.map((ref, idx) => <li key={idx}>{ref}</li>)}
+                    {deleteError.references.map((ref, idx) => {
+                      const node = getNodeLabel(ref, common, choice, ending);
+                      return (
+                        <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                          <span>{node ? node.label : ref}</span>
+                          {node && (
+                            <button
+                              onClick={() => window.dispatchEvent(new CustomEvent('canvas-focus-node', { detail: { nodeId: node.nodeId } }))}
+                              style={{ padding: '1px 6px', fontSize: '0.75rem', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', borderRadius: '3px', cursor: 'pointer' }}
+                            >
+                              Focus
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                   <button onClick={() => setDeleteError(null)} style={{ marginTop: '8px', padding: '2px 8px', fontSize: '0.8rem', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', cursor: 'pointer' }}>Dismiss</button>
                 </div>

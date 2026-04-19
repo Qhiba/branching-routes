@@ -10,7 +10,7 @@
 - **Dependencies:** `src/main.jsx`
 
 ### `vite.config.js`
-- **Purpose:** Vite build configuration. Configures `src/` absolute import aliases (`components`, `store`, `utils`, `styles`) so internal imports avoid relative `../../` chains.
+- **Purpose:** Vite build configuration. Configures `src/` absolute import aliases (`components`, `store`, `utils`, `styles`, `hooks`) so internal imports avoid relative `../../` chains.
 - **Key exports:** Default Vite config object.
 - **Dependencies:** `@vitejs/plugin-react`, `path`
 
@@ -58,10 +58,10 @@
 - **Actions:** `addNode`, `updateNode`, `deleteNode`, `setStartNode`, `addEdge`, `updateEdge`, `deleteEdge`, `addFlag`, `updateFlag`, `deleteFlag`, `addStatus`, `updateStatus`, `deleteStatus`, `addPath`, `updatePath`, `deletePath`, `addChapter`, `updateChapter`, `deleteChapter`, `addVariant`, `updateVariant`, `deleteVariant`, `addOption`, `updateOption`, `deleteOption`, `updateMeta`, `loadGraph`, `newGraph`, `exportGraph`
 
 ### `src/store/uiStore.js`
-- **Purpose:** Zustand store owning UI state: `selectedNodeId`, `selectedEdgeId`, `snapToGrid`, and `choiceDisplayMode`. The `choiceDisplayMode` field (`'medium'` | `'full'`) controls rendering density for choice node option labels on the canvas.
+- **Purpose:** Zustand store owning UI state: `selectedNodeId`, `selectedEdgeId`, `snapToGrid`, `choiceDisplayMode`, `selectedNodeIds`, and `labelDisplayMode`. The `choiceDisplayMode` field (`'medium'` | `'full'`) controls rendering density for choice node option labels on the canvas. The `selectedNodeIds: string[]` field tracks the multi-select set populated by React Flow's `onSelectionChange` (Ctrl+click and drag-box); it is additive and does not replace `selectedNodeId`. The `labelDisplayMode` field (`'compact'` | `'verbose'`) controls whether node and edge renderers show full flag/status names or compact count badges.
 - **Key exports:** `useUIStore` (Zustand hook)
 - **Dependencies:** None.
-- **Actions:** `selectNode`, `selectEdge`, `clearSelection`, `clearIfSelected`, `resetSelection`, `toggleSnapToGrid`, `setChoiceDisplayMode`
+- **Actions:** `selectNode`, `selectEdge`, `clearSelection`, `clearIfSelected`, `resetSelection`, `toggleSnapToGrid`, `setChoiceDisplayMode`, `setSelectedNodeIds`, `toggleLabelDisplayMode`
 
 ### `src/store/simulationStore.js`
 - **Purpose:** Zustand store owning campaign-mode state and live simulation. Runs in two modes: edit mode (passive structural analysis only — `runPassiveAnalysis` computes `orphanedNodeIds`/`unreachableNodeIds` via BFS from the start node) and campaign mode (full simulation lifecycle). Campaign lifecycle: `enterCampaign(campaignPayload?)` accepts an optional campaign object; when present it hydrates `currentFlagValues` from the snapshot's `flagOverrides` and `statusOverrides` filtered against currently-existing narrative IDs (stale IDs silently dropped), and resumes at `snapshot.activeNodeId` if the node still exists; without a payload it seeds from `narrativeStore` defaults. `advance(edgeId)` moves to the destination node, fires node `flags_set`/`status_set` side effects, accumulates `seenNodeIds`, and recomputes node states. `selectOption(optionId)` fires option side effects, sets `selectedOptionId`, and recomputes reachable edges. `snapshotCampaign()` writes `{ activeNodeId, seenNodeIds, traversedEdgeIds, flagOverrides, statusOverrides }` to the active campaign in `campaignStore` — separating booleans (flags) from numerics (statuses) via `narrativeStore` key discrimination. `exitCampaign()` conditionally auto-snapshots (if `autosaveCampaign === true`) then zeroes all state. `reset()` restarts from the start node within campaign mode. Sandbox: `applySandboxOverride(key, value)` writes ephemeral flag/status overrides to `currentFlagValues` only — never to `narrativeStore`. Six-state node enum values: `active`, `locked`, `complete`, `failed`, `branch_locked`, `reachable`. Separate `seenNodeIds` accumulation produces a `--seen` overlay orthogonal to the enum.
@@ -105,17 +105,26 @@
 
 ---
 
+## `src/hooks/`
+
+### `src/hooks/useKeyboardShortcuts.js`
+- **Purpose:** Custom hook that attaches a single `keydown` listener to `window` on mount and removes it on unmount. Guards: bails early if `event.target` is an `INPUT`, `TEXTAREA`, or `contenteditable` element (RISK-CMK-01 mitigation); bails if `isCampaignActive === true` for all authoring shortcuts (AR-08). Dispatches node/edge creation shortcuts (`N`→Common, `C`→Choice, `E`→Ending via `canvas-add-node` custom event), naming modal shortcuts (`F`→Flag, `S`→Status, `P`→Path, `H`→Chapter via `canvas-open-name-modal` custom event), deletion (`Del` — multi or single node/edge), `Escape` (clears selection via `uiStore`), view shortcuts (`V`→toggle snap, `L`→tidy layout, `R`→toggle label display mode). Mounted once inside `GraphCanvas`.
+- **Key exports:** `default useKeyboardShortcuts`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`)
+
+---
+
 ## `src/components/`
 
 ### `src/components/TopBar.jsx`
-- **Purpose:** Horizontal top bar with app title, editable project title, file actions (New, Import, Export), Tidy Layout button (Dagre-based), Snap-to-Grid toggle, and campaign controls. In edit mode mounts `<CampaignSelector />` which handles campaign listing, creation, and entry. When a campaign is active shows `Reset Simulation` + `Exit Campaign Mode` buttons and a "Campaign Active — [name]" status indicator. All authoring controls (`disabled={isCampaignActive}`) are locked during campaign mode. `handleNew` calls `clearCampaignsIndexedDB()` + `clearIndexedDB()` + `campaignStore.clearCampaigns()` before `newGraph()` and `exitCampaign()`. `handleImport` calls `exitCampaign()`, `clearCampaigns()`, then loads campaigns and graph from the `{ graphData, campaigns }` return shape. `handleExport` passes `campaigns` from `campaignStore` to `exportProject` to enable ZIP bundling.
+- **Purpose:** Horizontal top bar with app title, editable project title, file actions (New, Import, Export), Tidy Layout button (Dagre-based), Snap-to-Grid toggle, campaign controls, and `<CreationBar />`. In edit mode mounts `<CampaignSelector />` which handles campaign listing, creation, and entry, and `<CreationBar />` for entity quick-creation buttons. When a campaign is active shows `Reset Simulation` + `Exit Campaign Mode` buttons and a "Campaign Active — [name]" status indicator. All authoring controls (`disabled={isCampaignActive}`) are locked during campaign mode; `CreationBar` inherits the same guard. `handleNew` calls `clearCampaignsIndexedDB()` + `clearIndexedDB()` + `campaignStore.clearCampaigns()` before `newGraph()` and `exitCampaign()`. `handleImport` calls `exitCampaign()`, `clearCampaigns()`, then loads campaigns and graph from the `{ graphData, campaigns }` return shape. `handleExport` passes `campaigns` from `campaignStore` to `exportProject` to enable ZIP bundling.
 - **Key exports:** `default TopBar`
-- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`, `useCampaignStore`), `utils` (barrel — `exportProject`, `importProject`, `clearIndexedDB`, `clearCampaignsIndexedDB`), `dagre`, `components/CampaignSelector`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`, `useCampaignStore`), `utils` (barrel — `exportProject`, `importProject`, `clearIndexedDB`, `clearCampaignsIndexedDB`), `dagre`, `components/CampaignSelector`, `components/CreationBar`
 
 ### `src/components/GraphCanvas.jsx`
-- **Purpose:** React Flow canvas wrapper. Derives React Flow nodes from the three sub-collections, registers custom node/edge types, handles interactions (click, connect, drag, double-click-to-add-node), manages campaign-mode advance-by-click, applies `.campaign-mode` CSS class when `isCampaignActive`, stamps `optionId` on edges when connections originate from per-option handles on choice nodes, and edges with an `optionId` are rendered with `sourceHandle` set for correct handle anchoring. In edit mode triggers `runPassiveAnalysis` on every topology change and on `isCampaignActive` toggle. During campaign mode, `onNodeClick` advances via the edge matching both the selected node and (for choice nodes) the `selectedOptionId`. ESC key clears selection via `useUIStore`.
+- **Purpose:** React Flow canvas wrapper. Derives React Flow nodes from the three sub-collections, registers custom node/edge types, handles interactions (click, connect, drag, double-click-to-add-node), manages campaign-mode advance-by-click, applies `.campaign-mode` CSS class when `isCampaignActive`, stamps `optionId` on edges when connections originate from per-option handles on choice nodes, and edges with an `optionId` are rendered with `sourceHandle` set for correct handle anchoring. In edit mode triggers `runPassiveAnalysis` on every topology change and on `isCampaignActive` toggle. During campaign mode, `onNodeClick` advances via the edge matching both the selected node and (for choice nodes) the `selectedOptionId`. Mounts `useKeyboardShortcuts` hook for global shortcut handling (ESC migrated here from inline effect). Owns `contextMenuState` local state and wires `onPaneContextMenu`, `onNodeContextMenu`, `onEdgeContextMenu` to render `<ContextMenu />`; promotes type to `'multi'` when the clicked node is in `selectedNodeIds`. Dismisses context menu on `onPaneClick`, `onNodeDragStart`, and `onMoveStart`. Listens for `canvas-add-node` and `canvas-open-name-modal` custom DOM events to place nodes at viewport center and open `<NameModal />`. Wires `onSelectionChange` to `uiStore.setSelectedNodeIds` for multi-select.
 - **Key exports:** `default GraphCanvas`
-- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`), `@xyflow/react`, `components/nodes/CommonNode`, `components/nodes/ChoiceNode`, `components/nodes/EndingNode`, `components/edges/ConditionalEdge`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`), `hooks/useKeyboardShortcuts`, `@xyflow/react`, `components/nodes/CommonNode`, `components/nodes/ChoiceNode`, `components/nodes/EndingNode`, `components/edges/ConditionalEdge`, `components/ContextMenu`, `components/NameModal`
 
 ### `src/components/Sidebar.jsx`
 - **Purpose:** Right-side panel with up to five tabs. In edit mode: Inspector (shows NodeInspector or EdgeInspector based on selection), Flags (shows FlagManager), Status (shows StatusManager), Paths (shows PathChapterManager). In campaign mode: a fifth Sandbox tab appears showing SandboxPanel. All non-Sandbox content is visually disabled (`pointerEvents: none`, `opacity: 0.5`) during campaign mode to prevent authoring while simulating.
@@ -131,6 +140,21 @@
 - **Purpose:** Form panel for editing a selected edge's label and condition (AND/OR operator + clauses). When the edge has an `optionId`, displays a read-only "Connected from option" field showing the originating option's label from the source choice node. Includes edge deletion.
 - **Key exports:** `default EdgeInspector`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`)
+
+### `src/components/ContextMenu.jsx`
+- **Purpose:** Right-click context menu rendered on demand at cursor position. Receives a `type` prop (`'pane'` | `'node'` | `'edge'` | `'multi'`) and a `data` prop with target entity info. Renders an action list scoped to the target: pane → Add Common/Choice/Ending; node → Delete, Set Start, Add same type; edge → Delete Edge; multi → Delete Selected. Uses `useLayoutEffect` to measure its own bounding rect and flip position (`left`/`up`) if the menu would overflow `window.innerWidth` or `window.innerHeight`. Dismissal is owned by `GraphCanvas` (via `onPaneClick`, `onNodeDragStart`, `onMoveStart` events) — the menu has no self-dismiss logic. All actions dispatch store calls via `useNarrativeStore.getState()`.
+- **Key exports:** `default ContextMenu`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`)
+
+### `src/components/NameModal.jsx`
+- **Purpose:** Lightweight centered overlay with a text input and Confirm/Cancel buttons. Opened by `GraphCanvas` when a `canvas-open-name-modal` event is received (from keyboard shortcuts F/S/P/H or `CreationBar` buttons for Flag/Status/Path/Chapter). On confirm, calls the matching store action (`addFlag`, `addStatus`, `addPath`, `addChapter`). On cancel or ESC, closes without creating an entity. Attaches its own `keydown` listener for ESC that calls `event.stopPropagation()` before closing — preventing the global shortcut hook from also calling `clearSelection` (RISK-CMK-08 mitigation).
+- **Key exports:** `default NameModal`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`)
+
+### `src/components/CreationBar.jsx`
+- **Purpose:** Horizontal strip of seven entity-creation buttons (Common, Choice, Ending, Flag, Status, Path, Chapter) mounted inside `TopBar`. Common/Choice/Ending buttons dispatch a `canvas-add-node` custom DOM event carrying the node type; `GraphCanvas` handles placement at viewport center (AR-19 — outside `ReactFlowProvider`). Flag/Status/Path/Chapter buttons dispatch a `canvas-open-name-modal` event; `GraphCanvas` opens `NameModal`. All buttons accept a `disabled` prop and are rendered disabled when `isCampaignActive === true`.
+- **Key exports:** `default CreationBar`
+- **Dependencies:** None (dispatches DOM events only).
 
 ### `src/components/FlagManager.jsx`
 - **Purpose:** Panel listing all flags with name and default boolean value. Add-flag form with live name validation. Delete with referential integrity checking (RISK-02 mitigation).
@@ -148,12 +172,12 @@
 - **Dependencies:** `store` (barrel — `useNarrativeStore`)
 
 ### `src/components/nodes/CommonNode.jsx`
-- **Purpose:** Custom React Flow node renderer for standard narrative components. Displays label, truncated content preview, and a solid green header bar with a `COMMON` badge and side-effect count. In edit mode, shows `⚠️ Orphaned` or `⚠️ Unreachable` warning badges (via `simulationStore.orphanedNodeIds`/`unreachableNodeIds`) when the node has a structural issue. In campaign mode, applies six-state simulation CSS classes (`--active`, `--locked`, `--complete`, `--failed`, `--branch_locked`, `--reachable`) and a separate `--seen` overlay. Uses `React.memo` with targeted selectors.
+- **Purpose:** Custom React Flow node renderer for standard narrative components. Displays label, truncated content preview, and a solid green header bar with a `COMMON` badge and side-effect count. In edit mode, shows `⚠️ Orphaned` or `⚠️ Unreachable` warning badges (via `simulationStore.orphanedNodeIds`/`unreachableNodeIds`) when the node has a structural issue. In campaign mode, applies six-state simulation CSS classes (`--active`, `--locked`, `--complete`, `--failed`, `--branch_locked`, `--reachable`) and a separate `--seen` overlay. When `labelDisplayMode === 'verbose'` (from `uiStore`), side-effect indicators show actual flag/status names (e.g. "HasKey = true") resolved from `narrativeStore` instead of compact count badges. Uses `React.memo` with targeted selectors.
 - **Key exports:** `default CommonNode`
-- **Dependencies:** `store` (barrel — `useSimulationStore`), `@xyflow/react`
+- **Dependencies:** `store` (barrel — `useSimulationStore`, `useUIStore`, `useNarrativeStore`), `@xyflow/react`
 
 ### `src/components/nodes/ChoiceNode.jsx`
-- **Purpose:** Custom React Flow node renderer for choice points. Displays label, truncated content preview, and a solid blue header bar with a `CHOICE` badge, side-effect count, and outgoing edge count. When `data.options` is present, renders one source `Handle` per option (keyed by option `id`) with option labels in the node body; falls back to a single source handle when no options exist. Respects `choiceDisplayMode` from `uiStore` for rendering density. In edit mode, shows structural warning badges. In campaign mode: applies six-state simulation CSS classes and `--seen` overlay; when this node is the active node, options become clickable (firing `selectOption`); the selected option gets `.choice-node__option--selected` styling; unselected options get `.choice-node__option--dimmed`. Uses `React.memo`.
+- **Purpose:** Custom React Flow node renderer for choice points. Displays label, truncated content preview, and a solid blue header bar with a `CHOICE` badge, side-effect count, and outgoing edge count. When `data.options` is present, renders one source `Handle` per option (keyed by option `id`) with option labels in the node body; falls back to a single source handle when no options exist. Respects `choiceDisplayMode` from `uiStore` for rendering density. In edit mode, shows structural warning badges. In campaign mode: applies six-state simulation CSS classes and `--seen` overlay; when this node is the active node, options become clickable (firing `selectOption`); the selected option gets `.choice-node__option--selected` styling; unselected options get `.choice-node__option--dimmed`. When `labelDisplayMode === 'verbose'` (from `uiStore`), side-effect indicators show actual flag/status names resolved from `narrativeStore` instead of compact count badges. Uses `React.memo`.
 - **Key exports:** `default ChoiceNode`
 - **Dependencies:** `store` (barrel — `useSimulationStore`, `useNarrativeStore`, `useUIStore`), `@xyflow/react`
 
@@ -163,9 +187,9 @@
 - **Dependencies:** `store` (barrel — `useSimulationStore`), `@xyflow/react`
 
 ### `src/components/edges/ConditionalEdge.jsx`
-- **Purpose:** Custom React Flow edge renderer using `BaseEdge` + `EdgeLabelRenderer`. Displays edge label and condition badge (AND/OR pill). In campaign mode, applies state CSS classes: `--traversed` (already advanced along), `--condition-pass` (currently reachable and pulsing), `--condition-fail` (active option selected but condition not satisfied), `--unselected-option-dim` (originates from an unselected option). Outside campaign mode edges are visually inert. Uses `React.memo` with targeted selectors.
+- **Purpose:** Custom React Flow edge renderer using `BaseEdge` + `EdgeLabelRenderer`. Displays edge label and condition badge (AND/OR pill). In campaign mode, applies state CSS classes: `--traversed` (already advanced along), `--condition-pass` (currently reachable and pulsing), `--condition-fail` (active option selected but condition not satisfied), `--unselected-option-dim` (originates from an unselected option). Outside campaign mode edges are visually inert. When `labelDisplayMode === 'verbose'` (from `uiStore`), condition badges resolve flag/status IDs to their designer-assigned names and display full clause text (e.g. "HasKey = true AND Gold ≥ 5") instead of the compact AND/OR pill. Uses `React.memo` with targeted selectors.
 - **Key exports:** `default ConditionalEdge`
-- **Dependencies:** `store` (barrel — `useSimulationStore`), `@xyflow/react`
+- **Dependencies:** `store` (barrel — `useSimulationStore`, `useUIStore`, `useNarrativeStore`), `@xyflow/react`
 
 ### `src/components/SandboxPanel.jsx`
 - **Purpose:** Campaign-only sidebar panel with two sections. (1) Campaign Save: autosave toggle (`autosaveCampaign`), "Save Progression" button (calls `snapshotCampaign()`), and "Load Last Save" button (re-enters the active campaign from its stored snapshot). (2) Sandbox Overrides: checkbox list for boolean flags and number inputs for status metrics — all writes go through `simulationStore.applySandboxOverride`, updating `currentFlagValues` ephemerally. Overrides are cleared on `exitCampaign()` and `reset()`. Only visible when `isCampaignActive === true`.
@@ -174,7 +198,7 @@
 
 ### `src/components/index.js`
 - **Purpose:** Barrel re-export for all components.
-- **Key exports:** `GraphCanvas`, `CommonNode`, `ChoiceNode`, `EndingNode`, `ConditionalEdge`, `TopBar`, `Sidebar`, `NodeInspector`, `EdgeInspector`, `FlagManager`, `StatusManager`, `PathChapterManager`, `OptionEditor`, `VariantEditor`, `SandboxPanel`, `CampaignSelector`
+- **Key exports:** `GraphCanvas`, `CommonNode`, `ChoiceNode`, `EndingNode`, `ConditionalEdge`, `TopBar`, `Sidebar`, `NodeInspector`, `EdgeInspector`, `FlagManager`, `StatusManager`, `PathChapterManager`, `OptionEditor`, `VariantEditor`, `SandboxPanel`, `CampaignSelector`, `ContextMenu`, `NameModal`, `CreationBar`
 - **Dependencies:** All files in `components/`
 ### `src/components/CampaignSelector.jsx`
 - **Purpose:** Campaign management UI mounted in `TopBar` when not in campaign mode. With no campaigns: shows a single "Enter Campaign Mode" button that creates a default campaign and enters it. With existing campaigns: shows a pill list (campaign name, Enter button, Delete button) and a create-new-campaign form. Coordinates `campaignStore.setActiveCampaign()` before calling `simulationStore.enterCampaign()` to ensure the active ID is set for snapshotting.
@@ -184,6 +208,24 @@
 ---
 
 ## Changelog
+
+## [2026-04-20] — Context_menus_keyboard_shortcuts_creation_bar
+### Added
+- `src/hooks/useKeyboardShortcuts.js`: New hook — global `keydown` listener with input-field guard and campaign-mode guard. Dispatches all authoring shortcuts: `N`/`C`/`E` (node creation via `canvas-add-node` event), `F`/`S`/`P`/`H` (naming modal via `canvas-open-name-modal` event), `Del` (delete selected node or edge, multi-aware), `Escape` (clear selection — migrated from GraphCanvas inline handler), `V` (toggle snap), `L` (tidy layout), `R` (toggle label display mode).
+- `src/components/ContextMenu.jsx`: New component — right-click context menu panel. Pane/node/edge/multi-select action lists. Viewport-edge flip via `useLayoutEffect`. Dismissal via `GraphCanvas` event handlers.
+- `src/components/NameModal.jsx`: New component — centered overlay for naming new flags, statuses, paths, and chapters. ESC `stopPropagation` prevents canvas selection clear on dismiss (RISK-CMK-08 mitigation).
+- `src/components/CreationBar.jsx`: New component — horizontal strip of seven entity-creation buttons mounted in `TopBar`. Node buttons dispatch `canvas-add-node`; metadata buttons dispatch `canvas-open-name-modal`. All buttons disabled during campaign mode.
+- `src/hooks/` (new directory): Top-level hook directory under `src/`, registered in `vite.config.js` as the `hooks` absolute import alias.
+### Changed
+- `src/store/uiStore.js`: Added `selectedNodeIds: string[]` state (multi-select set), `labelDisplayMode: 'compact' | 'verbose'` state, `setSelectedNodeIds` action, and `toggleLabelDisplayMode` action. `clearSelection` updated to also reset `selectedNodeIds` to `[]`.
+- `src/components/GraphCanvas.jsx`: Mounts `useKeyboardShortcuts`. Wires `onPaneContextMenu`, `onNodeContextMenu`, `onEdgeContextMenu` to local `contextMenuState` + `<ContextMenu />` render. Promotes context menu type to `'multi'` when clicked node is in `selectedNodeIds`. Dismisses menu on `onPaneClick`, `onNodeDragStart`, `onMoveStart`. Listens for `canvas-add-node` and `canvas-open-name-modal` DOM events and handles placement/modal open. Wires `onSelectionChange` to `setSelectedNodeIds`.
+- `src/components/TopBar.jsx`: Mounts `<CreationBar disabled={isCampaignActive} />`.
+- `vite.config.js`: Added `hooks` path alias pointing to `src/hooks/`.
+- `src/components/index.js`: Added `ContextMenu`, `NameModal`, `CreationBar` barrel exports.
+- `src/components/nodes/CommonNode.jsx`: Reads `labelDisplayMode` from `uiStore`; renders side-effect names inline when `'verbose'`.
+- `src/components/nodes/ChoiceNode.jsx`: Reads `labelDisplayMode` from `uiStore`; renders side-effect names inline when `'verbose'`.
+- `src/components/edges/ConditionalEdge.jsx`: Reads `labelDisplayMode` from `uiStore`; resolves flag/status IDs to names and renders full clause text when `'verbose'`.
+- `src/store/narrativeStore.js`: `addNode` now accepts an optional `label` string parameter (defaults to `'Node'`) and returns the new node ID. All existing call sites are backward compatible.
 
 ## [2026-04-19] — Campaign_Sheets
 ### Added

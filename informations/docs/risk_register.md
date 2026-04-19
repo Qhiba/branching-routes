@@ -41,6 +41,18 @@
 | RISK-CSH-04 | `exitCampaign()` circular import with `campaignStore` | Medium | High | `simulationStore` uses direct import of `useCampaignStore`; `campaignStore` does not import `simulationStore` | RESOLVED |
 | RISK-CSH-05 | Campaign boot restore auto-resumes an active campaign | Medium | Medium | `loadCampaignsFromIndexedDB` always calls `setActiveCampaign(null)` after restore | RESOLVED |
 | RISK-CSH-06 | `SandboxPanel` scope creep beyond original protection boundary | Low | Low | Campaign Save controls added additively; no existing functionality altered | ACKNOWLEDGED |
+| RISK-CMK-01 | Keyboard shortcut fires inside input fields | High | Medium | Input-field guard in `useKeyboardShortcuts.js:11-18` | RESOLVED |
+| RISK-CMK-02 | Context menu conflicts with React Flow pane event handling | Medium | Medium | `event.preventDefault()` as first line in all three context menu handlers | RESOLVED |
+| RISK-CMK-03 | `selectedNodeId` vs `selectedNodeIds` consumer mismatch breaks NodeInspector | Medium | High | `selectedNodeId` preserved; `setSelectedNodeIds` called only from `onSelectionChange`, never `onNodeClick` | RESOLVED |
+| RISK-CMK-04 | Context menu stays open after canvas scroll or node drag | Low | Low | `onPaneClick`, `onNodeDragStart`, `onMoveStart` all call `closeContextMenu` | RESOLVED |
+| RISK-CMK-05 | Context menu renders off-screen near viewport edges | Medium | Low | Viewport-flip logic in `ContextMenu.jsx:15-26` | RESOLVED |
+| RISK-CMK-06 | ESC key double-handling between GraphCanvas inline handler and new hook | Medium | Medium | Inline ESC handler removed from GraphCanvas; hook is sole ESC handler | RESOLVED |
+| RISK-CMK-07 | CreationBar / shortcut node creation positions at canvas origin | Medium | Low | `canvas-add-node` event; GraphCanvas calls `addNode(screenToFlowPosition(viewportCenter), type)` | RESOLVED |
+| RISK-CMK-08 | ESC inside NameModal simultaneously clears canvas selection | High | Medium | `NameModal.jsx:61` calls `event.stopPropagation()` before close | RESOLVED |
+| RISK-CMK-09 | NameModal opens during campaign mode | Low | Medium | Triple-layer guard: hook bails, CreationBar disabled, GraphCanvas listener independently guards | MITIGATED |
+| RISK-CMK-10 | `addNode` signature change is silent for existing callers | Low | Low | See details below | OPEN |
+| RISK-CMK-11 | Scope expansion across 7 additional files bypasses per-phase file map | Low | Low | See details below | OPEN |
+| RISK-CMK-12 | `onSelectionChange` fires synchronously inside React Flow render | Low | Medium | See details below | OPEN |
 
 ---
 
@@ -551,3 +563,171 @@
 **Mitigation Strategy:** The modification was additive — new controls were added without altering existing override functionality. Verified no regression in sandbox override behaviour.
 
 **Status:** ACKNOWLEDGED — Additive changes only. No existing sandbox functionality altered. Accepted as a conscious scope extension.
+
+---
+
+## RISK-CMK-01 — Keyboard Shortcut Fires Inside Input Fields
+
+**Description:** Single-letter shortcuts (N, C, E, F, S, P, H) are indistinguishable from normal typing. Pressing N while editing a node label in NodeInspector would create an unwanted Common Node.
+
+**Likelihood:** High — designers constantly type in node label/content fields, flag name inputs, and the TopBar title field.
+
+**Impact:** Medium — creates an unwanted entity but does not corrupt data.
+
+**Mitigation Strategy:** Guard at the top of the `keydown` handler: check `event.target.tagName` and `event.target.isContentEditable`; return early if the event originates from an input context.
+
+**Status:** RESOLVED — `useKeyboardShortcuts.js:11-18` checks `tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable` and returns early. Verified in Phase 2 tests.
+
+---
+
+## RISK-CMK-02 — Context Menu Conflicts With React Flow Pane Event Handling
+
+**Description:** Without `event.preventDefault()`, the browser's native context menu appears on top of the custom menu. React Flow's event pipeline could also transform event coordinates.
+
+**Likelihood:** Medium
+
+**Impact:** Medium — wrong menu position or overlapping browser menu makes the feature unusable.
+
+**Mitigation Strategy:** Call `event.preventDefault()` as the first line of all three context menu handlers. Use `event.clientX`/`clientY` for position.
+
+**Status:** RESOLVED — `GraphCanvas.jsx:207-224` confirms `event.preventDefault()` at the top of all three handlers. Menu positions correctly verified in Phase 3 tests.
+
+---
+
+## RISK-CMK-03 — `selectedNodeId` vs `selectedNodeIds` Consumer Mismatch Breaks NodeInspector
+
+**Description:** If `onSelectionChange` cleared `selectedNodeId`, `NodeInspector` would lose its single-node editing target and show an empty state during normal single-click selection.
+
+**Likelihood:** Medium
+
+**Impact:** High — `NodeInspector` becomes non-functional for single-node editing, the primary authoring workflow.
+
+**Mitigation Strategy:** `setSelectedNodeIds` called only from `onSelectionChange`; single-node `onNodeClick` continues to call `selectNode(id)` (setting `selectedNodeId`) exclusively. The two fields are fully independent.
+
+**Status:** RESOLVED — `GraphCanvas.jsx:315-317` wires `onSelectionChange` to `setSelectedNodeIds`; `GraphCanvas.jsx:261-277` `onNodeClick` calls `selectNode` unchanged. Verified in Phase 1 tests.
+
+---
+
+## RISK-CMK-04 — Context Menu Stays Open After Canvas Scroll or Node Drag
+
+**Description:** A context menu left open while the user pans or drags would float at a stale position, leading to misaligned actions.
+
+**Likelihood:** Low
+
+**Impact:** Low — confusing but not data-corrupting.
+
+**Mitigation Strategy:** Dismiss menu from `onMoveStart`, `onNodeDragStart`, and `onPaneClick` handlers in `GraphCanvas`.
+
+**Status:** RESOLVED — `GraphCanvas.jsx:300,320,424` all call `closeContextMenu`. Verified in Phase 3 tests.
+
+---
+
+## RISK-CMK-05 — Context Menu Renders Off-Screen Near Viewport Edges
+
+**Description:** A context menu opened near the right or bottom edge of the viewport would overflow and be partially hidden.
+
+**Likelihood:** Medium
+
+**Impact:** Low — menu actions become inaccessible.
+
+**Mitigation Strategy:** After positioning at cursor, compare `rect.right` against `window.innerWidth` and `rect.bottom` against `window.innerHeight`; flip to left/up if overflow detected.
+
+**Status:** RESOLVED — `ContextMenu.jsx:15-26` implements the viewport-flip check via `useLayoutEffect`. Verified in Phase 3 tests.
+
+---
+
+## RISK-CMK-06 — ESC Key Double-Handling
+
+**Description:** `GraphCanvas.jsx` previously had an inline `useEffect` adding a `keydown` listener for Escape → `clearSelection()`. The new hook also handles Escape. Coexistence would call `clearSelection()` twice per keypress — structurally wrong and masking future bugs.
+
+**Likelihood:** Medium
+
+**Impact:** Medium — double-call is functionally benign now but breaks the single-authoritative-handler invariant.
+
+**Mitigation Strategy:** Delete the inline `useEffect` block from `GraphCanvas` atomically with adding the hook mount.
+
+**Status:** RESOLVED — Inline ESC handler removed from `GraphCanvas`; `useKeyboardShortcuts.js:21-24` is the sole ESC handler. Verified in Phase 1 tests.
+
+---
+
+## RISK-CMK-07 — Node Creation at Canvas Origin
+
+**Description:** If `addNode({ x: 0, y: 0 }, type)` is called, the new node appears at the canvas origin — possibly off-screen if the designer has panned away.
+
+**Likelihood:** Medium
+
+**Impact:** Low — node is created but invisible without tidy layout.
+
+**Mitigation Strategy:** Keyboard hook and CreationBar dispatch `canvas-add-node` DOM events rather than calling `addNode` directly; `GraphCanvas` handles the event and calls `addNode(screenToFlowPosition(viewportCenter), type)` using its `useReactFlow()` context.
+
+**Status:** RESOLVED — Custom DOM event pattern in place per AR-19. `GraphCanvas` positions new nodes at viewport center. Verified in Phase 2 and Phase 4 tests.
+
+---
+
+## RISK-CMK-08 — ESC Inside NameModal Simultaneously Clears Canvas Selection
+
+**Description:** The global keyboard hook handles Escape → `clearSelection()` on `window keydown`. Pressing ESC to dismiss `NameModal` fires the same event, producing a double side-effect where canvas selection is also cleared.
+
+**Likelihood:** High — ESC is the intuitive dismiss gesture.
+
+**Impact:** Medium — functionally harmless but inconsistent UX.
+
+**Mitigation Strategy:** `NameModal` attaches its own `keydown` listener that calls `event.stopPropagation()` before `onClose()`, preventing the event from reaching the window listener.
+
+**Status:** RESOLVED — `NameModal.jsx:61` implements `stopPropagation` on ESC. Verified in Phase 2 tests.
+
+---
+
+## RISK-CMK-09 — NameModal Opens During Campaign Mode
+
+**Description:** If the `canvas-open-name-modal` listener in `GraphCanvas` does not independently guard on `isCampaignActive`, a timing or render race could open the modal during an active campaign.
+
+**Likelihood:** Low — two guard layers (hook bailout, CreationBar disabled) already exist.
+
+**Impact:** Medium — unexpected entity creation during campaign.
+
+**Mitigation Strategy:** Three guard layers: (1) keyboard hook bails on `isCampaignActive`; (2) CreationBar buttons are `disabled={isCampaignActive}`; (3) `GraphCanvas` `canvas-open-name-modal` listener independently reads `isCampaignActive` and bails.
+
+**Status:** MITIGATED — All three guard layers confirmed in audit §2. No campaign-mode modal opening observed in Phase 2 and Phase 4 tests.
+
+---
+
+## RISK-CMK-10 — `addNode` Signature Change Is Silent for Existing Callers
+
+**Description:** `narrativeStore.addNode` gained an optional `label` parameter (defaults to `'Node'`) and now returns the new node ID. Existing callers that ignore the return value continue to work, but the extended contract is not declared in any formal document.
+
+**Likelihood:** Low — signature is additive and backward compatible.
+
+**Impact:** Low — future callers expecting void return could be surprised; the return-id contract is useful but undiscovered.
+
+**Mitigation Strategy:** Document the current `addNode` signature in the codebase features entry for `narrativeStore.js`. Future features that extend action signatures must declare them in the data model impact document per AR-20.
+
+**Status:** OPEN — No code mitigation required; documentation updated in `codebase_features.md`. AR-20 formalises the process rule to prevent recurrence.
+
+---
+
+## RISK-CMK-11 — Scope Expansion Across 7 Additional Files Bypasses Per-Phase File Map
+
+**Description:** Implementation pass 4b (`ran_0205_fix_04b.md`) modified `narrativeStore.js`, `NodeInspector.jsx`, `FlagManager.jsx`, `StatusManager.jsx`, and several phase-2/3 files outside the original phase file maps. These changes are user-approved but invisible to future auditors reviewing per-phase file maps.
+
+**Likelihood:** Low — changes are user-approved; impact already accepted.
+
+**Impact:** Low — future auditors may not discover the out-of-scope edits when reviewing individual phase reports.
+
+**Mitigation Strategy:** Scope expansions approved during implementation should be recorded in an addendum to the relevant phase file map or in the audit report. No code change needed; process improvement only.
+
+**Status:** OPEN — Accepted. Surfaced in audit §6. No regression detected. AR-20 and AR-21 partially address the documentation discipline that would prevent this class of issue.
+
+---
+
+## RISK-CMK-12 — `onSelectionChange` Fires Synchronously Inside React Flow Render
+
+**Description:** The earlier implementation required a `queueMicrotask` wrapper to prevent an infinite-loop bug triggered by `onSelectionChange` → `setSelectedNodeIds` → re-render → `onSelectionChange`. The microtask wrapper was removed after the order-independent equality check in `setSelectedNodeIds` provided the fix. If a future React Flow upgrade changes its selection emission pattern, the loop could re-emerge.
+
+**Likelihood:** Low — current implementation is stable; risk is contingent on upstream React Flow changes.
+
+**Impact:** Medium — if it re-emerges, the canvas re-render loop crashes the UI.
+
+**Mitigation Strategy:** The `setSelectedNodeIds` action compares the incoming array against current state (order-independent) before calling `set()`, preventing spurious updates. Watch item: verify stability after each React Flow version upgrade.
+
+**Status:** OPEN — No action required now. Monitor during future React Flow upgrades.

@@ -17,6 +17,11 @@ function ChoiceNode({ id, data }) {
 
   const choiceDisplayMode = useUIStore(s => s.choiceDisplayMode);
 
+  // ADDED: Phase 2 label display variables
+  const labelDisplayMode = useUIStore(s => s.labelDisplayMode);
+  const flagDict = useNarrativeStore(s => s.flag);
+  const statusDict = useNarrativeStore(s => s.status);
+
   const className = `story-node choice-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen ? 'story-node--seen' : ''}`.trim();
 
   return (
@@ -63,6 +68,18 @@ function ChoiceNode({ id, data }) {
         {data.content && (
           <p className="story-node__content-text">{data.content}</p>
         )}
+        
+        {/* ADDED: Phase 2 verbose display for node-level side effects */}
+        {labelDisplayMode === 'verbose' && ((data.flags_set?.length || 0) + (data.status_set?.length || 0)) > 0 && (
+          <div style={{ marginTop: '8px', fontSize: '10px', color: 'var(--color-primary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+            {data.flags_set?.map(flagId => (
+              <div key={`nf-${flagId}`}>• {flagDict[flagId]?.name || 'Unknown'} = true</div>
+            ))}
+            {data.status_set?.map(se => (
+              <div key={`ns-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: {se.value > 0 ? '+' : ''}{se.value}</div>
+            ))}
+          </div>
+        )}
         {Array.isArray(data.options) && data.options.length > 0 && (
           <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {data.options.map(opt => {
@@ -83,6 +100,19 @@ function ChoiceNode({ id, data }) {
                   onClick={isCampaignActive && isActive ? (e) => { e.stopPropagation(); selectOption(opt.id); } : undefined}
                 >
                   {displayLabel || (<i>Unnamed Option</i>)}
+                  
+                  {/* ADDED: Phase 2 verbose display for option-level side effects */}
+                  {labelDisplayMode === 'verbose' && ((opt.flags_set?.length || 0) + (opt.status_set?.length || 0)) > 0 && (
+                    <div style={{ marginTop: '4px', fontSize: '9px', color: 'var(--color-primary)', display: 'flex', flexDirection: 'column', gap: '1px', opacity: 0.8 }}>
+                      {opt.flags_set?.map(flagId => (
+                        <div key={`of-${flagId}`}>• {flagDict[flagId]?.name || 'Unknown'} = true</div>
+                      ))}
+                      {opt.status_set?.map(se => (
+                        <div key={`os-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: {se.value > 0 ? '+' : ''}{se.value}</div>
+                      ))}
+                    </div>
+                  )}
+
                   <Handle
                     type="source"
                     position={Position.Right}

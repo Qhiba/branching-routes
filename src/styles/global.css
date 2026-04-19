@@ -592,3 +592,172 @@ header.campaign-mode .file-actions { opacity: 0.4; pointer-events: none; }
 .react-flow__minimap-node {
   fill: var(--color-accent) !important;
 }
+
+/* ADDED: Phase 2 naming modal styles */
+.name-modal__backdrop {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.name-modal {
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  width: 320px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.name-modal__header {
+  padding: var(--space-3);
+  font-weight: bold;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+}
+
+.name-modal__body {
+  padding: var(--space-4) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.name-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.name-modal__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.name-modal__row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.name-modal__toggle-row {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.name-modal__toggle-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.name-modal__input {
+  width: 100%;
+}
+
+.name-modal__footer {
+  padding: var(--space-3);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.node-creation-modal {
+  width: 480px;
+  max-width: 90vw;
+}
+
+.node-creation-modal__body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.button {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.button--primary {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+}
+
+.button--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   CONTEXT MENU (Phase 3)
+   ========================================= */
+.context-menu__backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 999;
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 160px;
+  padding: 4px 0;
+  overflow: hidden;
+}
+
+.context-menu__item {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.875rem;
+  color: var(--color-text-primary);
+}
+
+.context-menu__item:hover {
+  background: var(--color-bg-hover);
+}
+
+.context-menu__item--danger {
+  color: var(--color-danger);
+}
+
+/* =========================================
+   CREATION BAR (Phase 4)
+   ========================================= */
+.topbar__creation-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+}
+
+.creation-bar__btn {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+}

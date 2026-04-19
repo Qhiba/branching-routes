@@ -3,8 +3,9 @@ import { useNarrativeStore, useUIStore } from 'store';
 import OptionEditor from './OptionEditor';
 import VariantEditor from './VariantEditor';
 
-export default function NodeInspector() {
-  const selectedNodeId = useUIStore(state => state.selectedNodeId);
+export default function NodeInspector({ nodeId: propNodeId, hideDelete } = {}) {
+  const storeSelectedId = useUIStore(state => state.selectedNodeId);
+  const selectedNodeId = propNodeId ?? storeSelectedId;
   const nodeType = useNarrativeStore(state => {
     if (!selectedNodeId) return undefined;
     if (state.common[selectedNodeId]) return 'common';
@@ -200,14 +201,16 @@ export default function NodeInspector() {
         <OptionEditor nodeId={node.id} options={Array.isArray(data.options) ? data.options : []} />
       )}
 
-      <div style={{ marginTop: 'auto', paddingTop: '24px' }}>
-        <button
-          onClick={() => deleteNode(node.id)}
-          style={{ width: '100%', padding: '10px', background: 'rgba(255, 68, 68, 0.1)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', cursor: 'pointer' }}
-        >
-          Delete Node
-        </button>
-      </div>
+      {!hideDelete && (
+        <div style={{ marginTop: 'auto', paddingTop: '24px' }}>
+          <button
+            onClick={() => deleteNode(node.id)}
+            style={{ width: '100%', padding: '10px', background: 'rgba(255, 68, 68, 0.1)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', cursor: 'pointer' }}
+          >
+            Delete Node
+          </button>
+        </div>
+      )}
     </div>
   );
 }

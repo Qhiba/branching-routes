@@ -146,3 +146,27 @@ All app-boot side effects — IndexedDB restore, store subscription wiring, and 
 When any store action constructs a snapshot object for persistence, the object's field set must exactly match the shape declared in the data model impact document for that feature. Every field present in the data model schema must appear in the snapshot; no field may be omitted. Specifically: if the schema separates data by type (e.g. `flagOverrides` for booleans, `statusOverrides` for numerics), the snapshot construction code must maintain that separation — not collapse them into a single field.
 
 **Rationale:** The `statusOverrides` omission in the Campaign_Sheets feature demonstrated this bug class. A snapshot that writes to a different shape than the one the reader expects causes silent data loss on round-trip — the write appears to succeed but the values are reset to defaults on restore. Formalising this as a rule makes it a self-review checkpoint for any future feature that introduces persistence snapshots.
+
+---
+
+## AR-19 — Canvas-Space Operations From Outside ReactFlowProvider Must Use DOM Events
+
+Components and hooks that need to trigger canvas-space operations (node creation at viewport center, fit-view, layout, modal open) but are rendered or mounted outside the `ReactFlowProvider` subtree must use the established custom DOM event pattern (`window.dispatchEvent(new CustomEvent('canvas-*', { detail: ... }))`) to communicate with `GraphCanvas`. `GraphCanvas` owns the listener and executes the operation using its own `useReactFlow()` context. Direct calls to React Flow hooks from outside the provider are not permitted.
+
+**Rationale:** React Flow's hooks (`useReactFlow`, `screenToFlowPosition`, etc.) are context-bound — they throw or return incorrect values when called outside the `ReactFlowProvider` subtree. `TopBar` and all hooks mounted in `GraphCanvas` are outside the provider; any component in this position that needs canvas state must delegate to `GraphCanvas` via the event bus. This pattern was established by `graph-layout-tidy` and extended by this feature's `canvas-add-node` and `canvas-open-name-modal` events.
+
+---
+
+## AR-20 — Store-Action Signature Additions Must Be Declared in the Feature's Data Model Impact Document
+
+When a feature adds optional parameters or new return values to existing store actions, those changes must be enumerated in the feature's `ran_0202_datamodelimpact.md` (or equivalent integration points document) before implementation begins. Additive signature changes are cross-file contracts: existing callers continue to work, but future callers and maintainers need a declared source of truth for the full current signature.
+
+**Rationale:** The `addNode` optional `label` parameter and `return id` addition in the Context_menus_keyboard_shortcuts_creation_bar feature were not declared in the data model impact document, surfacing as a post-hoc audit finding. Even backward-compatible additions create implicit expectations; without declaration they can surprise future callers and complicate auditing.
+
+---
+
+## AR-21 — New Component Stylesheet Additions Must Be Explicit in the Feature File Map
+
+When a new component requires new CSS rules added to `global.css` or a standalone `.css` file, that stylesheet change must be listed as an explicit file in the feature's file map (`ran_0202_filemap.md`) alongside the component file. It is not sufficient to bundle CSS additions implicitly with the component entry.
+
+**Rationale:** `global.css` is a shared stylesheet — undeclared additions are invisible in per-phase file maps, making it difficult to audit which styles belong to which feature, track regressions, and review CSS specificity conflicts. Explicit file map entries ensure stylesheet changes are reviewed with the same rigour as component changes.

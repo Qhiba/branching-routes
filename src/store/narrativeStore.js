@@ -17,30 +17,31 @@ export const useNarrativeStore = create((set, get) => ({
 
 
 
-  addNode: (position, type = 'common') => set((state) => {
-
-    const isEmpty = Object.keys(state.common).length === 0 && Object.keys(state.choice).length === 0 && Object.keys(state.ending).length === 0;
-    const isStartNode = isEmpty;
-    const newNode = {
-
-      id: generateId('n'),
-      type,
-      position,
-      data: {
-        label: 'Node',
-        content: '',
-        isStartNode,
-        flags_set: [],
-        status_set: []
-      }
-    };
-
-    const target = type === 'ending' ? 'ending' : type === 'choice' ? 'choice' : 'common';
-    return {
-      [target]: { ...state[target], [newNode.id]: newNode },
-      meta: { ...state.meta, updatedAt: Date.now() }
-    };
-  }),
+  addNode: (position, type = 'common', label = 'Node') => {
+    const id = generateId('n');
+    set((state) => {
+      const isEmpty = Object.keys(state.common).length === 0 && Object.keys(state.choice).length === 0 && Object.keys(state.ending).length === 0;
+      const newNode = {
+        id,
+        type,
+        position,
+        createdAt: Date.now(), // FIX: used for z-ordering in GraphCanvas derivedNodes
+        data: {
+          label,
+          content: '',
+          isStartNode: isEmpty,
+          flags_set: [],
+          status_set: []
+        }
+      };
+      const target = type === 'ending' ? 'ending' : type === 'choice' ? 'choice' : 'common';
+      return {
+        [target]: { ...state[target], [id]: newNode },
+        meta: { ...state.meta, updatedAt: Date.now() }
+      };
+    });
+    return id;
+  },
 
   updateNode: (id, patch) => set((state) => {
 

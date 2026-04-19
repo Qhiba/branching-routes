@@ -10,6 +10,7 @@ export default defineConfig({
       store:      path.resolve(__dirname, 'src/store'),
       utils:      path.resolve(__dirname, 'src/utils'),
       styles:     path.resolve(__dirname, 'src/styles'),
+      hooks:      path.resolve(__dirname, 'src/hooks'), // ADDED: Phase 1 alias
     }
   }
 })
