@@ -26,9 +26,14 @@
   --color-node-ending: #8c4214; /* deep burnt amber */
   --color-primary:   #7393f8;   /* general theme interaction color */
   --color-accent:    #7393f8;   /* primary interactive, selected rings */
-  --color-active:    #f8ab54;   /* simulation active node */
+  --color-active:    #4ea8de;   /* simulation active node (blue) */
   --color-visited:   #636b8c;   /* simulation visited (dimmed) */
-  --color-reachable: #53d696;   /* simulation reachable (pulsing) */
+  --color-reachable: #4ea8de;   /* simulation reachable (pulsing blue) */
+  --color-node-locked:       #595959; /* campaign locked */
+  --color-node-complete:     #f8ab54; /* campaign complete (yellow/orange) */
+  --color-node-failed:       #d64545; /* campaign failed */
+  --color-node-branch-locked:#8b60ba; /* campaign branch-locked */
+  --color-node-seen:         #ffffff; /* campaign seen indicator */
   --color-danger:    #e56666;   /* delete buttons, warnings */
   --color-border:    #323759;   /* default element borders */
 

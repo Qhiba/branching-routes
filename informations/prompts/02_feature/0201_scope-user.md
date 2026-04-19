@@ -30,35 +30,30 @@ Save to: `/informations/runs/[DD-MM-YYYY]_feature/ran_0201_scope.md`
 
 ### Feature name
 <!-- [SNAKE_CASE NAME] -->
-Variants_on_nodes_and_Options_on_choices
+Campaign_Sheets
 
 ### What this feature does
 <!-- [ONE SENTENCE — from the user's perspective] -->
-- Variants on Common Node:
-    Allows designers to define alternate text on a common node that displays conditionally based on flag and status state, so a single node can show different content without duplicating nodes in the graph.
-
-- Options on Choice Node
-    Allows designers to define multiple selectable options on a choice node — each with its own conditions, side effects, and a dedicated source handle — so edges can be anchored to a specific option rather than the node as a whole.
+Adds persistent simulation snapshots. Users can create named campaigns ("good_ending_run", "chapter_2_test"), each storing its own `nodeStates`, `flagOverrides`, and `statusOverrides`. Campaigns are saved to IndexedDB alongside narrative data and survive across sessions.
+The Previous Update Enter/Exit Campaign Mode toggle becomes a campaign selector dropdown in the TopBar. Selecting a campaign hydrates `simulationStore` with that campaign's saved state and activates simulation mode. Switching campaigns auto-saves the outgoing one before loading the incoming one. Exiting returns to editing mode.
+Export format upgrades to `.zip` when campaigns exist (containing `datamodel.json` + `campaigns/{name}.json`). Campaign-less projects continue exporting as `.json`.
 
 ### What this feature does NOT do
 <!-- [EXPLICIT BOUNDARIES — at least 2 items] -->
-- Variants on Common Node:
-    - It does not affect routing or edge behavior — variants are display-only, not branching points.
-    - It does not render variant switching on the canvas; which variant is active is a simulation concern handled in later update.
-    - It does not finalize the variant editor UI — form styling is deferred to later update.
-
-- Options on Choice Node
-    - It does not change how edges evaluate conditions — option conditions gate availability, routing logic stays on the edge.
-    - It does not affect common node or ending node edge behavior — per-option source handles exist only on choice nodes.
-    - It does not finalize the option editor UI — form styling is deferred to later update.
+- Does not change the narrative data model. `narrativeStore` is untouched; campaigns only reference narrative IDs.
+- Does not mutate authored flag/status values. Campaign overrides hydrate `simulationStore` only — AR-08 applies.
+- Does not auto-generate campaigns. Users explicitly create them.
+- Does not add new simulation mechanics. Six-state enum, seen tracking, sandbox overrides — all from previous update, unchanged.
+- Does not add route tracing (later update), UI shell changes (later update), or any new narrative entity types.
+- Does not migrate existing data. Projects without campaigns continue working identically.
 
 ### Why this feature is needed now
-<!-- [ONE SENTENCE — the real reason, not the nice-to-have reason] -->
-- Variants on Common Node:
-    Without variants, designers must duplicate common nodes to express minor conditional text differences, bloating the graph with structurally identical nodes that differ only in content.
+Previous update gave the app a working simulation but no way to preserve a run. Every Enter Campaign Mode starts from scratch — the moment you exit, the traversal is gone. For a tool designed to validate branching narratives, this makes serious testing impractical: you can't compare "good ending run" against "bad ending run" side-by-side, can't return to a half-tested path, can't share a reproducible scenario.
 
-- Options on Choice Node
-    - The flag and status system from previous iteration update has nowhere to apply at the choice level — without options, choice nodes cannot express what the player selects, what state changes on selection, or which specific option an outgoing edge belongs to.
+Previous update made persistence automatic for narrative data. Campaigns are the natural next persisted entity — the plumbing (IndexedDB, auto-save subscriber, ZIP-capable export) already exists, so this is the lowest-cost moment to add them. Delaying would either mean shipping an unusable simulation layer or retrofitting persistence onto campaigns later, duplicating work.
+
+Later update (route tracing) also depends on campaign-mode simulation being fully featured, so this unblocks downstream work.
+
 
 ### Definition of done
 <!-- [ ] Condition 1
@@ -66,13 +61,12 @@ Variants_on_nodes_and_Options_on_choices
 [ ] Condition 3 -->
 | Action | File | Detail |
 |--------|------|--------|
-| MODIFY | `src/store/narrativeStore.js` | Variant + option CRUD actions |
-| ADD | `src/components/VariantEditor.jsx` | Variant list + conditional text editing |
-| ADD | `src/components/OptionEditor.jsx` | Option editing: label, requires, flags_set, status_set |
-| MODIFY | `src/components/NodeInspector.jsx` | Mount VariantEditor for common nodes, OptionEditor for choices |
-| MODIFY | `src/components/nodes/ChoiceNode.jsx` | Render option labels, per-option source handles, medium/full toggle |
-| MODIFY | `src/store/uiStore.js` | Option display mode setting (medium/full) |
-| MODIFY | `src/components/EdgeInspector.jsx` | Show which option an edge connects from |
+| ADD | `src/store/campaignStore.js` | Campaign CRUD, persistence, active campaign management |
+| ADD | `src/components/CampaignSelector.jsx` | Campaign create/switch/reset UI |
+| MODIFY | `src/store/simulationStore.js` | Integration with active campaign |
+| MODIFY | `src/store/index.js` | Re-export campaignStore |
+| MODIFY | `src/utils/fileSystem.js` | ZIP export/import for campaigns |
+| MODIFY | `src/components/TopBar.jsx` | Campaign selector mount point |
 
 
 ### Assumptions I am making

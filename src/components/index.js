@@ -10,9 +10,8 @@ export { default as NodeInspector } from './NodeInspector';
 export { default as EdgeInspector } from './EdgeInspector';
 export { default as FlagManager } from './FlagManager';
 export { default as StatusManager } from './StatusManager';
-// MODIFIED: export new PathChapterManager
 export { default as PathChapterManager } from './PathChapterManager';
-// ADDED: OptionEditor export
 export { default as OptionEditor } from './OptionEditor';
-// ADDED: VariantEditor export
 export { default as VariantEditor } from './VariantEditor';
+export { default as SandboxPanel } from './SandboxPanel';
+export { default as CampaignSelector } from './CampaignSelector.jsx';

@@ -24,7 +24,6 @@ export default function StatusManager() {
     const minVal = newMinValue === '' ? null : Number(newMinValue);
     const maxVal = newMaxValue === '' ? null : Number(newMaxValue);
     
-    // CHANGED: addStatus with value, minValue, maxValue
     addStatus(newName, newValue, minVal, maxVal);
     
     // reset form
@@ -38,7 +37,6 @@ export default function StatusManager() {
     setDeleteError(null);
     const result = deleteStatus(id);
     if (result && result.blocked) {
-      // PRESERVED: Referential Integrity behavior
       setDeleteError({ id, references: result.references });
     }
   };

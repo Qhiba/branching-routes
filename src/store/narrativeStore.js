@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { generateId } from 'utils';
 import { useUIStore } from './uiStore.js';
 
-// PROTECTED: INVARIANT HS-08 (Do not import simulationStore to avoid circular dependence) is preserved
 // INVARIANT: HS-08 (Do not import simulationStore to avoid circular dependence)
 
 export const useNarrativeStore = create((set, get) => ({
@@ -11,16 +10,13 @@ export const useNarrativeStore = create((set, get) => ({
   choice: {},
   ending: {},
   edges: [],
-  // CHANGED: flags[] -> flag{} and status{} dictionaries
   flag: {},
   status: {},
-  // ADDED: path{} and chapter{} for node grouping metadata
   path: {},
   chapter: {},
 
 
 
-  // PROTECTED: Existing CRUD actions remain unchanged
   addNode: (position, type = 'common') => set((state) => {
 
     const isEmpty = Object.keys(state.common).length === 0 && Object.keys(state.choice).length === 0 && Object.keys(state.ending).length === 0;
@@ -34,7 +30,6 @@ export const useNarrativeStore = create((set, get) => ({
         label: 'Node',
         content: '',
         isStartNode,
-        // CHANGED: sideEffects: [] -> flags_set: [] and status_set: []
         flags_set: [],
         status_set: []
       }
@@ -107,7 +102,6 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // MODIFIED: added optional optionId third argument — stamped on edge when provided (Phase 1)
   addEdge: (sourceId, targetId, optionId = null) => set((state) => {
 
     if (sourceId in state.ending) {
@@ -124,7 +118,6 @@ export const useNarrativeStore = create((set, get) => ({
       targetId,
       label: '',
       condition: null,
-      // ADDED: optionId links this edge to a specific option handle on a choice node (null if not from an option handle)
       optionId: optionId || null
 
     };
@@ -149,7 +142,6 @@ export const useNarrativeStore = create((set, get) => ({
     useUIStore.getState().clearIfSelected(id, 'edge');
   },
 
-  // CHANGED: addFlag signature changed to accept state instead of type/defaultValue, writes to flag{}
   addFlag: (name, stateVal) => set((state) => {
     if (!/^[a-zA-Z0-9_]+$/.test(name)) {
       throw new Error('Invalid flag name');
@@ -166,7 +158,6 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // CHANGED: addStatus added to manage numeric status points in status{}
   addStatus: (name, value, minValue, maxValue) => set((state) => {
     if (!/^[a-zA-Z0-9_]+$/.test(name)) {
       throw new Error('Invalid status name');
@@ -185,7 +176,6 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // CHANGED: updateFlag signature kept but operates on flag{}
   updateFlag: (id, patch) => set((state) => {
     if (!state.flag[id]) return state;
     return {
@@ -194,7 +184,6 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // CHANGED: updateStatus added to operate on status{}
   updateStatus: (id, patch) => set((state) => {
     if (!state.status[id]) return state;
     return {
@@ -203,14 +192,11 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // CHANGED: deleteFlag checks conditions[] for flag and flags_set[] on nodes
-  // MODIFIED: extended scan to also cover variants[].requires and options[].requires + options[].flags_set (Phase 1)
   deleteFlag: (id) => {
     const state = get();
     const references = [];
 
     state.edges.forEach(e => {
-      // PROTECTED: Referential Integrity behavior — edge condition scan preserved
       if (e.condition && e.condition.conditions) {
         if (e.condition.conditions.some(c => c.flag === id)) {
           references.push(`edge_condition:${e.id}`);
@@ -225,11 +211,9 @@ export const useNarrativeStore = create((set, get) => ({
     ];
 
     allNodes.forEach(n => {
-      // PROTECTED: node flags_set scan preserved
       if (n.data && n.data.flags_set && n.data.flags_set.includes(id)) {
         references.push(`node_sideEffect:${n.id}`);
       }
-      // ADDED: scan variants[].requires.conditions for flag references (Phase 1)
       if (n.data && Array.isArray(n.data.variants)) {
         n.data.variants.forEach(v => {
           if (v.requires && Array.isArray(v.requires.conditions)) {
@@ -239,7 +223,6 @@ export const useNarrativeStore = create((set, get) => ({
           }
         });
       }
-      // ADDED: scan options[].requires.conditions and options[].flags_set for flag references (Phase 1)
       if (n.data && Array.isArray(n.data.options)) {
         n.data.options.forEach(opt => {
           if (opt.requires && Array.isArray(opt.requires.conditions)) {
@@ -269,14 +252,11 @@ export const useNarrativeStore = create((set, get) => ({
     return { blocked: false };
   },
 
-  // CHANGED: deleteStatus added to check conditions[] for status and status_set[] on nodes
-  // MODIFIED: extended scan to also cover variants[].requires and options[].requires + options[].status_set (Phase 1)
   deleteStatus: (id) => {
     const state = get();
     const references = [];
 
     state.edges.forEach(e => {
-      // PROTECTED: Referential Integrity behavior — edge condition scan preserved
       if (e.condition && e.condition.conditions) {
         if (e.condition.conditions.some(c => c.status === id)) {
           references.push(`edge_condition:${e.id}`);
@@ -291,11 +271,9 @@ export const useNarrativeStore = create((set, get) => ({
     ];
 
     allNodes.forEach(n => {
-      // PROTECTED: node status_set scan preserved
       if (n.data && n.data.status_set && n.data.status_set.some(se => se.statusId === id)) {
         references.push(`node_sideEffect:${n.id}`);
       }
-      // ADDED: scan variants[].requires.conditions for status references (Phase 1)
       if (n.data && Array.isArray(n.data.variants)) {
         n.data.variants.forEach(v => {
           if (v.requires && Array.isArray(v.requires.conditions)) {
@@ -305,7 +283,6 @@ export const useNarrativeStore = create((set, get) => ({
           }
         });
       }
-      // ADDED: scan options[].requires.conditions and options[].status_set for status references (Phase 1)
       if (n.data && Array.isArray(n.data.options)) {
         n.data.options.forEach(opt => {
           if (opt.requires && Array.isArray(opt.requires.conditions)) {
@@ -335,9 +312,8 @@ export const useNarrativeStore = create((set, get) => ({
     return { blocked: false };
   },
 
-  // ─── VARIANT CRUD (Phase 1) ────────────────────────────────────────────────
+  // ─── VARIANT CRUD ────────────────────────────────────────────────────────
 
-  // ADDED: addVariant — appends a new variant to common[nodeId].data.variants[] (Phase 1)
   // variants[] is display-only; which variant is active is a simulation concern deferred to a later update
   addVariant: (nodeId, variantData = {}) => set((state) => {
     const node = state.common[nodeId];
@@ -358,7 +334,6 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // ADDED: updateVariant — patches a single variant in common[nodeId].data.variants[] by variantId (Phase 1)
   updateVariant: (nodeId, variantId, patch) => set((state) => {
     const node = state.common[nodeId];
     if (!node) return state;
@@ -373,7 +348,6 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // ADDED: deleteVariant — removes a variant from common[nodeId].data.variants[] by variantId (Phase 1)
   deleteVariant: (nodeId, variantId) => set((state) => {
     const node = state.common[nodeId];
     if (!node) return state;
@@ -387,9 +361,8 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // ─── OPTION CRUD (Phase 1) ─────────────────────────────────────────────────
+  // ─── OPTION CRUD ──────────────────────────────────────────────────────────
 
-  // ADDED: addOption — appends a new option to choice[nodeId].data.options[] (Phase 1)
   // each option gets a dedicated source handle on ChoiceNode (Phase 2)
   addOption: (nodeId, optionData = {}) => set((state) => {
     const node = state.choice[nodeId];
@@ -411,7 +384,6 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // ADDED: updateOption — patches a single option in choice[nodeId].data.options[] by optionId (Phase 1)
   updateOption: (nodeId, optionId, patch) => set((state) => {
     const node = state.choice[nodeId];
     if (!node) return state;
@@ -426,8 +398,6 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // ADDED: deleteOption — removes an option from choice[nodeId].data.options[] and cascades to remove
-  // all edges where edge.optionId === optionId, preventing dangling handle references (RISK-VNO-04) (Phase 1)
   deleteOption: (nodeId, optionId) => set((state) => {
     const node = state.choice[nodeId];
     if (!node) return state;
@@ -443,9 +413,8 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // ─── PATH / CHAPTER MANAGEMENT ────────────────────────────────────────────
+  // ─── PATH / CHAPTER MANAGEMENT ───────────────────────────────────────────
 
-  // ADDED: path management actions with cascading pathId nullification
   addPath: (name) => set((state) => {
     if (!name || name.trim().length === 0) {
       throw new Error('Path name cannot be empty');
@@ -491,7 +460,6 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // ADDED: chapter management actions with cascading chapterId nullification
   addChapter: (name) => set((state) => {
     if (!name || name.trim().length === 0) {
       throw new Error('Chapter name cannot be empty');
@@ -537,7 +505,6 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  // PROTECTED: updateMeta action preserves meta-update tracking behavior
   updateMeta: (patch) => set((state) => ({
     meta: { ...state.meta, ...patch, updatedAt: Date.now() }
   })),
@@ -559,10 +526,8 @@ export const useNarrativeStore = create((set, get) => ({
       choice: graphData.choice || {},
       ending: graphData.ending || {},
       edges: graphData.edges || [],
-      // CHANGED: flags -> flag, status
       flag: graphData.flag || {},
       status: graphData.status || {},
-      // ADDED: load path and chapter or default to empty objects
       path: graphData.path || {},
       chapter: graphData.chapter || {}
     });
@@ -579,10 +544,8 @@ export const useNarrativeStore = create((set, get) => ({
       choice: {},
       ending: {},
       edges: [],
-      // CHANGED: flags -> flag, status for new empty graphs
       flag: {},
       status: {},
-      // ADDED: initialize path and chapter to empty objects
       path: {},
       chapter: {}
     });
@@ -602,7 +565,6 @@ export const useNarrativeStore = create((set, get) => ({
 
     return {
 
-      // MODIFIED: schemaVersion 3 -> 4
       schemaVersion: 4,
       meta: {
         ...state.meta,
@@ -615,17 +577,14 @@ export const useNarrativeStore = create((set, get) => ({
       choice: state.choice,
       ending: state.ending,
       edges: state.edges,
-      // CHANGED: flags -> flag, status
       flag: state.flag,
       status: state.status,
-      // ADDED: export path and chapter
       path: state.path,
       chapter: state.chapter
     };
   }
 }));
 
-// PROTECTED: window.useNarrativeStore debug export hook is kept active
 if (typeof window !== 'undefined') {
   window.useNarrativeStore = useNarrativeStore;
 }

@@ -3,16 +3,13 @@ import { Handle, Position } from '@xyflow/react';
 import { useSimulationStore } from 'store';
 
 function EndingNode({ id, data }) {
-  const isActive    = useSimulationStore(s => s.activeNodeId === id);
-  const isVisited   = useSimulationStore(s => s.visitedNodeIds.includes(id));
-  const isReachable = useSimulationStore(s =>
-    s.isRunning && s.reachableNodeIds.includes(id) && s.activeNodeId !== id
-  );
+  const nodeState = useSimulationStore(s => s.nodeStates[id]);
+  const isSeen = useSimulationStore(s => s.seenNodeIds.includes(id));
+  
+  const isOrphaned = useSimulationStore(s => s.orphanedNodeIds.includes(id));
+  const isUnreachable = useSimulationStore(s => s.unreachableNodeIds.includes(id));
 
-  let className = 'story-node ending-node';
-  if (isActive)     className += ' story-node--active';
-  else if (isVisited)   className += ' story-node--visited';
-  else if (isReachable) className += ' story-node--reachable';
+  const className = `story-node ending-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen ? 'story-node--seen' : ''}`.trim();
 
   return (
     <div className={className}>
@@ -20,6 +17,16 @@ function EndingNode({ id, data }) {
 
       <div className="story-node__type-bar ending-node__type-bar">
         <span className="story-node__type-label">ENDING</span>
+        {isOrphaned && (
+          <span className="story-node__warning-badge" title="Node is entirely disconnected">
+            ⚠️ Orphaned
+          </span>
+        )}
+        {!isOrphaned && isUnreachable && (
+          <span className="story-node__warning-badge" title="Node cannot be reached from start node">
+            ⚠️ Unreachable
+          </span>
+        )}
       </div>
 
       <div className="story-node__body">

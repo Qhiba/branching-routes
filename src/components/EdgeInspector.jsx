@@ -6,7 +6,6 @@ export default function EdgeInspector() {
   const edge = useNarrativeStore(state => state.edges.find(e => e.id === selectedEdgeId));
   const flags = Object.values(useNarrativeStore(state => state.flag));
   const statuses = Object.values(useNarrativeStore(state => state.status));
-  // ADDED: Safe selector to fetch options to prevent crashes
   const rawSourceOptions = useNarrativeStore(state => {
     const currentEdge = state.edges.find(e => e.id === selectedEdgeId);
     if (!currentEdge) return undefined;
@@ -19,7 +18,6 @@ export default function EdgeInspector() {
 
   if (!edge) return null;
 
-  // ADDED: Find the option if this edge originated from one
   const sourceOption = sourceOptions.find(opt => opt.id === edge.optionId);
 
   const handleLabelChange = (e) => {
@@ -38,13 +36,11 @@ export default function EdgeInspector() {
     updateEdge(edge.id, { condition: { ...edge.condition, operator } });
   };
 
-  // CHANGED: added newClause with flagId, comparator, value → added newClause with flag, state
   const addFlagClause = () => {
     const newClause = { flag: flags[0]?.id || '', state: true };
     updateEdge(edge.id, { condition: { ...edge.condition, conditions: [...edge.condition.conditions, newClause] } });
   };
 
-  // CHANGED: added newClause with flagId, comparator, value → added newClause with status, min
   const addStatusClause = () => {
     const newClause = { status: statuses[0]?.id || '', min: 0 };
     updateEdge(edge.id, { condition: { ...edge.condition, conditions: [...edge.condition.conditions, newClause] } });
@@ -77,7 +73,6 @@ export default function EdgeInspector() {
         />
       </div>
 
-      {/* ADDED: Read-only display of the source option label */}
       {sourceOption && (
         <div style={{ marginTop: '-8px' }}>
           <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>Connected from option</label>
@@ -148,7 +143,6 @@ export default function EdgeInspector() {
                 return (
                   <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.8rem', padding: '2px 4px', background: 'var(--color-bg-hover)', color: 'var(--color-text-secondary)', borderRadius: '4px' }}>Status</span>
-                    {/* CHANGED: map flags to flagId → map statuses to statusId */}
                     <select
                       value={clause.status || ''}
                       onChange={(e) => updateClause(index, { status: e.target.value })}
@@ -158,7 +152,6 @@ export default function EdgeInspector() {
                       {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
 
-                    {/* CHANGED: read clause.value → read clause.min and clause.max for range bounds */}
                     <input
                       type="number"
                       placeholder="Min (opt)"

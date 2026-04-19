@@ -1,8 +1,6 @@
 import React from 'react';
 import { useNarrativeStore, useUIStore } from 'store';
-// ADDED: Import OptionEditor for choice node options
 import OptionEditor from './OptionEditor';
-// ADDED: Import VariantEditor for common node variants
 import VariantEditor from './VariantEditor';
 
 export default function NodeInspector() {
@@ -25,15 +23,11 @@ export default function NodeInspector() {
 
   const flags = Object.values(useNarrativeStore(state => state.flag));
   const statuses = Object.values(useNarrativeStore(state => state.status));
-  // ADDED: Targeted selectors for paths and chapters
   const paths = Object.values(useNarrativeStore(state => state.path));
   const chapters = Object.values(useNarrativeStore(state => state.chapter));
   const updateNode = useNarrativeStore(state => state.updateNode);
   const setStartNode = useNarrativeStore(state => state.setStartNode);
   const deleteNode = useNarrativeStore(state => state.deleteNode);
-  // PROTECTED: All existing handlers (handleLabelChange, handleContentChange, handleStartNodeClick,
-  // toggleFlag, addStatusEffect, updateStatusEffect, removeStatusEffect, deleteNode) and the visual
-  // structure (Label, Content, Start Node, Set Flags, Status Modifiers, Delete) are preserved unchanged.
 
   if (!node) return null;
   const data = node.data || {};
@@ -50,7 +44,6 @@ export default function NodeInspector() {
     setStartNode(node.id);
   };
 
-  // CHANGED: unified sideEffects[] array → split side effect logic into boolean flags_set and numeric status_set
   const toggleFlag = (flagId) => {
     const currentFlags = data.flags_set || [];
     const newFlags = currentFlags.includes(flagId)
@@ -100,7 +93,6 @@ export default function NodeInspector() {
         />
       </div>
 
-      {/* ADDED: Path assignment dropdown */}
       <div>
         <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>Path</label>
         <select
@@ -115,7 +107,6 @@ export default function NodeInspector() {
         </select>
       </div>
 
-      {/* ADDED: Chapter assignment dropdown */}
       <div>
         <label style={{ display: 'block', marginBottom: '8px', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>Chapter</label>
         <select
@@ -201,12 +192,10 @@ export default function NodeInspector() {
         </button>
       </div>
 
-      {/* ADDED: Mount VariantEditor for common nodes */}
       {nodeType === 'common' && (
         <VariantEditor nodeId={node.id} variants={Array.isArray(data.variants) ? data.variants : []} />
       )}
 
-      {/* ADDED: Mount OptionEditor for choice nodes */}
       {nodeType === 'choice' && (
         <OptionEditor nodeId={node.id} options={Array.isArray(data.options) ? data.options : []} />
       )}

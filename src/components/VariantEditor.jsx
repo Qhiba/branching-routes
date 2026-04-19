@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNarrativeStore } from 'store';
 
-// ADDED: VariantEditor to render and edit variants for common nodes
 export default function VariantEditor({ nodeId, variants }) {
   const flags = Object.values(useNarrativeStore(s => s.flag));
   const statuses = Object.values(useNarrativeStore(s => s.status));

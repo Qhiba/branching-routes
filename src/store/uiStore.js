@@ -4,11 +4,9 @@ export const useUIStore = create((set, get) => ({
   selectedNodeId: null,
   selectedEdgeId: null,
   snapToGrid: true,
-  // ADDED: choiceDisplayMode to control density of ChoiceNode
   choiceDisplayMode: 'medium',
 
   toggleSnapToGrid: () => set(state => ({ snapToGrid: !state.snapToGrid })),
-  // ADDED: setChoiceDisplayMode
   setChoiceDisplayMode: (mode) => set({ choiceDisplayMode: mode }),
   selectNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }),
   selectEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),

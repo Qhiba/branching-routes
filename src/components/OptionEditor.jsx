@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNarrativeStore } from 'store';
 
-// ADDED: OptionEditor to render and edit options for choice nodes
 export default function OptionEditor({ nodeId, options }) {
   const flags = Object.values(useNarrativeStore(s => s.flag));
   const statuses = Object.values(useNarrativeStore(s => s.status));

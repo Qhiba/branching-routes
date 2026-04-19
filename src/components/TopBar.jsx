@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useNarrativeStore, useSimulationStore, useUIStore } from 'store';
-import { exportProject, importProject } from 'utils';
+import { useNarrativeStore, useSimulationStore, useUIStore, useCampaignStore } from 'store';
+import { exportProject, importProject, clearIndexedDB, clearCampaignsIndexedDB } from 'utils';
 import dagre from 'dagre';
+import CampaignSelector from './CampaignSelector.jsx';
 
 export default function TopBar() {
   const meta = useNarrativeStore(s => s.meta);
@@ -14,14 +15,19 @@ export default function TopBar() {
   const endingNodes = useNarrativeStore(s => s.ending);
   const hasNodes = Object.keys(common).length + Object.keys(choice).length + Object.keys(endingNodes).length > 0;
 
-  const isRunning = useSimulationStore(s => s.isRunning);
-  const startSimulation = useSimulationStore(s => s.start);
+  const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+  const exitCampaign = useSimulationStore(s => s.exitCampaign);
   const resetSimulation = useSimulationStore(s => s.reset);
   const newGraph = useNarrativeStore(s => s.newGraph);
   const loadGraph = useNarrativeStore(s => s.loadGraph);
   const exportGraph = useNarrativeStore(s => s.exportGraph);
 
-  const [simError, setSimError] = useState(null);
+  const activeCampaignId = useCampaignStore(s => s.activeCampaignId);
+  const campaigns = useCampaignStore(s => s.campaigns);
+  const clearCampaignsStore = useCampaignStore(s => s.clearCampaigns);
+  const loadCampaignsFromObject = useCampaignStore(s => s.loadCampaignsFromObject);
+  const activeCampaignName = activeCampaignId && campaigns[activeCampaignId] ? campaigns[activeCampaignId].name : '';
+
   const [exportStatus, setExportStatus] = useState(false);
 
   const handleTitleChange = (e) => {
@@ -30,17 +36,12 @@ export default function TopBar() {
     }
   };
 
-  const handleStartSimulation = () => {
-    try {
-      setSimError(null);
-      startSimulation();
-    } catch (err) {
-      setSimError("Set a Start Node first. Select a node and mark as start node.");
-      setTimeout(() => setSimError(null), 4000);
-    }
+
+  const handleExitCampaign = () => {
+    exitCampaign();
   };
 
-  const handleStopSimulation = () => {
+  const handleResetSimulation = () => {
     resetSimulation();
   };
 
@@ -77,20 +78,33 @@ export default function TopBar() {
     window.dispatchEvent(new Event('graph-layout-tidy'));
   };
 
-  const handleNew = () => {
+  const handleNew = async () => {
     if (window.confirm("Start a new project? Unsaved changes will be lost.")) {
-      // NOTE: unrelated issue — not touching in refactor [Violation] 'click' handler took 1682ms
-      newGraph();
-      resetSimulation();
-    }
+        // NOTE: unrelated issue — not touching in refactor [Violation] 'click' handler took 1682ms
+        await clearCampaignsIndexedDB();
+        await clearIndexedDB();
+        clearCampaignsStore();
+        newGraph();
+        exitCampaign();
+      }
   };
 
   const handleImport = async () => {
     try {
       const data = await importProject();
       if (data) {
-        loadGraph(data);
-        resetSimulation();
+        // PRESERVED: Teardown logic requires that loading a graph resets UI selection and explicitly exits Campaign Mode
+        exitCampaign();
+        clearCampaignsStore();
+        if (data.campaigns) {
+          loadCampaignsFromObject(data.campaigns);
+        }
+        if (data.graphData) {
+          loadGraph(data.graphData);
+        } else {
+          // fallback for older returned structure just in case
+          loadGraph(data);
+        }
       }
     } catch (err) {
       if (err.message === 'unsupported_schema_version') {
@@ -102,7 +116,7 @@ export default function TopBar() {
   const handleExport = async () => {
     try {
       const graphData = exportGraph();
-      await exportProject(graphData, meta?.title || 'branching_routes_project');
+      await exportProject(graphData, campaigns, meta?.title || 'branching_routes_project');
       setExportStatus(true);
       setTimeout(() => setExportStatus(false), 2000);
     } catch (err) {
@@ -128,39 +142,38 @@ export default function TopBar() {
           placeholder="Project Title"
           className="topbar__title-input"
         />
-        {simError && <span style={{ color: 'red', marginLeft: '1rem', fontSize: '0.85rem' }}>{simError}</span>}
       </div>
       <div className="topbar__right">
-        {isRunning && (
+        {isCampaignActive && (
           <span style={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'orange', marginRight: 6 }}></span>
-            <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Simulation Active</span>
+            {/* MODIFIED: Inject active campaign name label next to Campaign Active */}
+            <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Campaign Active {activeCampaignName ? `— ${activeCampaignName}` : ''}</span>
           </span>
         )}
-        <button onClick={handleTidyLayout} disabled={isRunning} className="topbar__btn">
+        <button onClick={handleTidyLayout} disabled={isCampaignActive} className="topbar__btn">
           Tidy Layout
         </button>
-        <button onClick={toggleSnapToGrid} className="topbar__btn" disabled={isRunning}>
+        <button onClick={toggleSnapToGrid} className="topbar__btn" disabled={isCampaignActive}>
           Snap: {snapToGrid ? 'ON' : 'OFF'}
         </button>
-        <button className="topbar__btn" disabled={isRunning} onClick={handleNew}>New</button>
-        <button className="topbar__btn" disabled={isRunning} onClick={handleImport}>Import</button>
-        <button className="topbar__btn" disabled={isRunning} onClick={handleExport}>
+        <button className="topbar__btn" disabled={isCampaignActive} onClick={handleNew}>New</button>
+        <button className="topbar__btn" disabled={isCampaignActive} onClick={handleImport}>Import</button>
+        <button className="topbar__btn" disabled={isCampaignActive} onClick={handleExport}>
           {exportStatus ? "Exported ✓" : "Export"}
         </button>
 
-        {isRunning ? (
-          <button onClick={handleStopSimulation} className="topbar__btn topbar__btn--primary">
-            Stop Simulation
-          </button>
+        {isCampaignActive ? (
+          <>
+            <button onClick={handleResetSimulation} className="topbar__btn topbar__btn--secondary">
+              Reset Simulation
+            </button>
+            <button onClick={handleExitCampaign} className="topbar__btn topbar__btn--primary">
+              Exit Campaign Mode
+            </button>
+          </>
         ) : (
-          <button
-            onClick={handleStartSimulation}
-            className="topbar__btn topbar__btn--primary"
-            disabled={!hasNodes}
-          >
-            Start Simulation
-          </button>
+          <CampaignSelector />
         )}
       </div>
     </div>

@@ -1,20 +1,161 @@
 import { generateId } from './uuid.js';
+import JSZip from 'jszip';
 
-export async function exportProject(graphData, defaultTitle = 'graph') {
+const DB_NAME = 'BranchingRoutesDB';
+const STORE_NAME = 'graphs';
+const DB_VERSION = 2;
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = (e) => reject(e.target.error);
+    request.onsuccess = (e) => resolve(e.target.result);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      // PROTECTED: existing graphs object store creation logic preserved
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+      if (e.oldVersion < 2 && !db.objectStoreNames.contains('campaigns')) {
+        db.createObjectStore('campaigns');
+      }
+    };
+  });
+}
+
+export async function saveToIndexedDB(graphData) {
+  try {
+    const db = await initDB();
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    await new Promise((resolve, reject) => {
+      const request = store.put(graphData, 'autosave');
+      request.onsuccess = resolve;
+      request.onerror = (e) => reject(e.target.error);
+    });
+  } catch (error) {
+    console.error('Failed to save to IndexedDB:', error);
+  }
+}
+
+export async function loadFromIndexedDB() {
+  try {
+    const db = await initDB();
+    const transaction = db.transaction(STORE_NAME, 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    return await new Promise((resolve, reject) => {
+      const request = store.get('autosave');
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+  } catch (error) {
+    console.error('Failed to load from IndexedDB:', error);
+    return null;
+  }
+}
+export async function clearIndexedDB() {
+  try {
+    const db = await initDB();
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    await new Promise((resolve, reject) => {
+      const request = store.clear();
+      request.onsuccess = resolve;
+      request.onerror = (e) => reject(e.target.error);
+    });
+  } catch (error) {
+    console.error('Failed to clear IndexedDB:', error);
+  }
+}
+
+export async function saveCampaignsToIndexedDB(campaignsPayload) {
+  try {
+    const db = await initDB();
+    const transaction = db.transaction('campaigns', 'readwrite');
+    const store = transaction.objectStore('campaigns');
+    await new Promise((resolve, reject) => {
+      const request = store.put(campaignsPayload, 'campaigns');
+      request.onsuccess = resolve;
+      request.onerror = (e) => reject(e.target.error);
+    });
+  } catch (error) {
+    console.error('Failed to save campaigns to IndexedDB:', error);
+  }
+}
+
+export async function loadCampaignsFromIndexedDB() {
+  try {
+    const db = await initDB();
+    const transaction = db.transaction('campaigns', 'readonly');
+    const store = transaction.objectStore('campaigns');
+    return await new Promise((resolve, reject) => {
+      const request = store.get('campaigns');
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+  } catch (error) {
+    console.error('Failed to load campaigns from IndexedDB:', error);
+    return null;
+  }
+}
+
+export async function clearCampaignsIndexedDB() {
+  try {
+    const db = await initDB();
+    const transaction = db.transaction('campaigns', 'readwrite');
+    const store = transaction.objectStore('campaigns');
+    await new Promise((resolve, reject) => {
+      const request = store.clear();
+      request.onsuccess = resolve;
+      request.onerror = (e) => reject(e.target.error);
+    });
+  } catch (error) {
+    console.error('Failed to clear campaigns from IndexedDB:', error);
+  }
+}
+
+export async function exportProject(graphData, campaigns = {}, defaultTitle = 'graph') {
+  // ZIP export for projects with campaigns; plain JSON fallback.
   const jsonString = JSON.stringify(graphData, null, 2);
   const safeTitle = defaultTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'graph';
+
+  const hasCampaigns = Object.keys(campaigns).length > 0;
+  
+  let exportBlob;
+  let defaultExtension = '.json';
+  let fileTypeDescription = 'JSON Files';
+  let acceptMime = { 'application/json': ['.json'] };
+  let suggestedName = `${safeTitle}.json`;
+
+  if (hasCampaigns) {
+    const zip = new JSZip();
+    zip.file("datamodel.json", jsonString);
+    const campaignsFolder = zip.folder("campaigns");
+    for (const [id, campaign] of Object.entries(campaigns)) {
+      campaignsFolder.file(`${campaign.name}.json`, JSON.stringify(campaign, null, 2));
+    }
+    // AR-10: browser side only
+    exportBlob = await zip.generateAsync({ type: "blob" });
+    
+    defaultExtension = '.zip';
+    fileTypeDescription = 'ZIP Archives';
+    acceptMime = { 'application/zip': ['.zip'] };
+    suggestedName = `${safeTitle}.zip`;
+  } else {
+    exportBlob = new Blob([jsonString], { type: 'application/json' });
+  }
 
   if (typeof window.showSaveFilePicker === 'function') {
     try {
       const fileHandle = await window.showSaveFilePicker({
-        suggestedName: `${safeTitle}.json`,
+        suggestedName: suggestedName,
         types: [{
-          description: 'JSON Files',
-          accept: { 'application/json': ['.json'] },
+          description: fileTypeDescription,
+          accept: acceptMime,
         }],
       });
       const writable = await fileHandle.createWritable();
-      await writable.write(jsonString);
+      await writable.write(exportBlob);
       await writable.close();
       return;
     } catch (err) {
@@ -24,11 +165,10 @@ export async function exportProject(graphData, defaultTitle = 'graph') {
   }
 
   // Fallback
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(exportBlob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${safeTitle}.json`;
+  a.download = suggestedName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -41,10 +181,15 @@ export async function importProject() {
   if (typeof window.showOpenFilePicker === 'function') {
     try {
       const [fileHandle] = await window.showOpenFilePicker({
-        types: [{
-          description: 'JSON Files',
-          accept: { 'application/json': ['.json'] },
-        }],
+        types: [
+          {
+            description: 'Branching Routes Project',
+            accept: { 
+              'application/json': ['.json'],
+              'application/zip': ['.zip']
+            },
+          }
+        ],
       });
       file = await fileHandle.getFile();
     } catch (err) {
@@ -52,12 +197,11 @@ export async function importProject() {
       return null;
     }
   } else {
-    // PROTECTED: Fallback behavior via standard HTML file input preserved
     // Fallback
     file = await new Promise((resolve) => {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = '.json';
+      input.accept = '.json,.zip';
       input.onchange = (e) => resolve(e.target.files[0]);
       input.click();
     });
@@ -65,11 +209,45 @@ export async function importProject() {
 
   if (!file) return null;
 
-  const text = await file.text();
-  let data = JSON.parse(text);
+  let data;
+  let campaigns = {};
+
+  if (file.name.endsWith('.zip')) {
+    const zip = new JSZip();
+    const loadedZip = await zip.loadAsync(file);
+    
+    const datamodelFile = loadedZip.file("datamodel.json");
+    if (!datamodelFile) {
+        throw new Error('unsupported_schema_version');
+    }
+    const text = await datamodelFile.async("text");
+    data = JSON.parse(text);
+    
+    // Extract campaigns if folder exists
+    for (const relativePath in loadedZip.files) {
+      if (relativePath.startsWith('campaigns/') && relativePath.endsWith('.json')) {
+        const fileObj = loadedZip.files[relativePath];
+        if (!fileObj.dir) {
+          try {
+            const campText = await fileObj.async("text");
+            const campData = JSON.parse(campText);
+            if (campData.campaignSchemaVersion === 1 && campData.id && campData.id.startsWith('camp-') && typeof campData.snapshot === 'object') {
+              campaigns[campData.id] = campData;
+            } else {
+              console.warn(`Skipping invalid campaign file: ${fileObj.name}`);
+            }
+          } catch (err) {
+            console.warn(`Failed to parse campaign file: ${fileObj.name}`, err);
+          }
+        }
+      }
+    }
+  } else {
+    const text = await file.text();
+    data = JSON.parse(text);
+  }
 
 
-  // MODIFIED: Added 4 to supported schema versions
   if (![1, 2, 3, 4].includes(data.schemaVersion)) {
     throw new Error('unsupported_schema_version');
   }
@@ -79,10 +257,8 @@ export async function importProject() {
     const status = {};
     (flagsArray || []).forEach(f => {
       if (f.type === 'boolean') {
-        // CHANGED: flags[] -> flag{}
         flag[f.id] = { id: f.id, name: f.name, state: !!f.defaultValue }; 
       } else if (f.type === 'number') {
-        // CHANGED: flags[] -> status{}
         status[f.id] = { id: f.id, name: f.name, value: typeof f.defaultValue === 'number' ? f.defaultValue : 0, minValue: null, maxValue: null }; 
       }
     });
@@ -97,10 +273,8 @@ export async function importProject() {
       (node.data.sideEffects || []).forEach(se => {
         const referencedFlag = (originalFlagsArray || []).find(f => f.id === se.flagId);
         if (referencedFlag?.type === 'boolean') {
-          // CHANGED: sideEffects[] -> flags_set[]
           flags_set.push(se.flagId); 
         } else if (referencedFlag?.type === 'number') {
-          // CHANGED: sideEffects[] -> status_set[]
           status_set.push({
             statusId: se.flagId,
             amount: se.operation === 'subtract' ? -se.value : se.value
@@ -120,7 +294,6 @@ export async function importProject() {
         edge.condition.clauses.forEach(clause => {
           const referencedFlag = (originalFlagsArray || []).find(f => f.id === clause.flagId);
           if (referencedFlag?.type === 'boolean') {
-            // CHANGED: clause -> typed condition (boolean)
             conditions.push({
               id: generateId('cond'),
               flag: clause.flagId,
@@ -131,7 +304,6 @@ export async function importProject() {
             if (clause.comparator === '>=' || clause.comparator === '>') minMax.min = clause.value;
             if (clause.comparator === '<=' || clause.comparator === '<') minMax.max = clause.value;
             if (clause.comparator === '==') { minMax.min = clause.value; minMax.max = clause.value; }
-            // CHANGED: clause -> typed condition (numeric)
             conditions.push({
               id: generateId('cond'),
               status: clause.flagId,
@@ -140,7 +312,6 @@ export async function importProject() {
           }
         });
         edge.condition = {
-          // CHANGED: operator uppercase -> lowercase
           operator: (edge.condition.operator || 'AND').toLowerCase(), 
           conditions
         };
@@ -149,10 +320,8 @@ export async function importProject() {
     });
   };
 
-  // PROTECTED: Schema version 1 migration path is explicitly protected from interference
   if (data.schemaVersion === 1) {
-
-    
+    // MIGRATION: v1 to v3 data model schema migration    
     const meta = {
       ...data.meta,
       commonNodeTypes: data.meta?.commonNodeTypes || [],
@@ -192,7 +361,6 @@ export async function importProject() {
       console.warn(`Removed ${discardedEffectsCount} edge sideEffects from ${affectedEdgeIds.length} edges. Affected edge IDs: ${affectedEdgeIds.join(', ')}`);
     }
 
-    // MIGRATION: v1->v2 extended to output flag/status directly
     const baseFlags = data.flags || [];
     const { flag, status } = generateTypedCollections(baseFlags);
     
@@ -212,17 +380,14 @@ export async function importProject() {
       schemaVersion: 3
     };
   } else if (data.schemaVersion === 2) {
-    // PROTECTED: Schema version 2 migration path is explicitly protected from interference
-    // MIGRATION: Parallel Support strategy for flags
+    // MIGRATION: v2 to v3 data model schema migration
     const baseFlags = data.flags || [];
     const { flag, status } = generateTypedCollections(baseFlags);
 
-    // MIGRATION: In-place Migration for data.sideEffects[] -> flags_set[] + status_set[]
     migrateNodesPayloads(data.common || {}, baseFlags);
     migrateNodesPayloads(data.choice || {}, baseFlags);
     migrateNodesPayloads(data.ending || {}, baseFlags);
 
-    // MIGRATION: In-place Migration for Edge condition clause shape
     migrateEdgeConditions(data.edges || [], baseFlags);
 
     delete data.flags;
@@ -231,12 +396,48 @@ export async function importProject() {
     data.schemaVersion = 3;
   }
 
-  // ADDED: Migration v3 -> v4 to initialize path and chapter dictionaries
   if (data.schemaVersion === 3) {
+    // MIGRATION: v3 to v4 schema migration - guarantees path and chapter collections
     data.path = data.path || {};
     data.chapter = data.chapter || {};
     data.schemaVersion = 4;
   }
 
-  return data;
+  const sanitizedData = {
+    schemaVersion: data.schemaVersion,
+    meta: {
+      title: data.meta?.title || 'Untitled Graph',
+      createdAt: data.meta?.createdAt || Date.now(),
+      updatedAt: data.meta?.updatedAt || Date.now(),
+      commonNodeTypes: Array.isArray(data.meta?.commonNodeTypes) ? data.meta.commonNodeTypes : [],
+      endingTypes: Array.isArray(data.meta?.endingTypes) ? data.meta.endingTypes : []
+    },
+    common: {},
+    choice: {},
+    ending: {},
+    edges: Array.isArray(data.edges) ? data.edges : [],
+    flag: typeof data.flag === 'object' && data.flag !== null ? data.flag : {},
+    status: typeof data.status === 'object' && data.status !== null ? data.status : {},
+    path: typeof data.path === 'object' && data.path !== null ? data.path : {},
+    chapter: typeof data.chapter === 'object' && data.chapter !== null ? data.chapter : {}
+  };
+
+  const sanitizeNodes = (sourceCol, targetCol, type) => {
+    if (!sourceCol || typeof sourceCol !== 'object') return;
+    Object.entries(sourceCol).forEach(([id, node]) => {
+      if (!node || typeof node !== 'object') return;
+      targetCol[id] = {
+        id: node.id || id,
+        type: node.type || type,
+        position: node.position || { x: 0, y: 0 },
+        data: node.data || {}
+      };
+    });
+  };
+
+  sanitizeNodes(data.common, sanitizedData.common, 'common');
+  sanitizeNodes(data.choice, sanitizedData.choice, 'choice');
+  sanitizeNodes(data.ending, sanitizedData.ending, 'ending');
+
+  return { graphData: sanitizedData, campaigns };
 }

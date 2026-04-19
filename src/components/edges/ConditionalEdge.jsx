@@ -3,10 +3,9 @@ import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from '@xyflow/react';
 import { useSimulationStore } from 'store';
 
 function ConditionalEdge(props) {
-  const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, data } = props;
-  
-  const isTraversed = useSimulationStore(s => s.traversedEdgeIds.includes(id));
-  const isReachable = useSimulationStore(s => s.reachableEdgeIds.includes(id));
+  const { id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, data } = props;
+  const isTraversed = useSimulationStore(s => s.isCampaignActive && s.traversedEdgeIds.includes(id));
+  const isConditionPass = useSimulationStore(s => s.isCampaignActive && s.reachableEdgeIds.includes(id));
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
@@ -18,8 +17,11 @@ function ConditionalEdge(props) {
   });
 
   let className = 'conditional-edge';
-  if (isTraversed) className += ' conditional-edge--traversed';
-  else if (isReachable) className += ' conditional-edge--reachable';
+  if (isTraversed) {
+    className += ' conditional-edge--traversed';
+  } else if (isConditionPass) {
+    className += ' conditional-edge--condition-pass';
+  }
 
   const label = data?.label;
   const condition = data?.condition;

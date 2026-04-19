@@ -26,37 +26,37 @@ Save to: `/informations/runs/[DD-MM-YYYY]_iteration/ran_0302_scope.md`
 ## Part 1 — User fills
 
 ### What I am changing
-Data Model, Condition Evaluation, Form Layer
+Import / Export Layer
 
 ### Why this needs to change
-The current `flags[]` array needs to be refactored into distinct `flag{}` and `status{}` objects to better separate boolean flags from stateful statuses. Because of this structural change, the condition evaluator must be extended to support status-based conditions. Additionally, node side-effects will be updated to explicitly apply state changes using `flags_set[]` and `status_set[]`.
+The current persistence model is explicit-only: work survives only when the user remembers to click Export. A tab close, browser crash, or accidental New wipes everything. This is fragile for a tool designers use across long editing sessions.
+It also ties the core "don't lose work" guarantee to the File System Access API, which Firefox and Safari don't support (RISK-03). Users on those browsers have no reliable persistence path at all.
+Shifting to IndexedDB auto-save as the primary layer makes persistence universal (IndexedDB is supported everywhere), automatic (no user action required), and resilient (survives tab close and crashes). Export/Import remain for explicit file movement — sharing, backup, version control — but are no longer load-bearing for basic work preservation.
+Later update also depends on this: campaign sheets need a persistence home, and layering them onto IndexedDB is only coherent if the narrative data already lives there.
 
 ### New behavior after this push
-Split `flags[]` into `flag{}` + `status{}`. Extend condition evaluator for status conditions. Side effects use `flags_set[]` + `status_set[]` on nodes.
+Replace FS Access API primary with IndexedDB auto-save as primary. 
+File System Access API for explicit export/import. 
+Export format updated to Latest schema. `.json` default, `.zip` when campaigns exist. 
+Import validation.
 
 ### Accepted blast radius
 <!-- Which dependencies from ran_0301 are you okay with changing —
 even if they appear in the preservation list?
 These are conscious decisions, not oversights. -->
-**Simulation Sandbox Logic:**
-**Inspector Binding:**
+**Progressive Schema Migration:**
+**Universal Save/Load via Browser Fallbacks:**
+**Application Teardown:**
 
 ### Definition of done
 | Action | File | Detail |
 |--------|------|--------|
-| MODIFY | `src/store/narrativeStore.js` | Replace `flags[]` with `flag{}` + `status{}` CRUD; update node side effect fields |
-| MODIFY | `src/utils/conditionEvaluator.js` | Add status clause evaluation: `min`, `max`, range |
-| MODIFY | `src/components/FlagManager.jsx` | Boolean flags only |
-| ADD | `src/components/StatusManager.jsx` | Status point CRUD: name, value, minValue, maxValue |
-| MODIFY | `src/components/NodeInspector.jsx` | `flags_set` + `status_set` UI |
-| MODIFY | `src/components/EdgeInspector.jsx` | Condition builder with flag + status clause types |
-| MODIFY | `src/components/Sidebar.jsx` | Add Status tab or section |
-| MODIFY | `src/utils/fileSystem.js` | Export/import flag{} + status{} |
+| MODIFY | `src/utils/fileSystem.js` | Complete rewrite: IndexedDB auto-save, updated export schema, import validation + sanitization + defaults |
+| MODIFY | `src/components/TopBar.jsx` | Export/import actions updated |
 | MODIFY | `src/utils/index.js` | Re-exports |
 
-
 ### Assumptions I am making
-It need a `migration` for `flags[]` → `flag{}` + `status{}`; side effect format changes from `sideEffects[]` to `flags_set[]` + `status_set[]`
+None
 
 ---
 

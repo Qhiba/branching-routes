@@ -13,7 +13,7 @@ Load these files:
 
 The thing I want to change:
 <!-- User input here. -->
-Simulation Engine, Canvas
+Import / Export Layer
 
 ## TASK
 Produce a complete current-state behavioral map:

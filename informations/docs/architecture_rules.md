@@ -63,9 +63,9 @@ All condition logic (AND/OR flag evaluation for edges) must live in `src/utils/c
 
 ## AR-08 — Simulation Isolation
 
-Simulation state (active node, traversed edges, current flag values mid-simulation) must live in a dedicated Zustand store (`simulationStore`) and must never pollute `graphStore`. Starting and stopping a simulation must reset `simulationStore` to a clean initial state.
+Simulation state (active node, traversed edges, current flag values mid-campaign, sandbox overrides, node state enum, seen set) must live exclusively in `simulationStore` and must never pollute `narrativeStore`. Entering and exiting a campaign must reset `simulationStore` to a clean initial state. Sandbox overrides write only to `simulationStore.currentFlagValues` — never to `narrativeStore.flag` or `narrativeStore.status`.
 
-**Rationale:** Isolation guarantees that running a simulation never modifies the designer's graph data. The graph is always in its "authored" state regardless of simulation activity.
+**Rationale:** Isolation guarantees that running a campaign never modifies the designer's graph data. The graph is always in its "authored" state regardless of campaign activity.
 
 ---
 
@@ -122,3 +122,27 @@ Zustand selectors must never return new object or array literals (e.g., `[]`, `{
 The duplicate-edge check in `narrativeStore.addEdge()` uses the tuple `(sourceId, targetId, optionId)` to determine uniqueness. Two edges between the same source and target nodes are permitted if and only if they originate from different option handles (i.e., have different `optionId` values). Edges with `optionId: null` (non-option edges) are still subject to the standard one-edge-per-pair constraint.
 
 **Rationale:** Multiple choice options on the same node may legitimately route to the same target with different side effects. The previous `(sourceId, targetId)` check blocked this valid authoring pattern.
+
+---
+
+## AR-16 — Campaign Visual State Vocabulary
+
+The canonical visual states applied to nodes during an active campaign are a closed six-value enum: `active` (the current node in focus), `locked` (in topology but condition-blocked from the active node), `complete` (an ending node reached successfully), `failed` (a dead-end node with no satisfiable outgoing edges), `branch_locked` (reachable only via an option branch that was not selected), and `reachable` (satisfies its incoming condition from the active node and is available to advance into). A seventh orthogonal indicator, `seen`, may be applied independently to any node already visited during the campaign and does not replace its enum state. Nodes not in any of these categories carry no simulation CSS modifier. No new visual state may be introduced outside this enum without updating this rule.
+
+**Rationale:** The enum is consumed by five independent subsystems (CommonNode, ChoiceNode, EndingNode, ConditionalEdge, simulationStore selectors). Without a fixed vocabulary, each subsystem risks inventing its own ad-hoc visual states, leading to inconsistent rendering and ambiguous state semantics across the graph.
+
+---
+
+## AR-17 — Boot-Time Side-Effect Isolation
+
+All app-boot side effects — IndexedDB restore, store subscription wiring, and any future initialisation that must complete before first render — must be encapsulated in a single dedicated async function (currently `initPersistence()` in `src/main.jsx`). This function must complete before `createRoot().render()` is called. No boot-time I/O or store subscription wiring may be embedded directly in component lifecycle hooks or store initialisers.
+
+**Rationale:** Centralising boot side effects in one place makes the startup sequence auditable and predictable. Ensuring it resolves before render prevents components from mounting with partially-restored state. Boot-level I/O that lives in component effects is invisible at the module layer and cannot be sequenced reliably relative to other boot concerns.
+
+---
+
+## AR-18 — Snapshot Shape Must Match Data Model Schema
+
+When any store action constructs a snapshot object for persistence, the object's field set must exactly match the shape declared in the data model impact document for that feature. Every field present in the data model schema must appear in the snapshot; no field may be omitted. Specifically: if the schema separates data by type (e.g. `flagOverrides` for booleans, `statusOverrides` for numerics), the snapshot construction code must maintain that separation — not collapse them into a single field.
+
+**Rationale:** The `statusOverrides` omission in the Campaign_Sheets feature demonstrated this bug class. A snapshot that writes to a different shape than the one the reader expects causes silent data loss on round-trip — the write appears to succeed but the values are reset to defaults on restore. Formalising this as a rule makes it a self-review checkpoint for any future feature that introduces persistence snapshots.

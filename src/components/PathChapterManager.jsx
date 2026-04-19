@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNarrativeStore } from 'store';
 
-// ADDED: PathChapterManager to provide CRUD UI for the new path and chapter collections
 export default function PathChapterManager() {
   const pathDict = useNarrativeStore(state => state.path);
   const paths = Object.values(pathDict);
@@ -15,7 +14,6 @@ export default function PathChapterManager() {
   const updateChapter = useNarrativeStore(state => state.updateChapter);
   const deleteChapter = useNarrativeStore(state => state.deleteChapter);
 
-  // ADDED: Local state specifically for the add-form text inputs (AR-03 compliant)
   const [newPathName, setNewPathName] = useState('');
   const [newChapterName, setNewChapterName] = useState('');
 

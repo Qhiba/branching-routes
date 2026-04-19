@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 4,
+  "meta": {
+    "title": "Untitled Graph",
+    "createdAt": "18-04-2026",
+    "updatedAt": "18-04-2026",
+    "commonNodeTypes": [],
+    "endingTypes": []
+  },
+  "common": {
+    "n-89a0a175-d98a-48ff-8586-73074dbc8cdd": {
+      "id": "n-89a0a175-d98a-48ff-8586-73074dbc8cdd",
+      "type": "common",
+      "position": {
+        "x": 624,
+        "y": 256
+      },
+      "data": {
+        "label": "Node",
+        "content": "",
+        "isStartNode": true,
+        "flags_set": [],
+        "status_set": [],
+        "pathId": "p-1174c625-f94a-4de6-a81b-936b5a533a91",
+        "chapterId": "c-14326ca3-2e90-4a8d-adb0-14053c992e43"
+      }
+    }
+  },
+  "choice": {},
+  "ending": {},
+  "edges": [],
+  "flag": {},
+  "status": {},
+  "path": {
+    "p-1174c625-f94a-4de6-a81b-936b5a533a91": {
+      "id": "p-1174c625-f94a-4de6-a81b-936b5a533a91",
+      "name": "ac1"
+    }
+  },
+  "chapter": {
+    "c-14326ca3-2e90-4a8d-adb0-14053c992e43": {
+      "id": "c-14326ca3-2e90-4a8d-adb0-14053c992e43",
+      "name": "sadas"
+    }
+  }
+}

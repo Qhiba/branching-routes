@@ -19,7 +19,6 @@ export default function FlagManager() {
     e.preventDefault();
     if (!isNameValid) return;
     
-    // CHANGED: addFlag takes type and default bool/num → addFlag takes only boolean state
     addFlag(newName, newState);
     
     // reset form
@@ -31,7 +30,6 @@ export default function FlagManager() {
     setDeleteError(null);
     const result = deleteFlag(id);
     if (result && result.blocked) {
-      // PRESERVED: Referential Integrity behavior
       setDeleteError({ id, references: result.references });
     }
   };

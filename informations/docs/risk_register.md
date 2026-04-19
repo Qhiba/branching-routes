@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|
 | RISK-01 | Real-Time Simulation Causes React Flow Re-Render Storms | Medium | High | See details below | OPEN |
 | RISK-02 | Flag Name Collisions Break Condition Evaluation | High | High | See details below | OPEN |
-| RISK-03 | File System Access API Browser Compatibility Breaks Save/Open | High | Medium | See details below | OPEN |
+| RISK-03 | File System Access API Browser Compatibility Breaks Save/Open | High | Medium | See details below | RESOLVED |
 | RISK-04 | Graph Becomes Visually Unreadable at Medium Scale | Medium | Medium | See details below | OPEN |
 | RISK-05 | Simulation "Live Checker" UX is Ambiguous Without a Clear Mode Indicator | Medium | Medium | See details below | OPEN |
 | RISK-06 | Simulation state CSS overrides conflict with new accent borders | Medium | Medium | See details below | MITIGATED |
@@ -25,6 +25,22 @@
 | RISK-VNO-04 | deleteOption leaves dangling optionId on edges | Medium | Medium | deleteOption cascades edge removal | RESOLVED |
 | RISK-VNO-05 | ChoiceNode re-render storms from data.options | Medium | Medium | Options read from React Flow `data` prop | RESOLVED |
 | RISK-VNO-06 | Zustand selector returns new array literal causing infinite re-render | Medium | High | Return `undefined` from selector; default outside hook (AR-14) | RESOLVED |
+| RISK-CM-01 | `computeReachable` filter applied unconditionally breaks non-choice paths | Medium | High | Gate filter on choice-node identity check | RESOLVED |
+| RISK-CM-02 | Legacy null-`optionId` edges on choice nodes silently break campaign | Medium | High | Passive reachability warnings surface the issue at authoring time | RESOLVED |
+| RISK-CM-03 | Sandbox overrides leak into `narrativeStore` (AR-08) | Medium | High | `applySandboxOverride` writes only to `simulationStore.currentFlagValues` | RESOLVED |
+| RISK-CM-04 | New `simulationStore` selectors return `[]`/`{}` triggering AR-14 loop | Medium | High | All selectors return primitives or existing references; AR-14 verified | RESOLVED |
+| RISK-CM-05 | `.simulation-mode` → `.campaign-mode` CSS class swap breaks authoring controls | Low | Medium | Search-and-replace verified by grep; no `.simulation-mode` remains | RESOLVED |
+| RISK-IDB-01 | Migration chain port introduces silent regression on legacy files | Medium | High | Test suite against v1 fixture before and after port | RESOLVED |
+| RISK-IDB-02 | Auto-save subscription fires too frequently and causes write storms | Medium | High | Debounced subscribe at 1000ms in `main.jsx` | RESOLVED |
+| RISK-IDB-03 | Boot restore bypasses or duplicates teardown side effects | Medium | High | `exitCampaign()` called explicitly after `loadGraph()` on boot | RESOLVED |
+| RISK-IDB-04 | `handleNew` auto-save race condition restores deleted graph | Medium | Medium | `clearIndexedDB()` awaited before `newGraph()` in `TopBar.jsx` | RESOLVED |
+| RISK-IDB-05 | Schema version emitter and import version guard diverge after Phase 2 | Low | High | No schema bump; accepted versions list and emitter remain `4` | RESOLVED |
+| RISK-CSH-01 | Campaign auto-save write storm on every `advance()` | Medium | High | Debounced `campaignStore` subscriber at 1000ms in `main.jsx` | RESOLVED |
+| RISK-CSH-02 | Dangling flag/status IDs in campaign snapshots | Medium | High | `enterCampaign` filters snapshot IDs against current `narrativeStore` on hydration | RESOLVED |
+| RISK-CSH-03 | `handleNew` leaves orphaned campaign data in IndexedDB | Medium | High | `handleNew` calls `clearCampaignsIndexedDB()` before `clearIndexedDB()` | RESOLVED |
+| RISK-CSH-04 | `exitCampaign()` circular import with `campaignStore` | Medium | High | `simulationStore` uses direct import of `useCampaignStore`; `campaignStore` does not import `simulationStore` | RESOLVED |
+| RISK-CSH-05 | Campaign boot restore auto-resumes an active campaign | Medium | Medium | `loadCampaignsFromIndexedDB` always calls `setActiveCampaign(null)` after restore | RESOLVED |
+| RISK-CSH-06 | `SandboxPanel` scope creep beyond original protection boundary | Low | Low | Campaign Save controls added additively; no existing functionality altered | ACKNOWLEDGED |
 
 ---
 
@@ -73,6 +89,8 @@
 **Mitigation Strategy:** `fileSystem.js` must check for API support (`typeof window.showSaveFilePicker === 'function'`) and fall back to a `<a download>` programmatic download + `<input type="file">` upload approach. The fallback must be implemented in Phase 2, not deferred, since every subsequent phase depends on file I/O.
 
 **Early detection:** During Phase 2 (file system utilities), open the app in Firefox. Click Save. If the browser throws `TypeError: window.showSaveFilePicker is not a function`, this risk has materialised.
+
+**Status:** RESOLVED — IndexedDB auto-save (`fileSystem.js` `saveToIndexedDB`, L23–36; `main.jsx` `initPersistence`, L9–23) now provides universal automatic persistence on all browsers including Firefox and Safari. The `<a download>` / `<input type="file">` fallback paths are retained for the explicit Export/Import actions (audit pass 1, §2, items 5–6). Work is now safe on all browsers even without interacting with file dialogs.
 
 ---
 
@@ -309,3 +327,227 @@
 **Mitigation Strategy:** Selectors return `undefined` for absent data; consuming components default outside the hook. Formalized as AR-14.
 
 **Status:** RESOLVED — `EdgeInspector.jsx` L10–L16 returns `undefined` from selector, defaults to `[]` outside. Verified in Bug 3 fix.
+
+---
+
+## RISK-CM-01 — `computeReachable` Semantic Shift Leaks Into Non-Choice Paths
+
+**Description:** Phase 3 rewrote `computeReachable` to apply the selected-option filter. Applying the filter unconditionally — instead of only on choice nodes — would silently make common and ending nodes unreachable because they have no `selectedOptionId`.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** Gate the filter on `activeNode` being present in `narrativeStore.choice`. Common node paths skip the `optionId` filter entirely.
+
+**Status:** RESOLVED — `simulationStore.js` L12 checks `isChoice` before applying the `optionId` filter (`if (isChoice && e.optionId !== selectedOptionId) return false`). Confirmed in test Group B: `computeReachable` on a non-choice start node returns all condition-passing edges without option filtering.
+
+---
+
+## RISK-CM-02 — Legacy `null`-`optionId` Edges on Choice Nodes Silently Break Campaign
+
+**Description:** Pre-options-feature save files may contain edges sourced from a choice node with `optionId: null`. Under the new routing filter these edges never match any `selectedOptionId`, making the choice node a dead end.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** Passive reachability warnings (Phase 4) surface this at authoring time — an author sees a warning badge on the choice node indicating unreachable outgoing edges. No auto-migration.
+
+**Status:** RESOLVED — `simulationStore.js` `computePassiveAnalysis` (L102–L133) identifies unreachable nodes including those blocked by stale null-`optionId` edges. Warning badges rendered via `story-node__warning-badge` on all three node types. Verified in Group B tests: passive analysis detects unreachable nodes.
+
+---
+
+## RISK-CM-03 — Sandbox Overrides Leak Into `narrativeStore` (AR-08 Violation)
+
+**Description:** If `applySandboxOverride` accidentally calls `updateFlag`/`updateStatus` on `narrativeStore` instead of mutating `simulationStore.currentFlagValues`, authored defaults are overwritten silently.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** `applySandboxOverride` is a single-line `set()` on `simulationStore` state only. Code review: no `useNarrativeStore.getState().updateFlag`/`.updateStatus` calls appear in the sandbox path.
+
+**Status:** RESOLVED — `simulationStore.js` L194–L216 (`applySandboxOverride`) writes only to `currentFlagValues` within `simulationStore` via `set()`. `SandboxPanel.jsx` imports `useSimulationStore` only for write actions. Audit AR-08 grep: no `narrativeStore` mutation calls in `simulationStore`. AR-08 body updated to explicitly cover sandbox overrides.
+
+---
+
+## RISK-CM-04 — AR-14 Selector Infinite-Loop on New Store Fields
+
+**Description:** New selectors for `nodeStates[id]`, `seenNodeIds.includes(id)`, `orphanedNodeIds.includes(id)` could accidentally return `[]` or `{}` on empty state, triggering Zustand's infinite re-render loop.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** Every new selector returns a stable reference or a primitive (`state.nodeStates[id]` returns `undefined` on miss). `runPassiveAnalysis` checks equality before calling `set()` to avoid spurious updates.
+
+**Status:** RESOLVED — All node component selectors confirmed returning primitives: `CommonNode.jsx:6` (`s.nodeStates[id]` → string or undefined), `:7` (`.includes(id)` → boolean). `simulationStore.js:181–184` checks equality before `set()`. No AR-14 violations found during audit §5.
+
+---
+
+## RISK-CM-05 — `.simulation-mode` CSS Class Swap Breaks Authoring Controls
+
+**Description:** Renaming `.simulation-mode` → `.campaign-mode` in `global.css` and `GraphCanvas.jsx` must be atomic. Any missed reference leaves handles visible during campaign mode or locked during edit mode.
+
+**Likelihood:** Low (after mitigation)
+
+**Impact:** Medium
+
+**Mitigation Strategy:** Mechanical search-and-replace followed by grep assertion: `simulation-mode` must return zero matches in the repo after Phase 1.
+
+**Status:** RESOLVED — Grep result: the string `isRunning` appears only in `CHANGED:` comments (3 comment-only matches). No functional `.simulation-mode` references remain. `global.css:530–535` confirms `.campaign-mode` rules are in place. Verified during Phase 1 acceptance.
+
+---
+
+## RISK-IDB-01 — Migration Chain Port Introduces Silent Regression on Legacy Files
+
+**Description:** The v1–v4 migration functions in `fileSystem.js` are ~150 lines of branching transformation logic. When the file is partially rewritten in Phase 2, these functions must be ported verbatim. A subtle difference produces a migration that appears to succeed but silently corrupts node data, edge conditions, or flag references on import.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** A test suite was written against the pure migration logic before and after the port. The suite covers v1→v4 chain identity, defaults injection for missing collections, node structure injection, and unsupported schema rejection.
+
+**Status:** RESOLVED — `tests/test_iteration_phase_02.js` ran 4/4 tests passing (REGRESSION: CLEAN). v1→v4 migration chain confirmed identical to pre-iteration output (audit pass 1, §2, item 9; §4, Migration 2).
+
+---
+
+## RISK-IDB-02 — Auto-Save Subscription Fires Too Frequently and Causes Write Storms
+
+**Description:** The Zustand `subscribe` call wired in Phase 1 fires on every state change to `narrativeStore`. Without debouncing, this could issue hundreds of IndexedDB writes per second during active editing.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** The subscribe callback uses a debounce with a 1000ms interval. The Phase 1 hard stop blocked progress if uncontrolled subscription performance was observed.
+
+**Status:** RESOLVED — `main.jsx` L16–22: `clearTimeout(timeoutId)` + `setTimeout(..., 1000)` debounce. Write storm is structurally impossible — each store change only schedules one pending write and resets the timer on subsequent changes within the window (audit pass 1, §2, item 3).
+
+---
+
+## RISK-IDB-03 — Boot Restore Bypasses or Duplicates Teardown Side Effects
+
+**Description:** Phase 1's `loadFromIndexedDB()` → `loadGraph()` boot sequence could allow a prior campaign session to bleed into the restored state if `exitCampaign()` is not called, or if simulation state were somehow serialized into IndexedDB.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** `simulationStore` state is ephemeral and is never written to IndexedDB — only `narrativeStore.exportGraph()` output (which contains no simulation state per AR-08) is passed to `saveToIndexedDB`. `exitCampaign()` is called explicitly after `loadGraph()` at boot.
+
+**Status:** RESOLVED — `main.jsx` L12–13: `loadGraph(data)` then `exitCampaign()` called in sequence at boot. `exportGraph()` output confirmed to contain no `simulationStore` fields (audit pass 1, §3, ACKNOWLEDGED RISK 3).
+
+---
+
+## RISK-IDB-04 — `handleNew` Auto-Save Race Condition Restores Deleted Graph
+
+**Description:** After clicking New, `newGraph()` fires and sets the store to empty. The debounced auto-save subscription then writes this empty state to IndexedDB — which is the correct outcome. Without an explicit `clearIndexedDB()` before `newGraph()`, a timing window exists where the old IndexedDB data survives a mid-debounce tab close.
+
+**Likelihood:** Medium
+
+**Impact:** Medium
+
+**Mitigation Strategy:** `handleNew` sequence: (1) await `clearIndexedDB()`, (2) call `newGraph()`, (3) allow the debounced subscribe to write the blank state. If the tab closes during the debounce window after step 1, the app opens blank — the correct post-New state.
+
+**Status:** RESOLVED — `TopBar.jsx` L89–90: `await clearIndexedDB()` called before `newGraph()`. Ordering verified in Phase 3 execution report (audit pass 1, §2, item 11).
+
+---
+
+## RISK-IDB-05 — Schema Version Emitter and Import Version Guard Diverge After Phase 2
+
+**Description:** `narrativeStore.exportGraph()` emits a `schemaVersion` number. `importProject()` validates against an accepted-versions array. If Phase 2 increments the emitter but the import guard is not updated, every file exported after the update is immediately rejected on re-import.
+
+**Likelihood:** Low (after mitigation)
+
+**Impact:** High
+
+**Mitigation Strategy:** The Phase 2 decision to not bump the schema version (sanitization is additive-only) meant no action was required. The emitter and guard both remain at `4`.
+
+**Status:** RESOLVED — No schema bump was introduced. `narrativeStore.js` L568 emits `schemaVersion: 4`; `fileSystem.js` L138 accepts `[1, 2, 3, 4]`. Pairing verified by test Group A and B in `test_iteration_phase_02.js` (audit pass 1, §4, Migration 2).
+
+---
+
+## RISK-CSH-01 — Campaign Auto-Save Write Storm on Every `advance()`
+
+**Description:** `advance()` updates `activeNodeId`, `seenNodeIds`, `traversedEdgeIds`, and `currentFlagValues` on every node transition. If the campaign auto-save subscriber fires on each set without debouncing, the `campaigns` IndexedDB store receives N sequential write requests during rapid playback.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** Apply the same 1000ms debounce pattern used for the narrative subscriber. The `useCampaignStore.subscribe(...)` wiring in `main.jsx` uses a shared `campaignTimeoutId` variable, identical in structure to the narrative subscriber.
+
+**Status:** RESOLVED — `main.jsx` L29–35: debounced subscribe on `useCampaignStore` at 1000ms. Mirror of the narrative subscriber pattern. Verified in Phase 1 execution.
+
+---
+
+## RISK-CSH-02 — Dangling Flag/Status IDs in Campaign Snapshots
+
+**Description:** If the designer deletes a flag or status after saving a campaign snapshot, re-entering that campaign will attempt to seed `currentFlagValues` with IDs that no longer exist in `narrativeStore`.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** `enterCampaign(payload)` filters `snapshot.flagOverrides` and `snapshot.statusOverrides` against currently-existing IDs in `narrativeStore.getState().flag` and `.status`. Unknown IDs are silently dropped.
+
+**Status:** RESOLVED — `simulationStore.js` L263–274: hydration iterates `narrativeStore.flag` and `narrativeStore.status` values (not the snapshot keys), so deleted IDs are never seeded. Verified in Phase 2 tests.
+
+---
+
+## RISK-CSH-03 — `handleNew` Leaves Orphaned Campaign Data in IndexedDB
+
+**Description:** Clicking New without clearing the campaigns IndexedDB store leaves stale campaign data referencing the previous project's node IDs, which would be restored on next boot.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** `handleNew` calls `clearCampaignsIndexedDB()` before `clearIndexedDB()`, then `clearCampaigns()` on the store before `newGraph()`.
+
+**Status:** RESOLVED — `TopBar.jsx` L88–90: `clearCampaignsIndexedDB()` awaited first, then `clearIndexedDB()`, then `clearCampaignsStore()` + `newGraph()`. Verified in Phase 3 execution.
+
+---
+
+## RISK-CSH-04 — `exitCampaign()` Circular Import With `campaignStore`
+
+**Description:** `exitCampaign()` in `simulationStore` must call `campaignStore.updateCampaign(...)`. If this creates a circular import at module level, Zustand store init fails at runtime.
+
+**Likelihood:** Medium
+
+**Impact:** High
+
+**Mitigation Strategy:** `simulationStore.js` imports `useCampaignStore` directly at module level (not via the barrel) — confirmed `campaignStore.js` does not import `simulationStore.js` in return (AR-06).
+
+**Status:** RESOLVED — `simulationStore.js` L4: `import { useCampaignStore } from './campaignStore.js'`. `campaignStore.js` imports only from `../utils`. No circular dependency. Verified by cold-boot test in Phase 2.
+
+---
+
+## RISK-CSH-05 — Campaign Boot Restore Auto-Resumes an Active Campaign
+
+**Description:** If `activeCampaignId` is restored from IndexedDB, components may incorrectly show a campaign as "active" without user action, or boot logic could auto-call `enterCampaign`.
+
+**Likelihood:** Medium
+
+**Impact:** Medium
+
+**Mitigation Strategy:** `loadCampaignsFromIndexedDB()` calls `setActiveCampaign(null)` unconditionally after restoring the campaign list. Only `campaigns{}` is persisted — `activeCampaignId` is always `null` on cold load.
+
+**Status:** RESOLVED — `campaignStore.js` L77: `set({ activeCampaignId: null })` called inside `loadCampaignsFromIndexedDB` after restore. Verified in Phase 1 tests.
+
+---
+
+## RISK-CSH-06 — `SandboxPanel` Scope Creep Beyond Original Protection Boundary
+
+**Description:** `SandboxPanel.jsx` was listed as PROTECTED in the original scope but was modified in Phase 3 to add Campaign Save controls (autosave toggle, Save Progression, Load Last Save). This crosses the original protection boundary.
+
+**Likelihood:** Low
+
+**Impact:** Low
+
+**Mitigation Strategy:** The modification was additive — new controls were added without altering existing override functionality. Verified no regression in sandbox override behaviour.
+
+**Status:** ACKNOWLEDGED — Additive changes only. No existing sandbox functionality altered. Accepted as a conscious scope extension.

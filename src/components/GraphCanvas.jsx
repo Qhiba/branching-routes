@@ -39,7 +39,22 @@ function GraphCanvasInner() {
     snapToGrid
   } = useUIStore();
 
-  const { isRunning, advance, reachableNodeIds, reachableEdgeIds } = useSimulationStore();
+  const { isCampaignActive, advance, reachableNodeIds, reachableEdgeIds, runPassiveAnalysis } = useSimulationStore();
+
+  useEffect(() => {
+    runPassiveAnalysis();
+  }, [common, choice, ending, storeEdges, isCampaignActive, runPassiveAnalysis]);
+
+  // FIX: Clear selection on ESC key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        clearSelection();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [clearSelection]);
 
   const { screenToFlowPosition } = useReactFlow();
 
@@ -95,7 +110,6 @@ function GraphCanvasInner() {
       id: edge.id,
       source: edge.sourceId,
       target: edge.targetId,
-      // ADDED: ensure the edge anchors to the correct option handle
       sourceHandle: edge.optionId || null,
       type: 'conditionalEdge',
       selected: edge.id === selectedEdgeId,
@@ -106,17 +120,19 @@ function GraphCanvasInner() {
       data: {
         label: edge.label,
         condition: edge.condition,
-
+        optionId: edge.optionId
       }
     }));
   }, [storeEdges, selectedEdgeId]);
 
   const onNodeClick = useCallback((event, node) => {
-    if (isRunning) {
+    if (isCampaignActive) {
       const activeStateId = useSimulationStore.getState().activeNodeId;
+      const selectedOptionId = useSimulationStore.getState().selectedOptionId;
       if (reachableNodeIds.includes(node.id)) {
+        const isChoice = !!useNarrativeStore.getState().choice[activeStateId];
         const edge = storeEdges.find(
-          e => e.sourceId === activeStateId && e.targetId === node.id && reachableEdgeIds.includes(e.id)
+          e => e.sourceId === activeStateId && e.targetId === node.id && reachableEdgeIds.includes(e.id) && (!isChoice || e.optionId === selectedOptionId)
         );
         if (edge) {
           advance(edge.id);
@@ -125,7 +141,7 @@ function GraphCanvasInner() {
       return; 
     }
     selectNode(node.id);
-  }, [selectNode, isRunning, reachableNodeIds, reachableEdgeIds, storeEdges, advance]);
+  }, [selectNode, isCampaignActive, reachableNodeIds, reachableEdgeIds, storeEdges, advance]);
 
   const onEdgeClick = useCallback((event, edge) => {
     event.stopPropagation();
@@ -134,7 +150,6 @@ function GraphCanvasInner() {
 
   const onConnect = useCallback((params) => {
     try {
-      // ADDED: Pass optionId if the connection originates from an option handle
       if (params.sourceHandle && params.sourceHandle.startsWith('opt-')) {
         addEdge(params.source, params.target, params.sourceHandle);
       } else {
@@ -147,6 +162,7 @@ function GraphCanvasInner() {
 
   const lastClickTime = useRef(0);
   const onPaneClick = useCallback((event) => {
+    if (isCampaignActive) return; // FIX: Prevent node creation in campaign mode
     clearSelection();
     const now = Date.now();
     if (now - lastClickTime.current < 300) {
@@ -157,7 +173,7 @@ function GraphCanvasInner() {
       addNode(position, 'common');
     }
     lastClickTime.current = now;
-  }, [clearSelection, screenToFlowPosition, addNode]);
+  }, [clearSelection, screenToFlowPosition, addNode, isCampaignActive]);
 
   const onNodesChange = useCallback((changes) => {
     setRfNodes(nds => applyNodeChanges(changes, nds));
@@ -183,14 +199,14 @@ function GraphCanvasInner() {
   }, [fitView]);
 
   return (
-    <div className={`canvas-wrapper ${isRunning ? 'simulation-mode' : ''}`} style={{ width: '100%', height: '100%' }}>
-      {isRunning && (
+    <div className={`canvas-wrapper ${isCampaignActive ? 'campaign-mode' : ''}`} style={{ width: '100%', height: '100%' }}>
+      {isCampaignActive && (
         <div className="simulation-banner" style={{
           position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
           backgroundColor: 'var(--color-active)', color: '#000', textAlign: 'center',
           padding: '8px', fontWeight: 'bold'
         }}>
-          ⚡ Simulation Active — click a highlighted node to advance
+          ⚡ Campaign Active — click a highlighted node to advance
         </div>
       )}
       <ReactFlow
