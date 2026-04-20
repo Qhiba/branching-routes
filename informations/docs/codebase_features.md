@@ -24,9 +24,9 @@
 - **Dependencies:** `App.jsx`, `styles/global.css`, `utils` (barrel — `loadFromIndexedDB`, `saveToIndexedDB`), `store` (barrel — `useNarrativeStore`, `useSimulationStore`, `useCampaignStore`)
 
 ### `src/App.jsx`
-- **Purpose:** Root component. Composes the three-region grid layout: `<TopBar />`, `<GraphCanvas />`, and `<Sidebar />`.
+- **Purpose:** Root component. Composes the three-region grid layout: `<TopBar />`, `<GraphCanvas />`, and `<Sidebar />`. Also mounts `<Toast />` and `<CommandPalette />` as fixed viewport overlays outside the `ReactFlowProvider` subtree (AR-19 compliant — both components use DOM events for canvas communication, not `useReactFlow()` directly).
 - **Key exports:** `default App`
-- **Dependencies:** `components/TopBar`, `components/GraphCanvas`, `components/Sidebar`, `App.css`
+- **Dependencies:** `components/TopBar`, `components/GraphCanvas`, `components/Sidebar`, `components/CommandPalette`, `components/Toast`, `App.css`
 
 ### `src/App.css`
 - **Purpose:** CSS grid layout for the app shell — 48px top bar, flexible canvas area, 300px sidebar.
@@ -38,12 +38,12 @@
 ## `src/styles/`
 
 ### `src/styles/tokens.css`
-- **Purpose:** CSS custom properties for the design system: colours (backgrounds, text, accents, semantic states, campaign simulation states), spacing scale (4px base), typography (Inter), border radii, shadows, transitions. Adds five campaign-state colour tokens: `--color-node-locked`, `--color-node-complete`, `--color-node-failed`, `--color-node-branch-locked`, `--color-node-seen`.
+- **Purpose:** CSS custom properties for the design system: colours (backgrounds, text, accents, semantic states, campaign simulation states), spacing scale (4px base), typography (Inter), border radii, shadows, transitions. Adds five campaign-state colour tokens: `--color-node-locked`, `--color-node-complete`, `--color-node-failed`, `--color-node-branch-locked`, `--color-node-seen`. Adds an explicit five-level z-index scale: `--z-cluster`, `--z-context-menu`, `--z-modal`, `--z-palette`, `--z-toast`. Adds cluster palette color tokens for auto-hashed entity region colors.
 - **Key exports:** CSS variables (`:root` scope).
 - **Dependencies:** None.
 
 ### `src/styles/global.css`
-- **Purpose:** CSS reset, base element styles, component styles (StoryNode, ConditionalEdge, TopBar, SandboxPanel), campaign mode overrides (`.campaign-mode` wrapper class), and the `pulse-border` animation. Contains six-state node simulation classes (`.story-node--active`, `--locked`, `--complete`, `--failed`, `--branch_locked`, `--reachable`), the `--seen` overlay pseudo-element, choice option interaction classes (`.choice-node__option--clickable`, `--selected`, `--dimmed`), edge condition-pass/fail/traversed/unselected-dim classes, `.story-node__warning-badge` styles, and `.sandbox-panel` component styles. React Flow theme overrides.
+- **Purpose:** CSS reset, base element styles, component styles (StoryNode, ConditionalEdge, TopBar, SandboxPanel), campaign mode overrides (`.campaign-mode` wrapper class), and the `pulse-border` animation. Contains six-state node simulation classes (`.story-node--active`, `--locked`, `--complete`, `--failed`, `--branch_locked`, `--reachable`), the `--seen` overlay pseudo-element, choice option interaction classes (`.choice-node__option--clickable`, `--selected`, `--dimmed`), edge condition-pass/fail/traversed/unselected-dim classes, `.story-node__warning-badge` styles, and `.sandbox-panel` component styles. React Flow theme overrides. Adds CSS blocks for: Toast overlay (`.toast-container`, `.toast`, variant modifier classes), CommandPalette overlay (`.command-palette`, `.palette-item`, `.palette-item__context`), and cluster overlay SVG regions (chapter corner-rect and path blob treatments).
 - **Key exports:** None (stylesheet).
 - **Dependencies:** `styles/tokens.css` (imported via `@import`)
 
@@ -58,10 +58,10 @@
 - **Actions:** `addNode`, `updateNode`, `deleteNode`, `setStartNode`, `addEdge`, `updateEdge`, `deleteEdge`, `addFlag`, `updateFlag`, `deleteFlag`, `addStatus`, `updateStatus`, `deleteStatus`, `addPath`, `updatePath`, `deletePath`, `addChapter`, `updateChapter`, `deleteChapter`, `addVariant`, `updateVariant`, `deleteVariant`, `addOption`, `updateOption`, `deleteOption`, `updateMeta`, `loadGraph`, `newGraph`, `exportGraph`
 
 ### `src/store/uiStore.js`
-- **Purpose:** Zustand store owning UI state: `selectedNodeId`, `selectedEdgeId`, `snapToGrid`, `choiceDisplayMode`, `selectedNodeIds`, and `labelDisplayMode`. The `choiceDisplayMode` field (`'medium'` | `'full'`) controls rendering density for choice node option labels on the canvas. The `selectedNodeIds: string[]` field tracks the multi-select set populated by React Flow's `onSelectionChange` (Ctrl+click and drag-box); it is additive and does not replace `selectedNodeId`. The `labelDisplayMode` field (`'compact'` | `'verbose'`) controls whether node and edge renderers show full flag/status names or compact count badges.
+- **Purpose:** Zustand store owning UI state: `selectedNodeId`, `selectedEdgeId`, `snapToGrid`, `choiceDisplayMode`, `selectedNodeIds`, `labelDisplayMode`, and `clusterMode`. The `choiceDisplayMode` field (`'medium'` | `'full'`) controls rendering density for choice node option labels on the canvas. The `selectedNodeIds: string[]` field tracks the multi-select set populated by React Flow's `onSelectionChange` (Ctrl+click and drag-box); it is additive and does not replace `selectedNodeId`. The `labelDisplayMode` field (`'compact'` | `'verbose'`) controls whether node and edge renderers show full flag/status names or compact count badges. The `clusterMode` field (`'off'` | `'chapter'` | `'path'` | `'both'`) controls the cluster overlay visibility on the canvas; initial value `'off'`; not persisted to IndexedDB and resets on each page load.
 - **Key exports:** `useUIStore` (Zustand hook)
 - **Dependencies:** None.
-- **Actions:** `selectNode`, `selectEdge`, `clearSelection`, `clearIfSelected`, `resetSelection`, `toggleSnapToGrid`, `setChoiceDisplayMode`, `setSelectedNodeIds`, `toggleLabelDisplayMode`
+- **Actions:** `selectNode`, `selectEdge`, `clearSelection`, `clearIfSelected`, `resetSelection`, `toggleSnapToGrid`, `setChoiceDisplayMode`, `setSelectedNodeIds`, `toggleLabelDisplayMode`, `cycleClusterMode`
 
 ### `src/store/simulationStore.js`
 - **Purpose:** Zustand store owning campaign-mode state and live simulation. Runs in two modes: edit mode (passive structural analysis only — `runPassiveAnalysis` computes `orphanedNodeIds`/`unreachableNodeIds` via BFS from the start node) and campaign mode (full simulation lifecycle). Campaign lifecycle: `enterCampaign(campaignPayload?)` accepts an optional campaign object; when present it hydrates `currentFlagValues` from the snapshot's `flagOverrides` and `statusOverrides` filtered against currently-existing narrative IDs (stale IDs silently dropped), and resumes at `snapshot.activeNodeId` if the node still exists; without a payload it seeds from `narrativeStore` defaults. `advance(edgeId)` moves to the destination node, fires node `flags_set`/`status_set` side effects, accumulates `seenNodeIds`, and recomputes node states. `selectOption(optionId)` fires option side effects, sets `selectedOptionId`, and recomputes reachable edges. `snapshotCampaign()` writes `{ activeNodeId, seenNodeIds, traversedEdgeIds, flagOverrides, statusOverrides }` to the active campaign in `campaignStore` — separating booleans (flags) from numerics (statuses) via `narrativeStore` key discrimination. `exitCampaign()` conditionally auto-snapshots (if `autosaveCampaign === true`) then zeroes all state. `reset()` restarts from the start node within campaign mode. Sandbox: `applySandboxOverride(key, value)` writes ephemeral flag/status overrides to `currentFlagValues` only — never to `narrativeStore`. Six-state node enum values: `active`, `locked`, `complete`, `failed`, `branch_locked`, `reachable`. Separate `seenNodeIds` accumulation produces a `--seen` overlay orthogonal to the enum.
@@ -69,10 +69,16 @@
 - **Dependencies:** `store` (barrel — `useNarrativeStore`), `utils` (barrel — `evaluateCondition`), `store/campaignStore.js` (direct — `useCampaignStore`)
 - **Actions:** `enterCampaign`, `exitCampaign`, `reset`, `advance`, `selectOption`, `applySandboxOverride`, `runPassiveAnalysis`, `getNodeState`, `snapshotCampaign`, `setAutosaveCampaign`
 
+### `src/store/toastStore.js`
+- **Purpose:** Zustand store owning ephemeral toast state. `toasts` array holds `{ id, message, variant, duration }` objects. `addToast(message, variant, duration?)` creates a toast via `generateId('toast')`, appends it, and schedules `removeToast(id)` via `setTimeout`. `removeToast(id)` filters the toast from `toasts`. Store is ephemeral: never wired to IndexedDB, never appears in `exportGraph()` output, no boot-time restore. `toasts` initialised as `[]` in state so no selector ever needs a `?? []` fallback (AR-14 compliance).
+- **Key exports:** `useToastStore` (Zustand hook)
+- **Dependencies:** `utils` (barrel — `generateId`)
+- **Actions:** `addToast(message, variant, duration?)`, `removeToast(id)`
+
 ### `src/store/index.js`
 - **Purpose:** Barrel re-export for all stores.
-- **Key exports:** `useNarrativeStore`, `useUIStore`, `useSimulationStore`, `useCampaignStore`
-- **Dependencies:** `narrativeStore`, `uiStore`, `simulationStore`, `campaignStore`
+- **Key exports:** `useNarrativeStore`, `useUIStore`, `useSimulationStore`, `useCampaignStore`, `useToastStore`
+- **Dependencies:** `narrativeStore`, `uiStore`, `simulationStore`, `campaignStore`, `toastStore`
 ### `src/store/campaignStore.js`
 - **Purpose:** Zustand store owning the campaign dictionary and active campaign pointer. Campaigns are named simulation snapshots that persist across sessions. Each campaign stores `{ id, name, createdAt, updatedAt, campaignSchemaVersion: 1, snapshot: { activeNodeId, seenNodeIds, traversedEdgeIds, flagOverrides, statusOverrides } }`. Provides full CRUD (`addCampaign` returns the new campaign ID for immediate chaining), IndexedDB persistence via `saveCampaignsToIndexedDB`/`loadCampaignsFromIndexedDB`, and `loadCampaignsFromObject` for restoring campaigns from a ZIP import. `loadCampaignsFromIndexedDB` always resets `activeCampaignId` to `null` after restore — preventing stale active-campaign state on boot.
 - **Key exports:** `useCampaignStore` (Zustand hook)
@@ -108,7 +114,7 @@
 ## `src/hooks/`
 
 ### `src/hooks/useKeyboardShortcuts.js`
-- **Purpose:** Custom hook that attaches a single `keydown` listener to `window` on mount and removes it on unmount. Guards: bails early if `event.target` is an `INPUT`, `TEXTAREA`, or `contenteditable` element (RISK-CMK-01 mitigation); bails if `isCampaignActive === true` for all authoring shortcuts (AR-08). Dispatches node/edge creation shortcuts (`N`→Common, `C`→Choice, `E`→Ending via `canvas-add-node` custom event), naming modal shortcuts (`F`→Flag, `S`→Status, `P`→Path, `H`→Chapter via `canvas-open-name-modal` custom event), deletion (`Del` — multi or single node/edge), `Escape` (clears selection via `uiStore`), view shortcuts (`V`→toggle snap, `L`→tidy layout, `R`→toggle label display mode). Mounted once inside `GraphCanvas`.
+- **Purpose:** Custom hook that attaches a single `keydown` listener to `window` on mount and removes it on unmount. Guards: bails early if `event.target` is an `INPUT`, `TEXTAREA`, or `contenteditable` element (RISK-CMK-01 mitigation); bails if `isCampaignActive === true` for all authoring shortcuts (AR-08). `Ctrl+K` is checked as the very first condition before the input-field guard so it closes the palette even when the palette's own `<input>` is focused (RISK-CP-04 mitigation). Dispatches: `Ctrl+K` → dispatches `palette-toggle` DOM event (opens/closes CommandPalette); node/edge creation shortcuts (`N`→Common, `C`→Choice, `E`→Ending via `canvas-add-node` custom event); naming modal shortcuts (`F`→Flag, `S`→Status, `P`→Path, `H`→Chapter via `canvas-open-name-modal` custom event); deletion (`Del` — multi or single node/edge); `Escape` (clears selection via `uiStore`); view shortcuts (`V`→toggle snap, `L`→tidy layout, `R`→toggle label display mode, `G`→`cycleClusterMode`). Mounted once inside `GraphCanvas`.
 - **Key exports:** `default useKeyboardShortcuts`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`)
 
@@ -117,12 +123,12 @@
 ## `src/components/`
 
 ### `src/components/TopBar.jsx`
-- **Purpose:** Horizontal top bar with app title, editable project title, file actions (New, Import, Export), Tidy Layout button (Dagre-based), Snap-to-Grid toggle, campaign controls, and `<CreationBar />`. In edit mode mounts `<CampaignSelector />` which handles campaign listing, creation, and entry, and `<CreationBar />` for entity quick-creation buttons. When a campaign is active shows `Reset Simulation` + `Exit Campaign Mode` buttons and a "Campaign Active — [name]" status indicator. All authoring controls (`disabled={isCampaignActive}`) are locked during campaign mode; `CreationBar` inherits the same guard. `handleNew` calls `clearCampaignsIndexedDB()` + `clearIndexedDB()` + `campaignStore.clearCampaigns()` before `newGraph()` and `exitCampaign()`. `handleImport` calls `exitCampaign()`, `clearCampaigns()`, then loads campaigns and graph from the `{ graphData, campaigns }` return shape. `handleExport` passes `campaigns` from `campaignStore` to `exportProject` to enable ZIP bundling.
+- **Purpose:** Horizontal top bar with app title, editable project title, file actions (New, Import, Export), Tidy Layout button (Dagre-based), Snap-to-Grid toggle, campaign controls, `<CreationBar />`, and cluster mode cycle button. The cluster button reads `clusterMode` from `uiStore` and calls `cycleClusterMode` on click; it displays the current mode label and is visible in both edit and campaign mode (G shortcut is campaign-safe). In edit mode mounts `<CampaignSelector />` which handles campaign listing, creation, and entry, and `<CreationBar />` for entity quick-creation buttons. When a campaign is active shows `Reset Simulation` + `Exit Campaign Mode` buttons and a "Campaign Active — [name]" status indicator. All authoring controls (`disabled={isCampaignActive}`) are locked during campaign mode; `CreationBar` inherits the same guard. `handleNew` calls `clearCampaignsIndexedDB()` + `clearIndexedDB()` + `campaignStore.clearCampaigns()` before `newGraph()` and `exitCampaign()`. `handleImport` calls `exitCampaign()`, `clearCampaigns()`, then loads campaigns and graph from the `{ graphData, campaigns }` return shape. `handleExport` passes `campaigns` from `campaignStore` to `exportProject` to enable ZIP bundling.
 - **Key exports:** `default TopBar`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`, `useCampaignStore`), `utils` (barrel — `exportProject`, `importProject`, `clearIndexedDB`, `clearCampaignsIndexedDB`), `dagre`, `components/CampaignSelector`, `components/CreationBar`
 
 ### `src/components/GraphCanvas.jsx`
-- **Purpose:** React Flow canvas wrapper. Derives React Flow nodes from the three sub-collections, registers custom node/edge types, handles interactions (click, connect, drag, double-click-to-add-node), manages campaign-mode advance-by-click, applies `.campaign-mode` CSS class when `isCampaignActive`, stamps `optionId` on edges when connections originate from per-option handles on choice nodes, and edges with an `optionId` are rendered with `sourceHandle` set for correct handle anchoring. In edit mode triggers `runPassiveAnalysis` on every topology change and on `isCampaignActive` toggle. During campaign mode, `onNodeClick` advances via the edge matching both the selected node and (for choice nodes) the `selectedOptionId`. Mounts `useKeyboardShortcuts` hook for global shortcut handling (ESC migrated here from inline effect). Owns `contextMenuState` local state and wires `onPaneContextMenu`, `onNodeContextMenu`, `onEdgeContextMenu` to render `<ContextMenu />`; promotes type to `'multi'` when the clicked node is in `selectedNodeIds`. Dismisses context menu on `onPaneClick`, `onNodeDragStart`, and `onMoveStart`. Listens for `canvas-add-node` and `canvas-open-name-modal` custom DOM events to place nodes at viewport center and open `<NameModal />`. Wires `onSelectionChange` to `uiStore.setSelectedNodeIds` for multi-select.
+- **Purpose:** React Flow canvas wrapper. Derives React Flow nodes from the three sub-collections, registers custom node/edge types, handles interactions (click, connect, drag, double-click-to-add-node), manages campaign-mode advance-by-click, applies `.campaign-mode` CSS class when `isCampaignActive`, stamps `optionId` on edges when connections originate from per-option handles on choice nodes, and edges with an `optionId` are rendered with `sourceHandle` set for correct handle anchoring. In edit mode triggers `runPassiveAnalysis` on every topology change and on `isCampaignActive` toggle. During campaign mode, `onNodeClick` advances via the edge matching both the selected node and (for choice nodes) the `selectedOptionId`. Mounts `useKeyboardShortcuts` hook for global shortcut handling (ESC migrated here from inline effect). Owns `contextMenuState` local state and wires `onPaneContextMenu`, `onNodeContextMenu`, `onEdgeContextMenu` to render `<ContextMenu />`; promotes type to `'multi'` when the clicked node is in `selectedNodeIds`. Dismisses context menu on `onPaneClick`, `onNodeDragStart`, and `onMoveStart`. Listens for `canvas-add-node` and `canvas-open-name-modal` custom DOM events to place nodes at viewport center and open `<NameModal />`. Listens for `canvas-navigate-to-node` DOM event and calls `useReactFlow().setCenter()` to pan/zoom the canvas to the target node (AR-19 — the CommandPalette dispatches this event; GraphCanvas owns the execution). Renders `<ClusterOverlay>` as a separate child component inside the `ReactFlowProvider` subtree; `ClusterOverlay` uses `useViewport()` for the CSS transform and receives pre-computed bounding boxes as props (RISK-CP-05 mitigation). Wires `onSelectionChange` to `uiStore.setSelectedNodeIds` for multi-select.
 - **Key exports:** `default GraphCanvas`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`), `hooks/useKeyboardShortcuts`, `@xyflow/react`, `components/nodes/CommonNode`, `components/nodes/ChoiceNode`, `components/nodes/EndingNode`, `components/edges/ConditionalEdge`, `components/ContextMenu`, `components/NameModal`
 
@@ -196,9 +202,19 @@
 - **Key exports:** `default SandboxPanel`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useSimulationStore`, `useCampaignStore`)
 
+### `src/components/CommandPalette.jsx`
+- **Purpose:** Searchable command overlay opened and closed via `Ctrl+K` (palette-toggle DOM event) or ESC. Builds a search index from all `narrativeStore` entities (common/choice/ending nodes, flags, statuses, paths, chapters) using a `useMemo` keyed on collection references (AR-14 compliant). Node entity rows are enriched with `chapterName`/`pathName` via `resolveNodeContext()` for disambiguation when multiple entities share the same label (AR-22). Static action items (Create Common/Choice/Ending Node, Create Flag/Status/Path/Chapter) dispatch the matching store action or `canvas-add-node`/`canvas-open-name-modal` DOM event; authoring actions are hidden when `isCampaignActive` (campaign-safe filtering). Selecting an entity row dispatches `canvas-navigate-to-node` so `GraphCanvas` pans and zooms to the target (AR-19). ESC handling attaches its own `keydown` listener on `window` calling `e.stopPropagation()` before close to prevent simultaneous canvas selection clear (RISK-CP-03 mitigation).
+- **Key exports:** `default CommandPalette`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`)
+
+### `src/components/Toast.jsx`
+- **Purpose:** Top-right fixed overlay that reads `toastStore.toasts` and renders a stacked list of auto-dismiss notification messages. Each toast displays its `message` and applies a variant CSS modifier class (`info`, `success`, `warning`, `error`). The component has no side effects in render — it only reads and maps the `toasts` array (RISK-CP-02 mitigation). Manual dismiss calls `removeToast(id)` directly.
+- **Key exports:** `default Toast`
+- **Dependencies:** `store` (barrel — `useToastStore`)
+
 ### `src/components/index.js`
 - **Purpose:** Barrel re-export for all components.
-- **Key exports:** `GraphCanvas`, `CommonNode`, `ChoiceNode`, `EndingNode`, `ConditionalEdge`, `TopBar`, `Sidebar`, `NodeInspector`, `EdgeInspector`, `FlagManager`, `StatusManager`, `PathChapterManager`, `OptionEditor`, `VariantEditor`, `SandboxPanel`, `CampaignSelector`, `ContextMenu`, `NameModal`, `CreationBar`
+- **Key exports:** `GraphCanvas`, `CommonNode`, `ChoiceNode`, `EndingNode`, `ConditionalEdge`, `TopBar`, `Sidebar`, `NodeInspector`, `EdgeInspector`, `FlagManager`, `StatusManager`, `PathChapterManager`, `OptionEditor`, `VariantEditor`, `SandboxPanel`, `CampaignSelector`, `ContextMenu`, `NameModal`, `CreationBar`, `CommandPalette`, `Toast`
 - **Dependencies:** All files in `components/`
 ### `src/components/CampaignSelector.jsx`
 - **Purpose:** Campaign management UI mounted in `TopBar` when not in campaign mode. With no campaigns: shows a single "Enter Campaign Mode" button that creates a default campaign and enters it. With existing campaigns: shows a pill list (campaign name, Enter button, Delete button) and a create-new-campaign form. Coordinates `campaignStore.setActiveCampaign()` before calling `simulationStore.enterCampaign()` to ensure the active ID is set for snapshotting.
@@ -208,6 +224,22 @@
 ---
 
 ## Changelog
+
+## [2026-04-20] — Command_palette_toast_Visual_Node_Clustering
+### Added
+- `src/store/toastStore.js`: New ephemeral Zustand store. `toasts[]` state initialised as `[]` (AR-14 compliant). `addToast(message, variant, duration?)` creates a toast with `generateId('toast')`, auto-schedules `removeToast` via `setTimeout`. `removeToast(id)` filters by ID. Never wired to IndexedDB or `exportGraph()`.
+- `src/components/Toast.jsx`: New fixed viewport overlay. Reads `toastStore.toasts`, renders stacked auto-dismiss notifications with `info`/`success`/`warning`/`error` variant classes. No render-side effects.
+- `src/components/CommandPalette.jsx`: New `Ctrl+K` searchable overlay. Builds a memoised search index over all narrative entity types. Node results include resolved `chapterName`/`pathName` context for disambiguation. Authoring actions hidden during campaign mode. Entity navigation via `canvas-navigate-to-node` DOM event (AR-19). ESC `stopPropagation` prevents simultaneous canvas selection clear.
+### Changed
+- `src/store/uiStore.js`: Added `clusterMode: 'off'` state (`'off' | 'chapter' | 'path' | 'both'`) and `cycleClusterMode` action (advances through the four-state cycle via lookup table).
+- `src/store/index.js`: Added `useToastStore` re-export.
+- `src/App.jsx`: Added `<Toast />` and `<CommandPalette />` mount points as fixed viewport overlays outside `ReactFlowProvider`.
+- `src/styles/tokens.css`: Added explicit five-level z-index scale (`--z-cluster`, `--z-context-menu`, `--z-modal`, `--z-palette`, `--z-toast`) and cluster palette color tokens for auto-hashed entity region colors.
+- `src/styles/global.css`: Added CSS blocks for Toast overlay, CommandPalette overlay (including `.palette-item__context` for disambiguation spans), and cluster overlay SVG regions (chapter corner-rect and path Gaussian-blur blob treatments).
+- `src/hooks/useKeyboardShortcuts.js`: Added `Ctrl+K` handler as the first check (before input-field guard) dispatching `palette-toggle` DOM event. Added `G` shortcut (after guard) calling `cycleClusterMode`.
+- `src/components/GraphCanvas.jsx`: Added `canvas-navigate-to-node` DOM event listener calling `useReactFlow().setCenter()`. Added `<ClusterOverlay>` render inside `ReactFlowProvider` subtree; bounding boxes computed via `useMemo` keyed on node positions and passed as props; `ClusterOverlay` applies CSS viewport transform via `useViewport()`.
+- `src/components/TopBar.jsx`: Added cluster mode cycle button reading `clusterMode` and calling `cycleClusterMode`; visible in both edit and campaign mode.
+- `src/components/index.js`: Added `CommandPalette` and `Toast` barrel exports.
 
 ## [2026-04-20] — Context_menus_keyboard_shortcuts_creation_bar
 ### Added

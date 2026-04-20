@@ -53,6 +53,13 @@
 | RISK-CMK-10 | `addNode` signature change is silent for existing callers | Low | Low | See details below | OPEN |
 | RISK-CMK-11 | Scope expansion across 7 additional files bypasses per-phase file map | Low | Low | See details below | OPEN |
 | RISK-CMK-12 | `onSelectionChange` fires synchronously inside React Flow render | Low | Medium | See details below | OPEN |
+| RISK-CP-01 | Cluster overlay coordinate space mismatch (flow vs screen coords) | High | High | `ClusterOverlay` inside `ReactFlowProvider` applying `useViewport()` CSS transform | RESOLVED |
+| RISK-CP-02 | AR-14 Toast infinite re-render loop | Medium | High | `toasts` initialised as `[]`; `addToast` called only from event handlers or stable effects | RESOLVED |
+| RISK-CP-03 | ESC double-handling in CommandPalette | High | Medium | Palette attaches own `keydown` listener on `window`, calls `stopPropagation()` before close | RESOLVED |
+| RISK-CP-04 | `Ctrl+K` blocked when palette input is focused | High | Medium | `Ctrl+K` check inserted before input-field guard in `useKeyboardShortcuts.js` | RESOLVED |
+| RISK-CP-05 | Cluster bounding box re-computation per viewport frame | Medium | Medium | Bounding boxes computed in `GraphCanvasInner` via `useMemo`; passed as props; `ClusterOverlay` applies only CSS transform per pan frame | RESOLVED |
+| RISK-CPT-01 | Whole-store destructure in CommandPalette causes unnecessary re-renders | Low | Low | See details below | OPEN |
+| RISK-CPT-02 | Stale `isOpen` closure in palette-toggle effect | Low | Low | See details below | OPEN |
 
 ---
 
@@ -731,3 +738,31 @@
 **Mitigation Strategy:** The `setSelectedNodeIds` action compares the incoming array against current state (order-independent) before calling `set()`, preventing spurious updates. Watch item: verify stability after each React Flow version upgrade.
 
 **Status:** OPEN — No action required now. Monitor during future React Flow upgrades.
+
+---
+
+## RISK-CPT-01 — Whole-Store Destructure in CommandPalette Causes Unnecessary Re-Renders
+
+**Description:** `CommandPalette.jsx:10` subscribes to `narrativeStore` via a whole-store destructure (e.g., `const { common, choice, ending, flag, ... } = useNarrativeStore()`). Any mutation to `narrativeStore` — including node drags, label edits, and side-effect changes — triggers a re-render of the palette component even when the search index memo is still valid. Low impact when the palette is closed (React bails on the hidden subtree), but tightening to per-slice selectors would eliminate the unnecessary subscription entirely.
+
+**Likelihood:** Low — palette is almost always closed; React's hidden subtree optimisation limits actual render cost.
+
+**Impact:** Low — re-renders are suppressed by the `useMemo` search index; no user-visible behaviour degradation under normal use.
+
+**Mitigation Strategy:** Refactor `CommandPalette.jsx` to use per-slice selectors (`useNarrativeStore(s => s.common)`, `useNarrativeStore(s => s.choice)`, etc.) per AR-23. Schedule as a future cleanup, not a blocking issue.
+
+**Status:** OPEN — Surfaced in audit pass 2 §6. Non-blocking; deferred to future cleanup.
+
+---
+
+## RISK-CPT-02 — Stale `isOpen` Closure in Palette-Toggle Effect
+
+**Description:** `CommandPalette.jsx:14-24` has a `useEffect` whose closure captures `isOpen` at the time the effect is registered. If the `palette-toggle` DOM event fires and the closure holds a stale reference to `isOpen`, the toggle logic (`if (isOpen) close() else open()`) may act on the wrong state — e.g., re-opening a palette that is already open.
+
+**Likelihood:** Low — functional today; the effect dependency array includes `isOpen` which causes re-registration on each state change, keeping the closure fresh in practice.
+
+**Impact:** Low — if the bug manifests, the palette flickers or fails to toggle; no data is affected.
+
+**Mitigation Strategy:** Refactor the effect to use a `useRef` for `isOpen` (ref stays current without causing re-registration) or a functional-set pattern (`setIsOpen(prev => !prev)`) dispatched from the event listener without reading closed-over state. Either removes the staleness risk entirely.
+
+**Status:** OPEN — Surfaced in audit pass 2 §6. Non-blocking; deferred to future cleanup.

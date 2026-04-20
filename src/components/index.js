@@ -18,3 +18,7 @@ export { default as CampaignSelector } from './CampaignSelector.jsx';
 export { default as NameModal } from './NameModal'; // ADDED: Phase 2 NameModal export
 export { default as ContextMenu } from './ContextMenu'; // ADDED: Phase 3 ContextMenu export
 export { default as CreationBar } from './CreationBar'; // ADDED: Phase 4 CreationBar export
+// ADDED: Phase 1 — Toast component export
+export { default as Toast } from './Toast';
+// ADDED: Phase 2 — Command palette component export
+export { default as CommandPalette } from './CommandPalette';

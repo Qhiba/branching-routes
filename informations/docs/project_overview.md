@@ -31,16 +31,17 @@ branching-routes/
 │
 ├── src/
 │   ├── main.jsx            # React bootstrap — async boot: restores graph and campaigns from IndexedDB, wires debounced auto-save subscriptions for both stores, then renders <App />
-│   ├── App.jsx             # Root layout: TopBar + Canvas + Sidebar
+│   ├── App.jsx             # Root layout: TopBar + Canvas + Sidebar; mount points for <Toast /> and <CommandPalette /> fixed overlays
 │   ├── App.css             # Grid layout styles for the three regions
 │   │
 │   ├── styles/
-│   │   ├── tokens.css      # Design system CSS custom properties (colours, spacing, typography)
-│   │   └── global.css      # CSS reset, base styles, component styles, simulation mode overrides
+│   │   ├── tokens.css      # Design system CSS custom properties (colours, spacing, typography); explicit z-index scale (--z-cluster, --z-context-menu, --z-modal, --z-palette, --z-toast); cluster palette color tokens
+│   │   └── global.css      # CSS reset, base styles, component styles, simulation mode overrides; Toast overlay; CommandPalette overlay; cluster overlay SVG regions
 │   │
 │   ├── store/
 │   │   ├── narrativeStore.js # Zustand store: canonical graph (common, choice, ending, edges, flag, status, path, chapter, meta)
-│   │   ├── uiStore.js      # Zustand store: UI state (selection, multi-select, snap-to-grid, choice display mode, label display mode)
+│   │   ├── uiStore.js      # Zustand store: UI state (selection, multi-select, snap-to-grid, choice display mode, label display mode, cluster mode)
+│   │   ├── toastStore.js   # Zustand store: ephemeral toast notifications (toasts[], addToast, removeToast, auto-dismiss timer); never persisted to IndexedDB
 │   │   ├── simulationStore.js  # Zustand store: campaign-mode lifecycle, six-state node enum, seen tracking, selected option, passive analysis, sandbox overrides, campaign snapshotting
 │   │   ├── campaignStore.js    # Zustand store: campaign dictionary (CRUD, IndexedDB persistence, ZIP import restore)
 │   │   └── index.js        # Barrel re-export for all stores
@@ -52,11 +53,11 @@ branching-routes/
 │   │   └── index.js        # Barrel re-export for all utilities
 │   │
 │   ├── hooks/
-│   │   └── useKeyboardShortcuts.js  # Global keydown handler: shortcut dispatch for node/edge CRUD, view actions, and label mode toggle; input-field and campaign-mode guards
+│   │   └── useKeyboardShortcuts.js  # Global keydown handler: shortcut dispatch for node/edge CRUD, view actions, label mode toggle, Ctrl+K palette toggle (before input-field guard), and G cluster mode cycle; input-field and campaign-mode guards
 │   │
 │   └── components/
-│       ├── TopBar.jsx       # App title, file actions, Enter/Exit Campaign Mode + Reset controls, campaign status indicator, tidy layout, and creation bar
-│       ├── GraphCanvas.jsx  # React Flow canvas wrapper with interaction handlers, context menus (pane/node/edge/multi), keyboard shortcut hook, multi-select wiring, passive analysis trigger, and option-aware edge stamping
+│       ├── TopBar.jsx       # App title, file actions, Enter/Exit Campaign Mode + Reset controls, campaign status indicator, tidy layout, creation bar, and cluster mode cycle button
+│       ├── GraphCanvas.jsx  # React Flow canvas wrapper with interaction handlers, context menus (pane/node/edge/multi), keyboard shortcut hook, multi-select wiring, passive analysis trigger, option-aware edge stamping, cluster overlay SVG layer, and canvas-navigate-to-node event listener
 │       ├── Sidebar.jsx      # Tab panel: Inspector / Flags / Status / Paths / Sandbox (campaign only)
 │       ├── SandboxPanel.jsx # Campaign-only flag/status override panel and campaign save/load controls (never writes to narrativeStore)
 │       ├── CampaignSelector.jsx  # Campaign management UI: list, create, switch, delete campaigns; mounts in TopBar when not in campaign mode
@@ -70,6 +71,8 @@ branching-routes/
 │       ├── ContextMenu.jsx      # Right-click context menu at cursor; pane/node/edge/multi-select action lists; viewport-edge flip; dismisses on Escape, click-outside, pan, and drag
 │       ├── NameModal.jsx        # Naming modal for quick-create of flags, statuses, paths, and chapters; ESC stopPropagation prevents canvas selection clear on dismiss
 │       ├── CreationBar.jsx      # Horizontal strip of entity-creation buttons (Common, Choice, Ending, Flag, Status, Path, Chapter) mounted in TopBar; disabled during campaign mode
+│       ├── CommandPalette.jsx   # Ctrl+K searchable overlay; entity search index across all narrative types (nodes, flags, statuses, paths, chapters); navigate-to-entity via canvas-navigate-to-node DOM event; static action dispatch; disambiguation context (chapter/path) inline in results; authoring actions hidden during campaign mode
+│       ├── Toast.jsx            # Top-right fixed overlay reading toastStore; renders stacked auto-dismiss notifications with info/success/warning/error variants
 │       ├── nodes/
 │       │   ├── CommonNode.jsx   # Custom React Flow node for standard narrative stops; verbose label display mode renders side-effect names inline
 │       │   ├── ChoiceNode.jsx   # Custom React Flow node for player choices with per-option source handles; verbose label display mode renders side-effect names inline

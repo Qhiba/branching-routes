@@ -170,3 +170,19 @@ When a feature adds optional parameters or new return values to existing store a
 When a new component requires new CSS rules added to `global.css` or a standalone `.css` file, that stylesheet change must be listed as an explicit file in the feature's file map (`ran_0202_filemap.md`) alongside the component file. It is not sufficient to bundle CSS additions implicitly with the component entry.
 
 **Rationale:** `global.css` is a shared stylesheet — undeclared additions are invisible in per-phase file maps, making it difficult to audit which styles belong to which feature, track regressions, and review CSS specificity conflicts. Explicit file map entries ensure stylesheet changes are reviewed with the same rigour as component changes.
+
+---
+
+## AR-22 — Overlay Components Presenting Named Entities Must Expose Disambiguation Context
+
+Any overlay component that presents a searchable or listable view of named narrative entities (nodes, flags, statuses, paths, chapters) must display sufficient context alongside each result to disambiguate entries that share the same label. For node-type entities, this means resolving and displaying the associated chapter name and/or path name inline in each result row. Non-node entities (paths, chapters, flags, statuses) that are containers rather than members are exempt.
+
+**Rationale:** A project with 50+ nodes routinely has multiple entities sharing the same label (e.g., two "Start" nodes in different chapters). Without context, a palette or search result is ambiguous — the designer selects the wrong entity with no visible indication. The CommandPalette feature demonstrated this pattern: `resolveNodeContext()` joins `chapterId`/`pathId` against the narrative dictionaries and renders a `.palette-item__context` span when either is present. Formalising this as a rule prevents future overlay components from shipping without it.
+
+---
+
+## AR-23 — Zustand Store Subscriptions Must Use Per-Slice Selectors, Not Whole-Store Destructures
+
+Components must not subscribe to a Zustand store by destructuring the entire store object (e.g., `const { nodes, flags, actions } = useNarrativeStore()`). Each subscription must target only the specific slice of state the component needs via a selector function (e.g., `useNarrativeStore(s => s.flag)`). This applies to all stores: `narrativeStore`, `uiStore`, `simulationStore`, `campaignStore`, `toastStore`.
+
+**Rationale:** Whole-store destructuring causes the component to re-render on every state change to any field in the store, regardless of whether the component's actual data changed. At the scale of `narrativeStore` — which is mutated on every node drag, label edit, and side-effect change — this creates unnecessary re-render pressure on every subscribing component simultaneously. Per-slice selectors ensure components re-render only when their relevant slice changes. AR-14 addresses reference stability within selectors; this rule addresses subscription granularity. The CommandPalette feature surfaced a whole-store destructure (`CommandPalette.jsx:10`) as an open risk, prompting formalisation of this constraint.

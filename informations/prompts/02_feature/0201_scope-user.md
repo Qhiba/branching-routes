@@ -30,25 +30,39 @@ Save to: `/informations/runs/[DD-MM-YYYY]_feature/ran_0201_scope.md`
 
 ### Feature name
 <!-- [SNAKE_CASE NAME] -->
-Context_menus_keyboard_shortcuts_creation_bar
+Command_palette_toast_Visual_Node_Clustering
 
 ### What this feature does
 <!-- [ONE SENTENCE — from the user's perspective] -->
-Adds three power-user interaction layers to the canvas. Right-click context menus surface actions based on what was clicked (canvas, node, edge, or multi-selection). A global keyboard shortcut system (N/C/E/F/S/Del/Space/V/I/L/R/Escape) triggers entity creation, deletion, and view actions from anywhere in the app. A dedicated creation bar in the top bar provides buttons for each entity type — Common, Choice, Ending, Flag, Status, Path, Chapter. Multi-select via Ctrl+click and drag-box enables bulk operations.
+Adds three power-user feature layers on top of the existing canvas. 
+**`Ctrl+K` command palette** — searchable overlay covering all narrative entities (common/choice/ending nodes, flags, statuses, paths, chapters) plus static actions. Selecting an entity pans and zooms the canvas to it; selecting an action fires the underlying store mutation or dispatches the matching custom DOM event. 
+
+**Toast notifications** — top-right stacked auto-dismiss messages with `info`/`success`/`warning`/`error` variants, owned by a new `toastStore`. 
+
+**Visual node clustering** — translucent colored regions rendered behind nodes on the canvas, with two distinct visual treatments: chapters render as corner-based rounded-rectangle regions hugging their node bounding box, paths render as non-corner-based soft blob smears (SVG hulls with Gaussian blur, ~20% opacity). Toggle via a button in the top bar and a G keyboard shortcut that cycles through `off` → `chapter` → `path` → `both` → `off`. Colors are auto-assigned from a hashed palette keyed to entity ID so no schema change is needed.
 
 ### What this feature does NOT do
 <!-- [EXPLICIT BOUNDARIES — at least 2 items] -->
-- Does not add Ctrl+K command palette (Later Update).
-- Does not add toast notifications (Later Update) or minimap (Later Update).
-- Does not restyle any existing UI — purely additive. later update handles polish.
-- Does not change data model, simulation, or persistence.
-- Does not add undo/redo — out of V3 scope.
-- Does not add bulk drag-to-move beyond React Flow defaults.
+- Does not add a minimap — `<MiniMap />` already exists in `GraphCanvas.jsx.`
+- Does not add route tracing. Push 13 owns that. The toast API ships here as general-purpose infrastructure; Push 13 consumes it for route result messages.
+- Does not restyle any existing UI. Push 14.
+- Does not change the data model. No `color` field added to `path`/`chapter` — cluster colors are derived at render time.
+- Does not persist cluster toggle state across sessions unless trivial to add via `uiStore` (decide during Plan step).
+- Does not allow user-chosen cluster colors. Auto-assigned from palette hash only.
+- Does not add cluster-based filtering, bulk-selection, or drag-group-as-unit. Visual only.
+- Does not add command palette history, favorites, or fuzzy-ranking tuning beyond simple substring match.
+- Does not relocate the `Ctrl+K` trigger to a button. Keyboard-only.
+- Does not change simulation, persistence, campaigns, or any store behavior for authoring.
 
 ### Why this feature is needed now
-Current version only supports double-click-to-add-node and click-based interactions. For any non-trivial narrative, this is slow: every flag, status, path, chapter, and non-common node requires navigating to a sidebar tab and clicking "add." Context menus and shortcuts collapse these into single gestures.
+Three unrelated gaps converge at this point in the sequence.
 
-Multi-select specifically unblocks the bulk operations that become viable in later update's command palette ("delete all selected") and the next update route tracing ("trace from any of these nodes").
+**Navigation at scale**. Previous update made entity creation fast via shortcuts and creation bar, but entity finding is still slow — the only way to jump to a specific node is to pan the canvas and eyeball it. At ~50+ nodes this is the dominant friction point. Command palette collapses "find and jump to X" into a keystroke and a few letters, completing the keyboard-first authoring loop Push 11 started.
+
+**Invisible organizational structure**. Current system has paths and chapters as first-class entities, but their presence on the canvas is currently zero — a node's chapter is a dropdown value in the inspector, not something you can see at a glance. Visual clustering makes the organizational layer actually visible, turning paths and chapters from labels into spatial regions. The chapter-vs-path visual split (corner-based vs blob) also clarifies that these are two different kinds of grouping — structural containers vs. narrative threads — not two words for the same thing.
+
+**Toast infrastructure before Route Tracing Feature**. Route tracing produces results that need a feedback channel ("Route found: 7 hops" / "No route exists"). Building the toast system as part of Push 12 lets it ship standalone, tested, and documented — so route tracing can consume it cleanly rather than bundling notification plumbing with pathfinding logic.
+All three are self-contained additions that require no schema change, no simulation change, and no shell change. Doing them before Push 10 keeps the shell refactor's target surface complete — Push 10 will know exactly what it's housing.
 
 
 ### Definition of done
@@ -57,28 +71,38 @@ Multi-select specifically unblocks the bulk operations that become viable in lat
 [ ] Condition 3 -->
 | Action | File | Detail |
 |--------|------|--------|
-| ADD | `src/components/ContextMenu.jsx` | Right-click menus for canvas/node/edge/multi-select |
-| ADD | `src/hooks/useKeyboardShortcuts.js` | Global shortcut handler |
-| ADD | `src/components/CreationBar.jsx` | Buttons for each entity type |
-| MODIFY | `src/components/GraphCanvas.jsx` | Context menu triggers, multi-select, shortcut integration |
-| MODIFY | `src/components/TopBar.jsx` | Mount creation bar |
-| MODIFY | `vite.config.js` | Add `hooks/` path alias |
+| ADD | `src/components/CommandPalette.jsx` | Search entities, execute actions, navigate |
+| ADD | `src/components/Toast.jsx` | Top-right auto-dismiss notifications |
+| MODIFY | `src/components/GraphCanvas.jsx` | Minimap integration, node clustering toggle |
+| MODIFY | `src/App.jsx` | Toast + CommandPalette mount points |
 
 
 ### Assumptions I am making
 <!-- [LIST OR "NONE"] -->
 This will come with a risk that I don't know how to mitigate:
-- **Shortcut conflicts with browser defaults**. Ctrl+K is reserved for Push 12 command palette.     Don't claim it here. Avoid Ctrl+S (browser save), Ctrl+W (close tab), Ctrl+N (new window). Single-letter shortcuts only fire when canvas has focus.
+- **Missing Definition of done**, I don't know what to add or modify for the Visual Node Clustering feature.
 
-- **Shortcut conflicts with form inputs**. Pressing N in a text field must type "n", not create a node. Handler must check `event.target` — bail if input/textarea/contenteditable.
+**Ctrl+K conflicts with Firefox's search bar focus**. Firefox claims Ctrl+K for "focus search bar." ``event.preventDefault()`` must fire before the browser handles it. Test specifically on Firefox. (Chrome has no default binding for Ctrl+K.)
 
-- **Context menu vs. React Flow pane events**. React Flow has its own `onPaneContextMenu`. Wiring custom menu must call `event.preventDefault()` and suppress React Flow's default.
+**Command palette ESC double-handling** — same class as RISK-CMK-08. The global shortcut hook handles ESC → `clearSelection`. Palette's ESC-to-close must `stopPropagation` before dispatching close, or the canvas selection will clear underneath the dismissed palette.
 
-- **Multi-select state model breaking existing code**. `uiStore.selectedNodeId` is read by NodeInspector, GraphCanvas, ChoiceNode. Changing to array breaks all consumers. Keep `selectedNodeId` as "primary selection" and add `selectedNodeIds` for multi — or migrate cleanly with a compatibility selector.
+**Command palette input field vs. global shortcut guard**. The palette's search input is an input field. When the user types "N" to search for "North Tower," the keyboard hook's input-field guard (RISK-CMK-01) must fire correctly. Current guard checks ``event.target`` tag — should work, but verify the palette input's render path.
 
-- **Context menu positioning off-screen**. Right-click near viewport edge puts menu off-screen. Detect bounds, flip to left/up side.
+**Command palette search over large entity sets triggers re-render on each keystroke**. If the palette subscribes to `narrativeStore` and filters on every keystroke, a 500-node graph with a 10-letter query does 5000 filter passes. Memoize the search index; rebuild only when store state actually changes, not on every keystroke.
 
-- **Escape key already handled**. GraphCanvas clears selection on Escape (per codebase_features). Keyboard shortcuts hook must not double-handle or conflict.
+**Toast store infinite loop risk (AR-14)**. If `toasts` is read via `useToastStore(s => s.toasts)` and a toast fires on render, new array reference → re-render → fires toast → loop. Return references, not new literals. Toast-add calls should be idempotent or firing should be in effects, not render.
+
+**Minimap re-render storms (RISK-01)**. Minimap subscribes to React Flow's node/edge state internally — fine. But if the node color function reads `chapterId` → looks up `chapter` in `narrativeStore` → returns a new color on every render, it can thrash. Memoize the color function outside the JSX or use `useCallback` with stable deps.
+
+**Node clustering by chapter/path at 200+ nodes**. If clustering renders colored overlays behind nodes, that's another render layer on the canvas. May compound with RISK-01. Keep clustering opt-in, not default-on.
+
+**Command palette entity collisions**. Two nodes named "Start" in different chapters — palette shows them ambiguously. Display `chapter / path` context inline in results, or the palette becomes frustrating on real projects.
+
+**Campaign-mode command palette behavior**. During campaign mode, authoring commands ("Create Flag...") must be disabled or hidden. Navigation commands ("Jump to node") should remain available. Filter the command list by `isCampaignActive` in the palette.
+
+**Toast-to-route-tracing coupling deferred**. Next Update will produce the actual route messages. This update should ship a general-purpose `addToast(message, variant)` API and leave consumer wiring to downstream pushes. Avoid hardcoding route-specific toast content here.
+
+**Toast z-index stack vs. ContextMenu vs. NameModal vs. CommandPalette**. Four overlay layers now. Establish an explicit z-index scale in `tokens.css` — don't let each component invent its own.
 
 ---
 

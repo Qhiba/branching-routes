@@ -10,6 +10,9 @@ export default function TopBar() {
   const updateMeta = useNarrativeStore(s => s.updateMeta);
   const snapToGrid = useUIStore(s => s.snapToGrid);
   const toggleSnapToGrid = useUIStore(s => s.toggleSnapToGrid);
+  // ADDED: Phase 3 — cluster mode and cycle action
+  const clusterMode = useUIStore(s => s.clusterMode);
+  const cycleClusterMode = useUIStore(s => s.cycleClusterMode);
 
   const common = useNarrativeStore(s => s.common);
   const choice = useNarrativeStore(s => s.choice);
@@ -160,6 +163,10 @@ export default function TopBar() {
         </button>
         <button onClick={toggleSnapToGrid} className="topbar__btn" disabled={isCampaignActive}>
           Snap: {snapToGrid ? 'ON' : 'OFF'}
+        </button>
+        {/* ADDED: Phase 3 — cluster mode cycle button (view-only, enabled during campaign) */}
+        <button onClick={cycleClusterMode} className="topbar__btn">
+          Clusters: {clusterMode.toUpperCase()}
         </button>
         <button className="topbar__btn" disabled={isCampaignActive} onClick={handleNew}>New</button>
         <button className="topbar__btn" disabled={isCampaignActive} onClick={handleImport}>Import</button>

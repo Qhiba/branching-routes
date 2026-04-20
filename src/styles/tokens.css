@@ -76,4 +76,27 @@
   /* Transitions */
   --transition-fast:   120ms ease;
   --transition-normal: 220ms ease;
+
+  /* ADDED: Phase 1 — Z-index scale for layering overlays */
+  --z-cluster:       0;
+  --z-context-menu:  100;
+  --z-modal:         200;
+  --z-palette:       300;
+  --z-toast:         400;
+
+  /* ADDED: Phase 1 — Toast semantic colors */
+  --color-toast-info:    #7393f8;
+  --color-toast-success: #4caf7d;
+  --color-toast-warning: #f8ab54;
+  --color-toast-error:   #e56666;
+
+  /* ADDED: Phase 3 — Cluster palette (8 distinct colors for path/chapter regions) */
+  --cluster-color-0: #a78bfa;  /* violet */
+  --cluster-color-1: #34d399;  /* emerald */
+  --cluster-color-2: #f87171;  /* rose */
+  --cluster-color-3: #60a5fa;  /* blue */
+  --cluster-color-4: #fbbf24;  /* amber */
+  --cluster-color-5: #a3e635;  /* lime */
+  --cluster-color-6: #e879f9;  /* fuchsia */
+  --cluster-color-7: #2dd4bf;  /* teal */
 }

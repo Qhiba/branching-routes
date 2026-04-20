@@ -7,9 +7,16 @@ export const useUIStore = create((set, get) => ({
   snapToGrid: true,
   choiceDisplayMode: 'medium',
   labelDisplayMode: 'compact', // ADDED: Phase 2 display mode state
+  // ADDED: Phase 3 — cluster visualization mode ('off' | 'chapter' | 'path' | 'both')
+  clusterMode: 'off',
 
   toggleSnapToGrid: () => set(state => ({ snapToGrid: !state.snapToGrid })),
   toggleLabelDisplayMode: () => set(state => ({ labelDisplayMode: state.labelDisplayMode === 'compact' ? 'verbose' : 'compact' })), // ADDED: Phase 2 toggle
+  // ADDED: Phase 3 — cycle cluster mode through off → chapter → path → both → off
+  cycleClusterMode: () => set(state => {
+    const next = { off: 'chapter', chapter: 'path', path: 'both', both: 'off' };
+    return { clusterMode: next[state.clusterMode] };
+  }),
   setChoiceDisplayMode: (mode) => set({ choiceDisplayMode: mode }), // PROTECTED: Integrations unchanged
   selectNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }), // PROTECTED: Primary single-select semantics
   selectEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),

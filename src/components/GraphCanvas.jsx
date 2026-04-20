@@ -6,6 +6,7 @@ import {
   Controls,
   MiniMap,
   useReactFlow,
+  useViewport,
   ReactFlowProvider,
   MarkerType
 } from '@xyflow/react';
@@ -21,6 +22,91 @@ import CommonNode from './nodes/CommonNode';
 import ChoiceNode from './nodes/ChoiceNode';
 import EndingNode from './nodes/EndingNode';
 import ConditionalEdge from './edges/ConditionalEdge';
+
+// ADDED: Phase 3 — Cluster color palette (stable, module-level constant)
+const CLUSTER_PALETTE = [
+  '#a78bfa', // violet
+  '#34d399', // emerald
+  '#f87171', // rose
+  '#60a5fa', // blue
+  '#fbbf24', // amber
+  '#a3e635', // lime
+  '#e879f9', // fuchsia
+  '#2dd4bf'  // teal
+];
+
+// ADDED: Phase 3 — Hash entity ID to deterministic color
+function hashEntityColor(id) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  return CLUSTER_PALETTE[Math.abs(hash) % CLUSTER_PALETTE.length];
+}
+
+// ADDED: Phase 3 — Cluster overlay component renders path/chapter regions behind nodes
+function ClusterOverlay({ chapterBoxes, pathBoxes }) {
+  const { x, y, zoom } = useViewport();
+  const clusterMode = useUIStore(s => s.clusterMode);
+
+  if (clusterMode === 'off') return null;
+
+  const showChapters = clusterMode === 'chapter' || clusterMode === 'both';
+  const showPaths = clusterMode === 'path' || clusterMode === 'both';
+
+  return (
+    <div className="cluster-overlay">
+      <svg
+        className="cluster-overlay__svg"
+        style={{
+          transform: `translate(${x}px, ${y}px) scale(${zoom})`,
+          transformOrigin: '0 0'
+        }}
+      >
+        <defs>
+          {/* ADDED: Phase 3 — SVG filters for path blur effect */}
+          {showPaths && pathBoxes.map(box => (
+            <filter key={`blur-${box.id}`} id={`blur-${box.id}`}>
+              <feGaussianBlur stdDeviation="12" />
+            </filter>
+          ))}
+        </defs>
+
+        {/* ADDED: Phase 3 — Chapter regions (corner-based rounded rectangles) */}
+        {showChapters && chapterBoxes.map(box => (
+          <rect
+            key={`chapter-${box.id}`}
+            x={box.x}
+            y={box.y}
+            width={box.width}
+            height={box.height}
+            rx={8}
+            ry={8}
+            fill={box.color}
+            fillOpacity={0.15}
+            stroke={box.color}
+            strokeOpacity={0.4}
+            strokeWidth={1}
+          />
+        ))}
+
+        {/* ADDED: Phase 3 — Path regions (soft blurred rectangles) */}
+        {showPaths && pathBoxes.map(box => (
+          <rect
+            key={`path-${box.id}`}
+            x={box.x}
+            y={box.y}
+            width={box.width}
+            height={box.height}
+            rx={0}
+            ry={0}
+            fill={box.color}
+            fillOpacity={0.2}
+            filter={`url(#blur-${box.id})`}
+          />
+        ))}
+      </svg>
+    </div>
+  );
+}
 
 function GraphCanvasInner() {
 
@@ -142,7 +228,8 @@ function GraphCanvasInner() {
   }, [addNode, selectNode, screenToFlowPosition]);
 
   // FIX: listen for focus-node requests from delete guards in FlagManager/StatusManager
-  const { fitView } = useReactFlow();
+  // MODIFIED: Phase 2 — add setCenter for canvas-navigate-to-node event
+  const { fitView, setCenter } = useReactFlow();
   useEffect(() => {
     const handleFocusNode = (e) => {
       const { nodeId } = e.detail;
@@ -152,6 +239,20 @@ function GraphCanvasInner() {
     window.addEventListener('canvas-focus-node', handleFocusNode);
     return () => window.removeEventListener('canvas-focus-node', handleFocusNode);
   }, [selectNode, fitView]);
+
+  // ADDED: Phase 2 — Listen for canvas-navigate-to-node from CommandPalette
+  useEffect(() => {
+    const handleNavigate = (e) => {
+      const { nodeId } = e.detail;
+      const state = useNarrativeStore.getState();
+      const node = state.common[nodeId] || state.choice[nodeId] || state.ending[nodeId];
+      if (!node) return;
+      // 125 / 75 match the Dagre layout node half-dimensions used in TopBar.jsx
+      setCenter(node.position.x + 125, node.position.y + 75, { zoom: 1.2, duration: 400 });
+    };
+    window.addEventListener('canvas-navigate-to-node', handleNavigate);
+    return () => window.removeEventListener('canvas-navigate-to-node', handleNavigate);
+  }, [setCenter]);
 
   // ADDED: Phase 2 listen for naming modal opens
   useEffect(() => {
@@ -168,19 +269,25 @@ function GraphCanvasInner() {
     choiceNode: ChoiceNode,
     endingNode: EndingNode
   }), []);
-  
+
   const edgeTypes = useMemo(() => ({ conditionalEdge: ConditionalEdge }), []);
 
+  // ADDED: Phase 3 — Build flat list of all nodes for cluster bounding box computation
+  const allNodes = useMemo(() => [
+    ...Object.values(common),
+    ...Object.values(choice),
+    ...Object.values(ending),
+  ], [common, choice, ending]);
 
   const derivedNodes = useMemo(() => {
     // FIX: Sort all nodes by createdAt so later-created nodes appear on top (higher zIndex)
-    const allNodes = [
+    const sorted = [
       ...Object.values(common).map(node => ({ ...node, _type: 'commonNode' })),
       ...Object.values(choice).map(node => ({ ...node, _type: 'choiceNode' })),
       ...Object.values(ending).map(node => ({ ...node, _type: 'endingNode' })),
     ].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
-    return allNodes.map((node, idx) => ({
+    return sorted.map((node, idx) => ({
       id: node.id,
       type: node._type,
       position: node.position,
@@ -188,6 +295,41 @@ function GraphCanvasInner() {
       data: node.data,
     }));
   }, [common, choice, ending]);
+
+  // ADDED: Phase 3 — Compute cluster bounding boxes (chapter and path regions)
+  const clusterBoxes = useMemo(() => {
+    const PADDING = 24;
+    const NODE_W = 250;
+    const NODE_H = 150;
+
+    const computeBoxes = (entityKey) => {
+      const groups = {};
+      allNodes.forEach(node => {
+        const id = node.data[entityKey];
+        if (!id) return;
+        if (!groups[id]) groups[id] = [];
+        groups[id].push(node.position);
+      });
+
+      return Object.entries(groups).map(([id, positions]) => {
+        const xs = positions.map(p => p.x);
+        const ys = positions.map(p => p.y);
+        return {
+          id,
+          color: hashEntityColor(id),
+          x: Math.min(...xs) - PADDING,
+          y: Math.min(...ys) - PADDING,
+          width: Math.max(...xs) - Math.min(...xs) + NODE_W + PADDING * 2,
+          height: Math.max(...ys) - Math.min(...ys) + NODE_H + PADDING * 2,
+        };
+      });
+    };
+
+    return {
+      chapterBoxes: computeBoxes('chapterId'),
+      pathBoxes: computeBoxes('pathId'),
+    };
+  }, [allNodes]);
 
   const [rfNodes, setRfNodes] = useState(derivedNodes);
 
@@ -348,6 +490,9 @@ function GraphCanvasInner() {
 
   return (
     <div ref={canvasRef} className={`canvas-wrapper ${isCampaignActive ? 'campaign-mode' : ''}`} style={{ width: '100%', height: '100%' }}>
+      {/* ADDED: Phase 3 — Cluster overlay (chapter/path regions behind nodes) */}
+      <ClusterOverlay chapterBoxes={clusterBoxes.chapterBoxes} pathBoxes={clusterBoxes.pathBoxes} />
+
       {isCampaignActive && (
         <div className="simulation-banner" style={{
           position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
@@ -357,7 +502,7 @@ function GraphCanvasInner() {
           ⚡ Campaign Active — click a highlighted node to advance
         </div>
       )}
-      
+
       {/* ADDED: Phase 2 naming modal render */}
       {pendingNameModal !== null && (
         <NameModal

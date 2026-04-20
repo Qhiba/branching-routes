@@ -8,6 +8,13 @@ export default function useKeyboardShortcuts() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // ADDED: Phase 2 — Ctrl+K palette toggle (before input guard; fires even when palette input focused)
+      if (e.ctrlKey && e.key === 'k') {
+        e.preventDefault(); // Firefox: suppress default browser search-bar focus
+        window.dispatchEvent(new Event('palette-toggle'));
+        return;
+      }
+
       // Guard: do not trigger if an input field is focused
       if (
         e.target.tagName === 'INPUT' ||
@@ -40,6 +47,12 @@ export default function useKeyboardShortcuts() {
 
       if (e.key.toLowerCase() === 'r') {
         useUIStore.getState().toggleLabelDisplayMode();
+        return;
+      }
+
+      // ADDED: Phase 3 — G: cycle cluster visualization mode (view-only, allowed during campaign)
+      if (e.key.toLowerCase() === 'g') {
+        useUIStore.getState().cycleClusterMode();
         return;
       }
 

@@ -1,4 +1,4 @@
-import { TopBar, GraphCanvas, Sidebar } from 'components';
+import { TopBar, GraphCanvas, Sidebar, Toast, CommandPalette } from 'components';
 import './App.css';
 
 export default function App() {
@@ -13,6 +13,10 @@ export default function App() {
       <aside className="app__sidebar">
         <Sidebar />
       </aside>
+      {/* ADDED: Phase 1 — Toast notifications overlay (fixed positioning, no grid impact) */}
+      <Toast />
+      {/* ADDED: Phase 2 — Command palette overlay for keyboard-driven navigation/authoring (fixed positioning, no grid impact) */}
+      <CommandPalette />
     </div>
   );
 }
