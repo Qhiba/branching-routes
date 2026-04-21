@@ -11,8 +11,6 @@ node_modules
 dist
 dist-ssr
 .claude
-informations
-tests
 *.local
 
 # Editor directories and files

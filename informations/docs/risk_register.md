@@ -60,6 +60,13 @@
 | RISK-CP-05 | Cluster bounding box re-computation per viewport frame | Medium | Medium | Bounding boxes computed in `GraphCanvasInner` via `useMemo`; passed as props; `ClusterOverlay` applies only CSS transform per pan frame | RESOLVED |
 | RISK-CPT-01 | Whole-store destructure in CommandPalette causes unnecessary re-renders | Low | Low | See details below | OPEN |
 | RISK-CPT-02 | Stale `isOpen` closure in palette-toggle effect | Low | Low | See details below | OPEN |
+| RISK-RT-01 | AR-14 Re-Render Storm from `traversalRecords` Array Subscription | High | High | Per-edge primitive selectors; `StatusStrip` reads numbers not arrays | RESOLVED |
+| RISK-RT-02 | `undoLastNode` Auto-Save Race Condition | Medium | Medium | Synchronous `set()` makes race structurally impossible | RESOLVED |
+| RISK-RT-03 | Phase 3 RULE CONFLICT Blocks Execution (AR-16 / `--coverage-gap`) | Certain | High | AR-16 updated before Phase 3 executed | RESOLVED |
+| RISK-RT-04 | Forward BFS Cost on Each `advance()` Call | Low | Medium | Plain O(V+E) BFS; 500-node visit cap as hard ceiling | MITIGATED |
+| RISK-RT-05 | Shortest-Route State-Space Search Complexity | Low | High | `HARD_CAP = 50`, `MAX_STATE_VISITS` budget cap, `exhausted` flag, user notice | MITIGATED |
+| RISK-RT-06 | Undeclared `setShortestRouteResults` Action (AR-20 drift) | Certain | Low | Backfilled in documentation (0208); AR-24 prevents recurrence | OPEN |
+| RISK-RT-07 | Edit-Mode Route Finder Path from `selectedNodeId` (scope drift) | Certain | Low | Behavior is correct; scope wording reconciled in documentation (0208) | OPEN |
 
 ---
 
@@ -766,3 +773,101 @@
 **Mitigation Strategy:** Refactor the effect to use a `useRef` for `isOpen` (ref stays current without causing re-registration) or a functional-set pattern (`setIsOpen(prev => !prev)`) dispatched from the event listener without reading closed-over state. Either removes the staleness risk entirely.
 
 **Status:** OPEN — Surfaced in audit pass 2 §6. Non-blocking; deferred to future cleanup.
+
+---
+
+## RISK-RT-01 — AR-14 Re-Render Storm from `traversalRecords` Array Subscription
+
+**Description:** `advance()` pushes a new object into `traversalRecords[]` on every simulation step. Any component subscribing to the full array would receive a new reference on every step, triggering a re-render cascade across the canvas.
+
+**Likelihood:** High — the temptation to read `traversalRecords` directly in `ConditionalEdge` or `StatusStrip` is natural.
+
+**Impact:** High — lagging simulation on medium-sized graphs defeats the tool's core value.
+
+**Mitigation Strategy:** `ConditionalEdge` reads `s.traversedEdgeIds.includes(id)` — a boolean primitive — not the records array. `StatusStrip` reads `seenNodeIds.length` and `traversedEdgeIds.length` (numbers). `undoLastNode()` computes what it needs inside the action, never exposing the array to components.
+
+**Status:** RESOLVED — All four test phases pass (156/156 tests). Per-edge traversal checks confirmed returning primitives throughout all three node renderers and `ConditionalEdge`. `StatusStrip` selectors confirmed number-typed. AR-14 compliance verified in audit §5.
+
+---
+
+## RISK-RT-02 — `undoLastNode` Auto-Save Race Condition
+
+**Description:** If `autosaveCampaign` is true, the debounced campaign subscriber (1000ms) could write a snapshot between the user clicking Undo and the state rollback completing, saving the pre-Undo state to the campaign.
+
+**Likelihood:** Medium — the 1000ms debounce window is long enough that a write could be in-flight when Undo fires.
+
+**Impact:** Medium — the campaign saves incorrect state; Load Last Save after Undo would restore the wrong node.
+
+**Mitigation Strategy:** `undoLastNode()` performs its rollback as a single synchronous `set()` call. Zustand `set()` is synchronous — the rollback completes in the same microtask as the action call, before the JS event loop yields. The debounce timer cannot fire until the action completes.
+
+**Status:** RESOLVED — `simulationStore.js:556-608` confirmed as a single `set()` call. Race is structurally impossible. Verified across Phase 1 test suite (40/40 pass).
+
+---
+
+## RISK-RT-03 — Phase 3 RULE CONFLICT Blocks Execution (AR-16 / `--coverage-gap`)
+
+**Description:** AR-16 requires any new visual state to update the rule before shipping. The `--coverage-gap` orthogonal overlay is a new visual state. Phase 3 was structurally blocked until AR-16 was amended.
+
+**Likelihood:** Certain — structural, not probabilistic.
+
+**Impact:** High — shipping Phase 3 without the AR-16 update leaves `--coverage-gap` as an undocumented visual state.
+
+**Mitigation Strategy:** Phase 3 hard-stop prerequisite check required verifying `--coverage-gap` in `architecture_rules.md` before execution. AR-16 was updated to document `--coverage-gap` as the second orthogonal indicator alongside `--seen`.
+
+**Status:** RESOLVED — `architecture_rules.md:130` documents `--coverage-gap` as the eighth orthogonal indicator. Amendment made before Phase 3 executed. Confirmed in audit §5 AR-16 check: PASS.
+
+---
+
+## RISK-RT-04 — Forward BFS Cost on Each `advance()` Call
+
+**Description:** Phase 3 calls `routeTracer.computeForwardReachable(activeNodeId, graphState)` on every `advance()` call to populate `unreachableFromActiveNodeIds`. On narratives with 200+ nodes and dense edges, this BFS runs on every simulation step.
+
+**Likelihood:** Low for typical projects (<100 nodes); Medium for large projects.
+
+**Impact:** Medium — visible lag per simulation step on large graphs.
+
+**Mitigation Strategy:** `computeForwardReachable` is a plain BFS with no gate evaluation — O(V + E) worst case; fast in practice for typical narrative graph sizes. Hard ceiling: cap BFS at 500 node visits; return partial set with a flag for pathological graphs.
+
+**Status:** MITIGATED — Phase 3 test suite (39/39 pass) shows no visible advance lag. The 500-node visit cap is implemented. Memoisation with `(activeNodeId, edges)` cache key is available as an optimisation if profiling later shows meaningful overhead.
+
+---
+
+## RISK-RT-05 — Shortest-Route State-Space Search Complexity
+
+**Description:** Gate-respecting pathfinding is not plain BFS — a gate that fails at the current flag state may pass after visiting a flag-setting node first. A correct state-space search is exponential in the worst case. Returning k paths amplifies cost. On a dense, heavily-gated graph with k=50, the search could run for seconds.
+
+**Likelihood:** Low for typical narratives (<5 flags, sparse gating); Medium for narratives with 10+ interacting flags.
+
+**Impact:** High — a browser hang from a pathological search blocks the entire authoring session.
+
+**Mitigation Strategy:** `computeShortestPaths` enforces `HARD_CAP = 50` on returned path count regardless of the `limit` input. A `MAX_STATE_VISITS` cap aborts the search and returns partial results with an `exhausted: true` flag. `RouteFinderDialog` displays a "Search budget reached — showing best paths found" notice when `exhausted: true`.
+
+**Status:** MITIGATED — Phase 4 test suite (50/50 pass). `HARD_CAP` and `MAX_STATE_VISITS` confirmed implemented. `exhausted` flag wired to dialog notice. No browser hang observed on test graphs.
+
+---
+
+## RISK-RT-06 — Undeclared `setShortestRouteResults` Action (AR-20 Drift)
+
+**Description:** `simulationStore.setShortestRouteResults(paths)` was added during the BUG-03 fix in Phase 4 but was not listed in `ran_0202_datamodelimpact.md` under §"simulationStore — new action signatures". The action exists and works, but the data model document is out of sync with the store's actual public surface.
+
+**Likelihood:** Certain — inspectable in the file.
+
+**Impact:** Low — the action is small and its role is documented in the fix report, but this is exactly the silent-signature-change pattern AR-20 and AR-24 exist to prevent.
+
+**Mitigation Strategy:** The action and its guard posture (unguarded — callable in edit mode or campaign mode) are documented here and in `codebase_features.md`. AR-24 formalises the requirement to declare each writer's precondition contract in future features, preventing recurrence.
+
+**Status:** OPEN — Non-blocking. Documentation backfilled in 0208 Document step. AR-24 added to prevent future occurrences of this class of issue.
+
+---
+
+## RISK-RT-07 — Edit-Mode Route Finder Path from `selectedNodeId` (Scope Drift)
+
+**Description:** `RouteFinderDialog.handleRun` reads `selectedNodeId` from `uiStore` to pick the target when no campaign is active. The scope document framed Route Finder as a "campaign-mode analysis" tool, so an edit-mode entry path is a scope expansion introduced during BUG-03 fixes. The behavior is correct and useful, but the scope assumptions section pre-committed to campaign-mode usage only.
+
+**Likelihood:** Certain structurally.
+
+**Impact:** Low — it is a useful capability, not a regression. The edit-mode path works and is safe.
+
+**Mitigation Strategy:** The shipped behavior (edit-mode target selection via `selectedNodeId`) is correct and is documented in `codebase_features.md`. The scope document remains as a historical artifact; this risk entry records the divergence.
+
+**Status:** OPEN — Non-blocking. Behavior is correct. Documented here to reconcile scope wording with shipped behavior. Future scope documents for Route Finder extensions should treat edit-mode usage as a first-class entry path, not a campaign-mode-only feature.
