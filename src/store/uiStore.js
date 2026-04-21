@@ -10,6 +10,13 @@ export const useUIStore = create((set, get) => ({
   // ADDED: Phase 3 — cluster visualization mode ('off' | 'chapter' | 'path' | 'both')
   clusterMode: 'off',
 
+  // ADDED: Phase 1 — overlay toggle states for route tracing visualization
+  showTraversalOverlay: true,
+  showRouteFinderDialog: false,
+  showShortestRouteOverlay: false,
+  // ADDED: Phase 4 — selected route index for displaying specific path
+  selectedRouteIndex: 0,
+
   toggleSnapToGrid: () => set(state => ({ snapToGrid: !state.snapToGrid })),
   toggleLabelDisplayMode: () => set(state => ({ labelDisplayMode: state.labelDisplayMode === 'compact' ? 'verbose' : 'compact' })), // ADDED: Phase 2 toggle
   // ADDED: Phase 3 — cycle cluster mode through off → chapter → path → both → off
@@ -17,6 +24,22 @@ export const useUIStore = create((set, get) => ({
     const next = { off: 'chapter', chapter: 'path', path: 'both', both: 'off' };
     return { clusterMode: next[state.clusterMode] };
   }),
+
+  // ADDED: Phase 1 — overlay toggle actions
+  toggleTraversalOverlay: () => set(state => ({ showTraversalOverlay: !state.showTraversalOverlay })),
+  toggleRouteFinderDialog: () => set(state => ({ showRouteFinderDialog: !state.showRouteFinderDialog })),
+  // MODIFIED: Phase 4 — reset selected route index when turning off overlay
+  toggleShortestRouteOverlay: () => set(state => {
+    const isNowOff = state.showShortestRouteOverlay;
+    return {
+      showShortestRouteOverlay: !state.showShortestRouteOverlay,
+      selectedRouteIndex: isNowOff ? 0 : state.selectedRouteIndex
+    };
+  }),
+
+  // ADDED: Phase 4 — set selected route index for display
+  setSelectedRouteIndex: (n) => set({ selectedRouteIndex: n }),
+
   setChoiceDisplayMode: (mode) => set({ choiceDisplayMode: mode }), // PROTECTED: Integrations unchanged
   selectNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }), // PROTECTED: Primary single-select semantics
   selectEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),

@@ -60,6 +60,12 @@ input:focus, textarea:focus, select:focus {
   50%       { opacity: 0.5; }
 }
 
+/* ADDED: Phase 4 — Route overlay flowing animation (dash offset animation) */
+@keyframes flow-dash {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -12; }
+}
+
 /* Utility */
 .visually-hidden {
   position: absolute;
@@ -432,11 +438,11 @@ input:focus, textarea:focus, select:focus {
   opacity: 0.6;
 }
 
-/* Seen Overlay Glyph */
+/* Seen Overlay Glyph — MODIFIED: Add green border and box-shadow for visual distinction */
 .story-node--seen {
-  opacity: 0.4;
-  filter: grayscale(60%);
-  transition: opacity var(--transition-normal), filter var(--transition-normal);
+  border-color: var(--color-node-seen) !important;
+  box-shadow: 0 0 0 1px var(--color-node-seen), var(--shadow-md);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
 
 
@@ -457,8 +463,13 @@ input:focus, textarea:focus, select:focus {
   font-size: 10px;
   font-weight: bold;
   z-index: 10;
-  opacity: 1;
-  filter: none;
+}
+
+/* ADDED: Phase 3 — Coverage-gap overlay (nodes not forward-reachable from active node) — MODIFIED: Lighter dimming */
+.story-node--coverage-gap {
+  opacity: 0.6;
+  filter: grayscale(40%);
+  transition: opacity var(--transition-normal), filter var(--transition-normal);
 }
 
 /* =========================================
@@ -959,4 +970,378 @@ header.campaign-mode .file-actions { opacity: 0.4; pointer-events: none; }
   width: 100%;
   height: 100%;
   overflow: visible;
+}
+
+/* ADDED: Phase 2 — Traversal overlay edge class */
+.conditional-edge--traversal-overlay {
+  stroke: var(--color-traversal-overlay) !important;
+  stroke-width: 3px !important;
+}
+
+/* ADDED: Phase 4 — Route overlay (shortest-path highlighting with dashed animated stroke) */
+.conditional-edge--route-overlay {
+  stroke: var(--color-route-overlay) !important;
+  stroke-width: 3px !important;
+  stroke-dasharray: 8 4;
+  animation: flow-dash 1.5s linear infinite;
+}
+
+/* ADDED: Phase 2 — Status strip component (bottom bar coverage metrics) */
+.status-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: 28px;
+  background: var(--color-bg-surface);
+  border-top: 1px solid var(--color-border);
+  padding: 0 var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.status-strip__readout {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.status-strip__label {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.status-strip__count {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.status-strip__toggle {
+  margin-left: auto;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.status-strip__toggle:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-accent);
+}
+
+/* ADDED: Phase 4 — Route finder dialog component (overlay panel for pathfinding) */
+.route-finder-dialog__backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: var(--z-modal);
+}
+
+.route-finder-dialog {
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  width: 520px;
+  max-width: 90vw;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+
+.route-finder-dialog__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3);
+  font-weight: bold;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+}
+
+.route-finder-dialog__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+}
+
+.route-finder-dialog__close:hover {
+  color: var(--color-text-primary);
+}
+
+.route-finder-dialog__body {
+  padding: var(--space-4) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.route-finder-dialog__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.route-finder-dialog__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-medium);
+}
+
+.route-finder-dialog__search-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+}
+
+.route-finder-dialog__results-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+}
+
+.route-finder-dialog__result-item {
+  width: 100%;
+  padding: var(--space-3);
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.route-finder-dialog__result-item:last-child {
+  border-bottom: none;
+}
+
+.route-finder-dialog__result-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.route-finder-dialog__result-item--selected {
+  background: rgba(115, 147, 248, 0.1);
+  border-bottom-color: var(--color-primary);
+}
+
+.route-finder-dialog__result-label {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.route-finder-dialog__result-context {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  display: flex;
+  gap: var(--space-2);
+}
+
+.route-finder-dialog__selected-target {
+  padding: var(--space-2) var(--space-3);
+  background: rgba(76, 175, 125, 0.1);
+  border-left: 3px solid var(--color-node-seen);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+}
+
+.route-finder-dialog__no-target {
+  padding: var(--space-3);
+  background: rgba(230, 102, 102, 0.1);
+  border-left: 3px solid var(--color-danger);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.route-finder-dialog__priority-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.route-finder-dialog__priority-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.route-finder-dialog__priority-name {
+  flex: 1;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.route-finder-dialog__priority-select,
+.route-finder-dialog__priority-input {
+  width: 100px;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.route-finder-dialog__priority-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-danger);
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+}
+
+.route-finder-dialog__priority-remove:hover {
+  color: #ff6b6b;
+}
+
+.route-finder-dialog__add-priority {
+  padding: var(--space-2) 0;
+}
+
+.route-finder-dialog__add-priority-select {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.route-finder-dialog__cap-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+}
+
+.route-finder-dialog__stale-banner {
+  padding: var(--space-3);
+  background: rgba(248, 171, 84, 0.1);
+  border-left: 3px solid var(--color-toast-warning);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+}
+
+.route-finder-dialog__results-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.route-finder-dialog__route-item {
+  padding: var(--space-3);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+  text-align: left;
+}
+
+.route-finder-dialog__route-item:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-accent);
+}
+
+.route-finder-dialog__route-item--selected {
+  background: rgba(34, 211, 238, 0.1);
+  border-color: var(--color-route-overlay);
+  border-left-width: 3px;
+  border-left-color: var(--color-route-overlay);
+}
+
+.route-finder-dialog__route-length {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.route-finder-dialog__route-edges {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.route-finder-dialog__footer {
+  padding: var(--space-3);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+}
+
+.route-finder-dialog__button {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.route-finder-dialog__button:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  border-color: var(--color-accent);
+}
+
+.route-finder-dialog__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.route-finder-dialog__button--primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.route-finder-dialog__button--primary:hover:not(:disabled) {
+  background: #6286d8;
+  border-color: #6286d8;
+}
+
+.route-finder-dialog__button--secondary {
+  background: var(--color-bg-elevated);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
 }

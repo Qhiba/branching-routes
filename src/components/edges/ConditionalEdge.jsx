@@ -1,12 +1,31 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from '@xyflow/react';
 import { useSimulationStore, useUIStore, useNarrativeStore } from 'store';
 
 function ConditionalEdge(props) {
   const { id, source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, data } = props;
-  const isTraversed = useSimulationStore(s => s.isCampaignActive && s.traversedEdgeIds.includes(id));
+  // ADDED: Phase 2 — traversal overlay toggle (AR-14: boolean primitive, not array)
+  const showTraversalOverlay = useUIStore(s => s.showTraversalOverlay);
+  // MODIFIED: Phase 2 — compute traversal overlay state gated on toggle
+  const isTraversedOverlay = useSimulationStore(s => s.isCampaignActive && s.traversedEdgeIds.includes(id)) && showTraversalOverlay;
   const isConditionPass = useSimulationStore(s => s.isCampaignActive && s.reachableEdgeIds.includes(id));
-  
+
+  // ADDED: Phase 4 — shortest-route overlay selectors
+  const showShortestRouteOverlay = useUIStore(s => s.showShortestRouteOverlay);
+  const selectedRouteIndex = useUIStore(s => s.selectedRouteIndex);
+  const shortestRouteResults = useSimulationStore(s => s.shortestRouteResults);
+
+  // ADDED: Phase 4 — compute route edge set for overlay (AR-14: memoized, not recomputed on every render)
+  const routeEdgeSet = useMemo(() => {
+    if (!showShortestRouteOverlay || !shortestRouteResults || !shortestRouteResults[selectedRouteIndex]) {
+      return null;
+    }
+    return new Set(shortestRouteResults[selectedRouteIndex].pathEdgeIds);
+  }, [showShortestRouteOverlay, shortestRouteResults, selectedRouteIndex]);
+
+  // ADDED: Phase 4 — check if this edge is on the selected route
+  const isRouteOverlay = routeEdgeSet?.has(id) ?? false;
+
   // ADDED: Phase 2 label display mode
   const labelDisplayMode = useUIStore(s => s.labelDisplayMode);
   const flagDict = useNarrativeStore(s => s.flag);
@@ -22,11 +41,15 @@ function ConditionalEdge(props) {
   });
 
   let className = 'conditional-edge';
-  if (isTraversed) {
-    className += ' conditional-edge--traversed';
+  // MODIFIED: Phase 4 — apply route overlay (takes precedence), then traversal overlay, then condition-pass
+  if (isRouteOverlay) {
+    className += ' conditional-edge--route-overlay';
+  } else if (isTraversedOverlay) {
+    className += ' conditional-edge--traversal-overlay';
   } else if (isConditionPass) {
     className += ' conditional-edge--condition-pass';
   }
+  // PROTECTED: --condition-pass animation unchanged; priority order: route > traversal > condition-pass
 
   const label = data?.label;
   const condition = data?.condition;

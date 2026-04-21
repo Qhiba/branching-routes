@@ -22,3 +22,7 @@ export { default as CreationBar } from './CreationBar'; // ADDED: Phase 4 Creati
 export { default as Toast } from './Toast';
 // ADDED: Phase 2 — Command palette component export
 export { default as CommandPalette } from './CommandPalette';
+// ADDED: Phase 2 — Status strip component export
+export { default as StatusStrip } from './StatusStrip';
+// ADDED: Phase 4 — Route finder dialog component export
+export { default as RouteFinderDialog } from './RouteFinderDialog';

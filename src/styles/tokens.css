@@ -33,7 +33,7 @@
   --color-node-complete:     #f8ab54; /* campaign complete (yellow/orange) */
   --color-node-failed:       #d64545; /* campaign failed */
   --color-node-branch-locked:#8b60ba; /* campaign branch-locked */
-  --color-node-seen:         #ffffff; /* campaign seen indicator */
+  --color-node-seen:         #4caf7d; /* campaign seen/visited node (green) */
   --color-danger:    #e56666;   /* delete buttons, warnings */
   --color-border:    #323759;   /* default element borders */
 
@@ -89,6 +89,11 @@
   --color-toast-success: #4caf7d;
   --color-toast-warning: #f8ab54;
   --color-toast-error:   #e56666;
+
+  /* ADDED: Phase 2 — Campaign state overlay colors */
+  --color-traversal-overlay: #f97316; /* warm orange, distinct from visited and reachable */
+  --color-route-overlay: #22d3ee;     /* cyan, reserved for Phase 4 */
+  --opacity-coverage-gap: 0.2;        /* reserved for Phase 3 */
 
   /* ADDED: Phase 3 — Cluster palette (8 distinct colors for path/chapter regions) */
   --cluster-color-0: #a78bfa;  /* violet */

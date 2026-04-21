@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useNarrativeStore } from 'store';
-import { evaluateCondition } from 'utils';
+import { useUIStore } from 'store';
+import { evaluateCondition, computeForwardReachable, computeShortestPaths } from 'utils';
 import { useCampaignStore } from './campaignStore.js';
 
 function computeReachable(activeNodeId, graphState, currentFlagValues, selectedOptionId = null) {
@@ -155,12 +156,63 @@ export const useSimulationStore = create((set, get) => ({
   nodeStates: {},
   selectedOptionId: null,
 
+  // ADDED: Phase 1 — Traversal Records and Undo
+  traversalRecords: [],
+  preAdvanceFlagSnapshot: null,
+
+  // ADDED: Phase 3 — Forward-reachability analysis for coverage-gap dimming
+  unreachableFromActiveNodeIds: [],
+
+  // ADDED: Phase 4 — Shortest-route pathfinding results
+  shortestRouteResults: null,
+  shortestRouteTargetNodeId: null,
+  isShortestRouteStale: false,
+
   orphanedNodeIds: [],
   unreachableNodeIds: [],
   sandboxOverrides: {},
   autosaveCampaign: false,
 
   setAutosaveCampaign: (value) => set({ autosaveCampaign: value }),
+
+  // ADDED: Phase 4 — Shortest-route pathfinding actions
+  computeRoutes: (targetNodeId, priorities = [], limit = 5) => {
+    const state = get();
+    if (!state.isCampaignActive) return;
+
+    const graphState = useNarrativeStore.getState();
+    const result = computeShortestPaths(
+      state.activeNodeId,
+      targetNodeId,
+      graphState,
+      state.currentFlagValues,
+      priorities,
+      limit
+    );
+
+    set({
+      shortestRouteResults: result.paths,
+      shortestRouteTargetNodeId: targetNodeId,
+      isShortestRouteStale: false
+    });
+  },
+
+  // ADDED: Phase 4 — Set route results directly (edit-mode path, no campaign guard)
+  setShortestRouteResults: (paths) => set({
+    shortestRouteResults: paths,
+    shortestRouteTargetNodeId: null,
+    isShortestRouteStale: false
+  }),
+
+  // ADDED: Phase 4 — Clear route results
+  clearRouteResults: () => set({
+    shortestRouteResults: null,
+    shortestRouteTargetNodeId: null,
+    isShortestRouteStale: false
+  }),
+
+  // ADDED: Phase 4 — Mark route results as stale without clearing
+  setShortestRouteStale: () => set({ isShortestRouteStale: true }),
 
   getNodeState: (id) => get().nodeStates[id],
 
@@ -221,6 +273,9 @@ export const useSimulationStore = create((set, get) => ({
     const option = (choiceNode.data.options || []).find(o => o.id === optionId);
     if (!option) throw new Error('Option not found on active choice node');
 
+    // ADDED: Phase 1 — capture pre-option-effect flag state for traversal record
+    const preOptionFlagSnapshot = { ...state.currentFlagValues };
+
     // Merge option side effects
     let nextFlagValues = { ...state.currentFlagValues };
     nextFlagValues = applyFlagsSet(option.flags_set, nextFlagValues);
@@ -230,6 +285,8 @@ export const useSimulationStore = create((set, get) => ({
     const nodeStates = computeNodeStates(activeNodeId, graphState, reachableNodeIds, optionId, state.seenNodeIds);
 
     set({
+      // ADDED: Phase 1 — store pre-option snapshot for advance() to use
+      preAdvanceFlagSnapshot: preOptionFlagSnapshot,
       selectedOptionId: optionId,
       currentFlagValues: nextFlagValues,
       reachableEdgeIds,
@@ -240,6 +297,9 @@ export const useSimulationStore = create((set, get) => ({
 
   enterCampaign: (campaignPayload) => {
     // INVARIANT: LBA-01
+    // MODIFIED: Phase 4 — clear canvas selection when entering campaign (user must select route target during campaign)
+    useUIStore.getState().clearSelection();
+
     const graphState = useNarrativeStore.getState();
 
     const allNodes = [
@@ -299,6 +359,15 @@ export const useSimulationStore = create((set, get) => ({
     const { reachableEdgeIds, reachableNodeIds } = computeReachable(resumeNodeId, graphState, initialFlags);
     const nodeStates = computeNodeStates(resumeNodeId, graphState, reachableNodeIds, null, resumeSeenNodeIds);
 
+    // ADDED: Phase 3 — compute initial forward-reachability for coverage-gap dimming
+    const forwardReachable = computeForwardReachable(resumeNodeId, graphState);
+    const allNodeIds = [
+      ...Object.keys(graphState.common || {}),
+      ...Object.keys(graphState.choice || {}),
+      ...Object.keys(graphState.ending || {})
+    ];
+    const initialUnreachableFromActiveNodeIds = allNodeIds.filter(id => !forwardReachable.has(id));
+
     set({
       isCampaignActive: true,
       activeNodeId: resumeNodeId,
@@ -312,7 +381,16 @@ export const useSimulationStore = create((set, get) => ({
       selectedOptionId: null,
       sandboxOverrides: {},
       orphanedNodeIds: [],
-      unreachableNodeIds: []
+      unreachableNodeIds: [],
+      // ADDED: Phase 1 — clear traversal records on campaign enter
+      traversalRecords: [],
+      preAdvanceFlagSnapshot: null,
+      // ADDED: Phase 3 — initialize forward-reachability for coverage-gap dimming
+      unreachableFromActiveNodeIds: initialUnreachableFromActiveNodeIds,
+      // ADDED: Phase 4 — clear route results on campaign enter
+      shortestRouteResults: null,
+      shortestRouteTargetNodeId: null,
+      isShortestRouteStale: false
     });
   },
 
@@ -327,6 +405,15 @@ export const useSimulationStore = create((set, get) => ({
     const edge = graphState.edges.find(e => e.id === edgeId);
     if (!edge) throw new Error('Edge not found');
 
+    // ADDED: Phase 1 — construct traversal record before destination node effects fire
+    const traversalRecord = {
+      sequence: state.traversalRecords.length,
+      edgeId,
+      optionId: edge.optionId ?? null,
+      fromNodeId: state.activeNodeId,
+      toNodeId: edge.targetId,
+      flagSnapshot: state.preAdvanceFlagSnapshot ?? { ...state.currentFlagValues }
+    };
 
     const isEnding = edge.targetId in (graphState.ending || {});
     let destNode = (graphState.common || {})[edge.targetId] || (graphState.choice || {})[edge.targetId] || (graphState.ending || {})[edge.targetId];
@@ -351,6 +438,15 @@ export const useSimulationStore = create((set, get) => ({
       }
     });
 
+    // ADDED: Phase 3 — compute forward-reachable nodes for coverage-gap dimming
+    const forwardReachable = computeForwardReachable(edge.targetId, graphState);
+    const allNodeIds = [
+      ...Object.keys(graphState.common || {}),
+      ...Object.keys(graphState.choice || {}),
+      ...Object.keys(graphState.ending || {})
+    ];
+    const nextUnreachableFromActiveNodeIds = allNodeIds.filter(id => !forwardReachable.has(id));
+
     if (isEnding) {
       const nextSeenNodeIds = [...state.seenNodeIds, state.activeNodeId];
       const newNodeStates = computeNodeStates(destNode.id, graphState, [], null, nextSeenNodeIds);
@@ -363,7 +459,12 @@ export const useSimulationStore = create((set, get) => ({
         reachableEdgeIds: [],
         reachableNodeIds: [],
         nodeStates: { ...persistedLocked, ...newNodeStates },
-        selectedOptionId: null
+        selectedOptionId: null,
+        // ADDED: Phase 1 — record traversal and clear pre-snapshot
+        traversalRecords: [...state.traversalRecords, traversalRecord],
+        preAdvanceFlagSnapshot: null,
+        // ADDED: Phase 3 — forward-reachability for coverage-gap dimming
+        unreachableFromActiveNodeIds: nextUnreachableFromActiveNodeIds
       });
     } else {
       const nextSeenNodeIds = [...state.seenNodeIds, state.activeNodeId];
@@ -378,7 +479,12 @@ export const useSimulationStore = create((set, get) => ({
         reachableEdgeIds,
         reachableNodeIds,
         nodeStates: { ...persistedLocked, ...newNodeStates },
-        selectedOptionId: null
+        selectedOptionId: null,
+        // ADDED: Phase 1 — record traversal and clear pre-snapshot
+        traversalRecords: [...state.traversalRecords, traversalRecord],
+        preAdvanceFlagSnapshot: null,
+        // ADDED: Phase 3 — forward-reachability for coverage-gap dimming
+        unreachableFromActiveNodeIds: nextUnreachableFromActiveNodeIds
       });
     }
   },
@@ -414,6 +520,15 @@ export const useSimulationStore = create((set, get) => ({
     const { reachableEdgeIds, reachableNodeIds } = computeReachable(startNode.id, graphState, initialFlags);
     const nodeStates = computeNodeStates(startNode.id, graphState, reachableNodeIds, null, []);
 
+    // ADDED: Phase 3 — compute initial forward-reachability for coverage-gap dimming
+    const forwardReachable = computeForwardReachable(startNode.id, graphState);
+    const allNodeIds = [
+      ...Object.keys(graphState.common || {}),
+      ...Object.keys(graphState.choice || {}),
+      ...Object.keys(graphState.ending || {})
+    ];
+    const initialUnreachableFromActiveNodeIds = allNodeIds.filter(id => !forwardReachable.has(id));
+
     set({
       isCampaignActive: true,
       activeNodeId: startNode.id,
@@ -424,7 +539,73 @@ export const useSimulationStore = create((set, get) => ({
       reachableEdgeIds,
       reachableNodeIds,
       nodeStates,
-      selectedOptionId: null
+      selectedOptionId: null,
+      // ADDED: Phase 1 — clear traversal records on reset
+      traversalRecords: [],
+      preAdvanceFlagSnapshot: null,
+      // ADDED: Phase 3 — initialize forward-reachability for coverage-gap dimming
+      unreachableFromActiveNodeIds: initialUnreachableFromActiveNodeIds,
+      // ADDED: Phase 4 — clear route results on reset
+      shortestRouteResults: null,
+      shortestRouteTargetNodeId: null,
+      isShortestRouteStale: false
+    });
+  },
+
+  // ADDED: Phase 1 — undo the last node traversal
+  undoLastNode: () => {
+    const state = get();
+    if (!state.isCampaignActive || state.traversalRecords.length === 0) return;
+
+    const record = state.traversalRecords[state.traversalRecords.length - 1];
+    const graphState = useNarrativeStore.getState();
+
+    const restoredSeenNodeIds = state.seenNodeIds.slice(0, -1);
+    const { reachableEdgeIds, reachableNodeIds } = computeReachable(
+      record.fromNodeId,
+      graphState,
+      record.flagSnapshot
+    );
+    const nodeStates = computeNodeStates(
+      record.fromNodeId,
+      graphState,
+      reachableNodeIds,
+      null,
+      restoredSeenNodeIds
+    );
+
+    // Restore locked states from previous computation
+    const persistedLocked = {};
+    Object.entries(state.nodeStates).forEach(([nodeId, nodeState]) => {
+      if ((nodeState === 'locked' || nodeState === 'branch_locked') && nodeId !== record.fromNodeId) {
+        persistedLocked[nodeId] = nodeState;
+      }
+    });
+
+    // ADDED: Phase 3 — recompute forward-reachability after undo
+    const forwardReachable = computeForwardReachable(record.fromNodeId, graphState);
+    const allNodeIds = [
+      ...Object.keys(graphState.common || {}),
+      ...Object.keys(graphState.choice || {}),
+      ...Object.keys(graphState.ending || {})
+    ];
+    const restoredUnreachableFromActiveNodeIds = allNodeIds.filter(id => !forwardReachable.has(id));
+
+    set({
+      activeNodeId: record.fromNodeId,
+      currentFlagValues: { ...record.flagSnapshot },
+      seenNodeIds: restoredSeenNodeIds,
+      traversedEdgeIds: state.traversedEdgeIds.slice(0, -1),
+      traversalRecords: state.traversalRecords.slice(0, -1),
+      reachableEdgeIds,
+      reachableNodeIds,
+      nodeStates: { ...persistedLocked, ...nodeStates },
+      selectedOptionId: null,
+      preAdvanceFlagSnapshot: null,
+      // ADDED: Phase 3 — restore forward-reachability analysis
+      unreachableFromActiveNodeIds: restoredUnreachableFromActiveNodeIds,
+      // ADDED: Phase 4 — mark route results stale after undo
+      isShortestRouteStale: state.shortestRouteResults !== null
     });
   },
 
@@ -453,6 +634,9 @@ export const useSimulationStore = create((set, get) => ({
 
   exitCampaign: () => {
     const state = get();
+
+    // MODIFIED: Phase 4 — clear canvas selection when exiting campaign
+    useUIStore.getState().clearSelection();
 
     // Only auto-snapshot if autosave is enabled
     if (state.autosaveCampaign) {
@@ -491,7 +675,16 @@ export const useSimulationStore = create((set, get) => ({
       selectedOptionId: null,
       sandboxOverrides: {},
       orphanedNodeIds: [],
-      unreachableNodeIds: []
+      unreachableNodeIds: [],
+      // ADDED: Phase 1 — clear traversal records on campaign exit
+      traversalRecords: [],
+      preAdvanceFlagSnapshot: null,
+      // ADDED: Phase 3 — clear forward-reachability analysis on campaign exit
+      unreachableFromActiveNodeIds: [],
+      // ADDED: Phase 4 — clear route results on campaign exit
+      shortestRouteResults: null,
+      shortestRouteTargetNodeId: null,
+      isShortestRouteStale: false
     });
   }
 }));

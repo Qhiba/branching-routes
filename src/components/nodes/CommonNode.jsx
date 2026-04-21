@@ -5,7 +5,9 @@ import { useSimulationStore, useUIStore, useNarrativeStore } from 'store';
 function CommonNode({ id, data }) {
   const nodeState = useSimulationStore(s => s.nodeStates[id]);
   const isSeen = useSimulationStore(s => s.seenNodeIds.includes(id));
-  
+  // ADDED: Phase 3 — coverage-gap dimming (unreachable but unseen nodes only; visited nodes always visible)
+  const isCoverageGap = useSimulationStore(s => s.isCampaignActive && s.unreachableFromActiveNodeIds.includes(id) && !s.seenNodeIds.includes(id));
+
   const isOrphaned = useSimulationStore(s => s.orphanedNodeIds.includes(id));
   const isUnreachable = useSimulationStore(s => s.unreachableNodeIds.includes(id));
 
@@ -14,7 +16,8 @@ function CommonNode({ id, data }) {
   const flagDict = useNarrativeStore(s => s.flag);
   const statusDict = useNarrativeStore(s => s.status);
 
-  const className = `story-node common-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen ? 'story-node--seen' : ''}`.trim();
+  // MODIFIED: Phase 3 — add coverage-gap class to className string
+  const className = `story-node common-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''}`.trim();
 
   const sideEffectsCount = (data.flags_set?.length || 0) + (data.status_set?.length || 0);
 

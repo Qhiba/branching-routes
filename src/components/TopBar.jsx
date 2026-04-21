@@ -13,6 +13,8 @@ export default function TopBar() {
   // ADDED: Phase 3 — cluster mode and cycle action
   const clusterMode = useUIStore(s => s.clusterMode);
   const cycleClusterMode = useUIStore(s => s.cycleClusterMode);
+  // ADDED: Phase 4 — route finder dialog toggle (edit-mode only authoring tool)
+  const toggleRouteFinderDialog = useUIStore(s => s.toggleRouteFinderDialog);
 
   const common = useNarrativeStore(s => s.common);
   const choice = useNarrativeStore(s => s.choice);
@@ -22,6 +24,9 @@ export default function TopBar() {
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
   const exitCampaign = useSimulationStore(s => s.exitCampaign);
   const resetSimulation = useSimulationStore(s => s.reset);
+  // ADDED: Phase 1 — undo button support (AR-14: number primitive, not array reference)
+  const traversalRecordsLength = useSimulationStore(s => s.traversalRecords.length);
+  const undoLastNode = useSimulationStore(s => s.undoLastNode);
   const newGraph = useNarrativeStore(s => s.newGraph);
   const loadGraph = useNarrativeStore(s => s.loadGraph);
   const exportGraph = useNarrativeStore(s => s.exportGraph);
@@ -176,6 +181,10 @@ export default function TopBar() {
 
         {isCampaignActive ? (
           <>
+            {/* ADDED: Phase 1 — undo button */}
+            <button onClick={undoLastNode} disabled={traversalRecordsLength === 0} className="topbar__btn">
+              Undo Step
+            </button>
             <button onClick={handleResetSimulation} className="topbar__btn topbar__btn--secondary">
               Reset Simulation
             </button>
@@ -184,7 +193,13 @@ export default function TopBar() {
             </button>
           </>
         ) : (
-          <CampaignSelector />
+          <>
+            {/* ADDED: Phase 4 — route finder button (edit-mode only authoring tool) */}
+            <button onClick={toggleRouteFinderDialog} className="topbar__btn" disabled={!hasNodes}>
+              Route Finder
+            </button>
+            <CampaignSelector />
+          </>
         )}
       </div>
     </div>
