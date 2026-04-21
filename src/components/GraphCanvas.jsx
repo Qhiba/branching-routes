@@ -15,13 +15,16 @@ import '@xyflow/react/dist/style.css';
 import { useNarrativeStore, useSimulationStore, useUIStore } from 'store';
 import useKeyboardShortcuts from 'hooks/useKeyboardShortcuts'; // ADDED: Phase 1 hook import
 import NameModal from 'components/NameModal'; // ADDED: Phase 2 NameModal import
-import NodeInspector from 'components/NodeInspector'; // FIX: used by node creation modal
-import ContextMenu from 'components/ContextMenu'; // ADDED: Phase 3 ContextMenu import
-
-import CommonNode from './nodes/CommonNode';
-import ChoiceNode from './nodes/ChoiceNode';
-import EndingNode from './nodes/EndingNode';
-import ConditionalEdge from './edges/ConditionalEdge';
+import {
+  FloatingMiddleBar,
+  CreationBar,
+  CommonNode,
+  ChoiceNode,
+  EndingNode,
+  ConditionalEdge,
+  NodeInspector,
+  ContextMenu
+} from 'components';
 
 // ADDED: Phase 3 — Cluster color palette (stable, module-level constant)
 const CLUSTER_PALETTE = [
@@ -118,7 +121,6 @@ function GraphCanvasInner() {
     addNode,
     addEdge,
     updateNode,
-    deleteNode,
   } = useNarrativeStore();
 
   const {
@@ -145,9 +147,8 @@ function GraphCanvasInner() {
 
   // ADDED: Phase 2 local state for naming modal
   const [pendingNameModal, setPendingNameModal] = useState(null);
-
-  // FIX: local state for node creation modal (common/choice/ending via creation bar)
-  const [pendingNodeModal, setPendingNodeModal] = useState(null);
+  // NOTE: pendingNodeModal removed — NodeConfigModal in App.jsx now handles all
+  // canvas-open-node-modal events and commits nodes only on Save (AR-19).
 
   // FIX: Ref to the canvas wrapper for computing canvas-relative mouse coordinates
   const canvasRef = useRef(null);
@@ -202,29 +203,51 @@ function GraphCanvasInner() {
     return () => window.removeEventListener('canvas-add-node', handleAddNode);
   }, [addNode, getMouseFlowPosition, screenToFlowPosition]);
 
-  // FIX: listen for node creation modal — creates node immediately, then shows inspector modal
+  // MODIFIED: canvas-open-node-modal is now intercepted by App.jsx (AR-19 event bus).
+  // GraphCanvas handles canvas-add-node-from-modal, which App fires after the user
+  // confirms the NodeConfigModal. This keeps position resolution inside the
+  // ReactFlowProvider where screenToFlowPosition is available.
   useEffect(() => {
-    const handleOpenNodeModal = (e) => {
+    const handleAddNodeFromModal = (e) => {
       if (useSimulationStore.getState().isCampaignActive) return;
-      const { nodeType, screenX, screenY } = e.detail;
+      const { nodeType, screenX, screenY, label, chapterId, pathId, isStartNode, description } = e.detail;
+
+      // Resolve screen → flow position
       let pos;
       if (screenX !== undefined && screenY !== undefined) {
         pos = screenToFlowPosition({ x: screenX, y: screenY });
       } else if (canvasRef.current) {
         const rect = canvasRef.current.getBoundingClientRect();
-        pos = screenToFlowPosition({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-        // jitter to avoid stacking when multiple nodes are created from center
+        const mouse = lastMousePos.current || { x: rect.width / 2, y: rect.height / 2 };
+        pos = screenToFlowPosition({ x: rect.left + mouse.x, y: rect.top + mouse.y });
         pos.x += (Math.random() - 0.5) * 60;
         pos.y += (Math.random() - 0.5) * 60;
       } else {
         pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
       }
-      const newId = addNode(pos, nodeType);
+
+      // Create the node with the label from the modal
+      const newId = addNode(pos, nodeType, label || 'Node');
+
+      // Apply the rest of the data patch (chapter, path, description)
+      const store = useNarrativeStore.getState();
+      store.updateNode(newId, {
+        data: {
+          content: description || '',
+          chapterId: chapterId || null,
+          pathId: pathId || null,
+        }
+      });
+
+      // setStartNode only if the user toggled it on
+      if (isStartNode) {
+        store.setStartNode(newId);
+      }
+
       selectNode(newId);
-      setPendingNodeModal(newId);
     };
-    window.addEventListener('canvas-open-node-modal', handleOpenNodeModal);
-    return () => window.removeEventListener('canvas-open-node-modal', handleOpenNodeModal);
+    window.addEventListener('canvas-add-node-from-modal', handleAddNodeFromModal);
+    return () => window.removeEventListener('canvas-add-node-from-modal', handleAddNodeFromModal);
   }, [addNode, selectNode, screenToFlowPosition]);
 
   // FIX: listen for focus-node requests from delete guards in FlagManager/StatusManager
@@ -413,7 +436,7 @@ function GraphCanvasInner() {
           advance(edge.id);
         }
       }
-      return; 
+      return;
     }
     selectNode(node.id);
   }, [selectNode, isCampaignActive, reachableNodeIds, reachableEdgeIds, storeEdges, advance]);
@@ -444,7 +467,10 @@ function GraphCanvasInner() {
     clearSelection();
     const now = Date.now();
     if (now - lastClickTime.current < 300) {
-      window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'common', screenX: event.clientX, screenY: event.clientY } }));
+      // MODIFIED: App.jsx intercepts this event and opens NodeConfigModal
+      window.dispatchEvent(new CustomEvent('canvas-open-node-modal', {
+        detail: { nodeType: 'common', screenX: event.clientX, screenY: event.clientY }
+      }));
     }
     lastClickTime.current = now;
   }, [clearSelection, closeContextMenu, isCampaignActive]);
@@ -489,19 +515,12 @@ function GraphCanvasInner() {
   }, [fitView]);
 
   return (
-    <div ref={canvasRef} className={`canvas-wrapper ${isCampaignActive ? 'campaign-mode' : ''}`} style={{ width: '100%', height: '100%' }}>
+    <div ref={canvasRef} className={`canvas-wrapper ${isCampaignActive ? 'campaign-mode' : ''}`} style={{ width: '100%', height: '100%', position: 'relative' }}>
       {/* ADDED: Phase 3 — Cluster overlay (chapter/path regions behind nodes) */}
       <ClusterOverlay chapterBoxes={clusterBoxes.chapterBoxes} pathBoxes={clusterBoxes.pathBoxes} />
 
-      {isCampaignActive && (
-        <div className="simulation-banner" style={{
-          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-          backgroundColor: 'var(--color-active)', color: '#000', textAlign: 'center',
-          padding: '8px', fontWeight: 'bold'
-        }}>
-          ⚡ Campaign Active — click a highlighted node to advance
-        </div>
-      )}
+      <FloatingMiddleBar />
+      {!isCampaignActive && <CreationBar />}
 
       {/* ADDED: Phase 2 naming modal render */}
       {pendingNameModal !== null && (
@@ -511,33 +530,8 @@ function GraphCanvasInner() {
         />
       )}
 
-      {/* FIX: node creation modal — shows NodeInspector for the just-created node.
-           Cancelling (backdrop/ESC) deletes the node. Done keeps it. */}
-      {pendingNodeModal !== null && (() => {
-        const cancelNodeModal = () => {
-          deleteNode(pendingNodeModal);
-          clearSelection();
-          setPendingNodeModal(null);
-        };
-        return (
-          <div className="name-modal__backdrop" onClick={cancelNodeModal}>
-            <div
-              className="name-modal node-creation-modal"
-              onClick={e => e.stopPropagation()}
-              onKeyDown={e => { e.stopPropagation(); if (e.key === 'Escape') cancelNodeModal(); }}
-            >
-              <div className="name-modal__header">Configure New Node</div>
-              <div className="name-modal__body node-creation-modal__body">
-                <NodeInspector nodeId={pendingNodeModal} hideDelete />
-              </div>
-              <div className="name-modal__footer">
-                <button className="button" onClick={cancelNodeModal}>Cancel</button>
-                <button className="button button--primary" onClick={() => setPendingNodeModal(null)}>Done</button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Node creation now handled by NodeConfigModal in App.jsx via canvas-open-node-modal
+           and canvas-add-node-from-modal events (AR-19). pendingNodeModal removed. */}
 
       {/* ADDED: Phase 3 context menu render */}
       {contextMenuState.visible && (
@@ -549,7 +543,7 @@ function GraphCanvasInner() {
           onClose={closeContextMenu}
         />
       )}
-      
+
       <ReactFlow
         nodes={rfNodes}
         edges={reactFlowEdges}
