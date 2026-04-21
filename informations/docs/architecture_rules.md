@@ -186,19 +186,3 @@ Any overlay component that presents a searchable or listable view of named narra
 Components must not subscribe to a Zustand store by destructuring the entire store object (e.g., `const { nodes, flags, actions } = useNarrativeStore()`). Each subscription must target only the specific slice of state the component needs via a selector function (e.g., `useNarrativeStore(s => s.flag)`). This applies to all stores: `narrativeStore`, `uiStore`, `simulationStore`, `campaignStore`, `toastStore`.
 
 **Rationale:** Whole-store destructuring causes the component to re-render on every state change to any field in the store, regardless of whether the component's actual data changed. At the scale of `narrativeStore` — which is mutated on every node drag, label edit, and side-effect change — this creates unnecessary re-render pressure on every subscribing component simultaneously. Per-slice selectors ensure components re-render only when their relevant slice changes. AR-14 addresses reference stability within selectors; this rule addresses subscription granularity. The CommandPalette feature surfaced a whole-store destructure (`CommandPalette.jsx:10`) as an open risk, prompting formalisation of this constraint.
-
----
-
-## AR-24 — Store Fields With Multiple Writers Must Declare Each Writer's Guard Posture
-
-When a single store field can be written by more than one action, the data model impact document (AR-20) must list each writer separately and declare its precondition contract — specifically whether the action requires a campaign to be active (`isCampaignActive` guard), is callable in any mode (unguarded), or has other preconditions. Each caller must choose the correct writer based on its own context.
-
-**Rationale:** The Route_Tracing feature introduced two writers for `shortestRouteResults`: `computeRoutes` (campaign-guarded, calls the full pathfinder) and `setShortestRouteResults` (unguarded, used by the dialog in edit mode). This two-writer pattern is legitimate but was discovered only through a debugging loop (BUG-03) because only one writer was declared. Without explicit guard-posture declaration per writer, callers cannot distinguish which action is appropriate for their context — a campaign-mode caller might invoke the unguarded writer and bypass the guard invariant, or an edit-mode caller might be blocked by a guard it doesn't need. This rule extends AR-20 from "declare the action" to "declare each action's precondition contract."
-
----
-
-## AR-25 — Dialogs With Shared-State Side Effects Must Consolidate All Close Paths in `handleClose`
-
-Any dialog component that writes to a shared Zustand store as part of its primary action must implement a single `handleClose` function that performs all three cleanup steps atomically: (1) reset local transient state, (2) write the final state to the store (or clear partial state), and (3) set the dialog-open flag to false. All close paths — the cancel button, the post-action auto-close, and ESC key handling — must call this single function rather than independently managing the cleanup sequence.
-
-**Rationale:** The Route_Tracing feature's `RouteFinderDialog` initially suffered BUG-02 (dialog did not auto-close after run) because `handleRun` performed the store write but not the dialog-close, while the close button performed the dialog-close but not a state cleanup. The two-path divergence caused local and shared state to drift. Dialogs that trigger shared-store writes are the class most prone to this failure mode because the store write is the novel responsibility that splits from the existing close contract. A single `handleClose` function makes the combined obligation explicit and ensures all paths execute the full cleanup, not a partial subset.
