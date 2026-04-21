@@ -4,19 +4,22 @@ import { useNarrativeStore } from 'store';
 // ADDED: Phase 2 NameModal component for quickly creating named entities
 // MODIFIED: Expanded to show entity-specific fields (boolean for flag, min/max for status)
 // FIX: Added onConfirm prop for caller-controlled confirm (used by node creation modal flow)
-export default function NameModal({ entityType, onClose, onConfirm }) {
-  const [inputValue, setInputValue] = useState('');
-  const [flagState, setFlagState] = useState(true);       // boolean for flags
-  const [statusValue, setStatusValue] = useState(0);       // numeric for status
-  const [statusMin, setStatusMin] = useState(undefined);
-  const [statusMax, setStatusMax] = useState(undefined);
+export default function NameModal({ entityType, onClose, onConfirm, editItem }) {
+  const [inputValue, setInputValue] = useState(editItem ? editItem.name : '');
+  const [flagState, setFlagState] = useState(editItem?.state ?? true);
+  const [statusValue, setStatusValue] = useState(editItem?.value ?? 0);
+  const [statusMin, setStatusMin] = useState(editItem?.min);
+  const [statusMax, setStatusMax] = useState(editItem?.max);
   const inputRef = useRef(null);
-  
+
+  const isEdit = !!editItem;
+
   const titleMap = {
-    flag: 'New Flag',
-    status: 'New Status',
-    path: 'New Path',
-    chapter: 'New Chapter',
+    flag: isEdit ? 'Edit Flag' : 'New Flag',
+    status: isEdit ? 'Edit Status' : 'New Status',
+    path: isEdit ? 'Edit Path' : 'New Path',
+    chapter: isEdit ? 'Edit Chapter' : 'New Chapter',
+    campaign: isEdit ? 'Rename Campaign' : 'New Campaign',
     common: 'New Common Node',
     choice: 'New Choice Node',
     ending: 'New Ending Node',
@@ -39,18 +42,26 @@ export default function NameModal({ entityType, onClose, onConfirm }) {
     }
 
     const store = useNarrativeStore.getState();
+    const payload = { name: trimmed };
+    if (entityType === 'flag') payload.state = flagState;
+    if (entityType === 'status') {
+      payload.value = statusValue;
+      payload.min = statusMin;
+      payload.max = statusMax;
+    }
+
     switch (entityType) {
       case 'flag':
-        store.addFlag(trimmed, flagState);
+        isEdit ? store.updateFlag(editItem.id, payload) : store.addFlag(trimmed, flagState);
         break;
       case 'status':
-        store.addStatus(trimmed, statusValue, statusMin, statusMax);
+        isEdit ? store.updateStatus(editItem.id, payload) : store.addStatus(trimmed, statusValue, statusMin, statusMax);
         break;
       case 'path':
-        store.addPath(trimmed);
+        isEdit ? store.updatePath(editItem.id, payload) : store.addPath(trimmed);
         break;
       case 'chapter':
-        store.addChapter(trimmed);
+        isEdit ? store.updateChapter(editItem.id, payload) : store.addChapter(trimmed);
         break;
       default: break;
     }
@@ -157,8 +168,8 @@ export default function NameModal({ entityType, onClose, onConfirm }) {
         </div>
         <div className="name-modal__footer">
           <button className="button" onClick={onClose}>Cancel</button>
-          <button 
-            className="button button--primary" 
+          <button
+            className="button button--primary"
             onClick={handleConfirm}
             disabled={isConfirmDisabled}
           >

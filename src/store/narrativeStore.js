@@ -200,7 +200,13 @@ export const useNarrativeStore = create((set, get) => ({
     state.edges.forEach(e => {
       if (e.condition && e.condition.conditions) {
         if (e.condition.conditions.some(c => c.flag === id)) {
-          references.push(`edge_condition:${e.id}`);
+          const sourceNode = state.common[e.sourceId] || state.choice[e.sourceId] || state.ending[e.sourceId];
+          const targetNode = state.common[e.targetId] || state.choice[e.targetId] || state.ending[e.targetId];
+          references.push({
+            id: `edge:${e.id}`,
+            label: `Edge: ${sourceNode?.data.label || 'Node'} → ${targetNode?.data.label || 'Node'}`,
+            nodeId: e.sourceId
+          });
         }
       }
     });
@@ -213,13 +219,13 @@ export const useNarrativeStore = create((set, get) => ({
 
     allNodes.forEach(n => {
       if (n.data && n.data.flags_set && n.data.flags_set.includes(id)) {
-        references.push(`node_sideEffect:${n.id}`);
+        references.push({ id: `node_se:${n.id}`, label: `${n.data.label} (Side Effect)`, nodeId: n.id });
       }
       if (n.data && Array.isArray(n.data.variants)) {
         n.data.variants.forEach(v => {
           if (v.requires && Array.isArray(v.requires.conditions)) {
             if (v.requires.conditions.some(c => c.flag === id)) {
-              references.push(`variant_requires:${n.id}:${v.id}`);
+              references.push({ id: `variant:${n.id}:${v.id}`, label: `${n.data.label} (Variant: ${v.label})`, nodeId: n.id });
             }
           }
         });
@@ -228,11 +234,11 @@ export const useNarrativeStore = create((set, get) => ({
         n.data.options.forEach(opt => {
           if (opt.requires && Array.isArray(opt.requires.conditions)) {
             if (opt.requires.conditions.some(c => c.flag === id)) {
-              references.push(`option_requires:${n.id}:${opt.id}`);
+              references.push({ id: `option_req:${n.id}:${opt.id}`, label: `${n.data.label} (Option: ${opt.label})`, nodeId: n.id });
             }
           }
           if (Array.isArray(opt.flags_set) && opt.flags_set.includes(id)) {
-            references.push(`option_flags_set:${n.id}:${opt.id}`);
+            references.push({ id: `option_se:${n.id}:${opt.id}`, label: `${n.data.label} (Option Effect: ${opt.label})`, nodeId: n.id });
           }
         });
       }
@@ -260,7 +266,13 @@ export const useNarrativeStore = create((set, get) => ({
     state.edges.forEach(e => {
       if (e.condition && e.condition.conditions) {
         if (e.condition.conditions.some(c => c.status === id)) {
-          references.push(`edge_condition:${e.id}`);
+          const sourceNode = state.common[e.sourceId] || state.choice[e.sourceId] || state.ending[e.sourceId];
+          const targetNode = state.common[e.targetId] || state.choice[e.targetId] || state.ending[e.targetId];
+          references.push({
+            id: `edge:${e.id}`,
+            label: `Edge: ${sourceNode?.data.label || 'Node'} → ${targetNode?.data.label || 'Node'}`,
+            nodeId: e.sourceId
+          });
         }
       }
     });
@@ -273,13 +285,13 @@ export const useNarrativeStore = create((set, get) => ({
 
     allNodes.forEach(n => {
       if (n.data && n.data.status_set && n.data.status_set.some(se => se.statusId === id)) {
-        references.push(`node_sideEffect:${n.id}`);
+        references.push({ id: `node_se:${n.id}`, label: `${n.data.label} (Side Effect)`, nodeId: n.id });
       }
       if (n.data && Array.isArray(n.data.variants)) {
         n.data.variants.forEach(v => {
           if (v.requires && Array.isArray(v.requires.conditions)) {
             if (v.requires.conditions.some(c => c.status === id)) {
-              references.push(`variant_requires:${n.id}:${v.id}`);
+              references.push({ id: `variant:${n.id}:${v.id}`, label: `${n.data.label} (Variant: ${v.label})`, nodeId: n.id });
             }
           }
         });
@@ -288,11 +300,11 @@ export const useNarrativeStore = create((set, get) => ({
         n.data.options.forEach(opt => {
           if (opt.requires && Array.isArray(opt.requires.conditions)) {
             if (opt.requires.conditions.some(c => c.status === id)) {
-              references.push(`option_requires:${n.id}:${opt.id}`);
+              references.push({ id: `option_req:${n.id}:${opt.id}`, label: `${n.data.label} (Option: ${opt.label})`, nodeId: n.id });
             }
           }
           if (Array.isArray(opt.status_set) && opt.status_set.some(se => se.statusId === id)) {
-            references.push(`option_status_set:${n.id}:${opt.id}`);
+            references.push({ id: `option_se:${n.id}:${opt.id}`, label: `${n.data.label} (Option Effect: ${opt.label})`, nodeId: n.id });
           }
         });
       }

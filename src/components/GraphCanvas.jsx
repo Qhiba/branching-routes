@@ -17,7 +17,6 @@ import useKeyboardShortcuts from 'hooks/useKeyboardShortcuts'; // ADDED: Phase 1
 import NameModal from 'components/NameModal'; // ADDED: Phase 2 NameModal import
 import {
   FloatingMiddleBar,
-  CreationBar,
   CommonNode,
   ChoiceNode,
   EndingNode,
@@ -520,7 +519,6 @@ function GraphCanvasInner() {
       <ClusterOverlay chapterBoxes={clusterBoxes.chapterBoxes} pathBoxes={clusterBoxes.pathBoxes} />
 
       <FloatingMiddleBar />
-      {!isCampaignActive && <CreationBar />}
 
       {/* ADDED: Phase 2 naming modal render */}
       {pendingNameModal !== null && (

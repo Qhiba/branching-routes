@@ -1,12 +1,11 @@
 .app {
   display: grid;
-  /* MODIFIED: Phase 2 — add 28px statusbar row to grid layout */
-  grid-template-rows: 48px 1fr 28px;
-  grid-template-columns: 1fr 300px;
+  grid-template-rows: 56px 1fr 28px;
+  grid-template-columns: 1fr;
   grid-template-areas:
-    "topbar    topbar"
-    "canvas    sidebar"
-    "statusbar statusbar";
+    "topbar"
+    "canvas"
+    "statusbar";
   height: 100vh;
   width: 100vw;
   overflow: hidden;
@@ -21,6 +20,7 @@
   padding: 0 var(--space-4);
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+  z-index: 50;
 }
 
 .app__canvas {
@@ -31,10 +31,7 @@
 }
 
 .app__sidebar {
-  grid-area: sidebar;
-  background: var(--color-bg-surface);
-  border-left: 1px solid var(--color-border);
-  overflow-y: auto;
+  display: none;
 }
 
 /* ADDED: Phase 2 — statusbar grid region and styling */
@@ -46,4 +43,5 @@
   display: flex;
   align-items: center;
   padding: 0 var(--space-4);
+  z-index: 50;
 }

@@ -2,60 +2,44 @@ import React, { useState } from 'react';
 import { useNarrativeStore, useSimulationStore, useUIStore, useCampaignStore } from 'store';
 import { exportProject, importProject, clearIndexedDB, clearCampaignsIndexedDB } from 'utils';
 import dagre from 'dagre';
-import CampaignSelector from './CampaignSelector.jsx';
-import CreationBar from './CreationBar.jsx'; // ADDED: Phase 4
+import {
+  Network,
+  Wand2,
+  LayoutGrid,
+  BoxSelect,
+  FilePlus,
+  Upload,
+  Download,
+  Check
+} from 'lucide-react';
 
 export default function TopBar() {
   const meta = useNarrativeStore(s => s.meta);
   const updateMeta = useNarrativeStore(s => s.updateMeta);
-  const snapToGrid = useUIStore(s => s.snapToGrid);
-  const toggleSnapToGrid = useUIStore(s => s.toggleSnapToGrid);
-  // ADDED: Phase 3 — cluster mode and cycle action
-  const clusterMode = useUIStore(s => s.clusterMode);
-  const cycleClusterMode = useUIStore(s => s.cycleClusterMode);
-  // ADDED: Phase 4 — route finder dialog toggle (edit-mode only authoring tool)
-  const toggleRouteFinderDialog = useUIStore(s => s.toggleRouteFinderDialog);
-
-  const common = useNarrativeStore(s => s.common);
-  const choice = useNarrativeStore(s => s.choice);
-  const endingNodes = useNarrativeStore(s => s.ending);
-  const hasNodes = Object.keys(common).length + Object.keys(choice).length + Object.keys(endingNodes).length > 0;
-
-  const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
-  const exitCampaign = useSimulationStore(s => s.exitCampaign);
-  const resetSimulation = useSimulationStore(s => s.reset);
-  // ADDED: Phase 1 — undo button support (AR-14: number primitive, not array reference)
-  const traversalRecordsLength = useSimulationStore(s => s.traversalRecords.length);
-  const undoLastNode = useSimulationStore(s => s.undoLastNode);
   const newGraph = useNarrativeStore(s => s.newGraph);
   const loadGraph = useNarrativeStore(s => s.loadGraph);
   const exportGraph = useNarrativeStore(s => s.exportGraph);
 
-  const activeCampaignId = useCampaignStore(s => s.activeCampaignId);
+  const snapToGrid = useUIStore(s => s.snapToGrid);
+  const toggleSnapToGrid = useUIStore(s => s.toggleSnapToGrid);
+  const clusterMode = useUIStore(s => s.clusterMode);
+  const cycleClusterMode = useUIStore(s => s.cycleClusterMode);
+
+  const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+
   const campaigns = useCampaignStore(s => s.campaigns);
   const clearCampaignsStore = useCampaignStore(s => s.clearCampaigns);
   const loadCampaignsFromObject = useCampaignStore(s => s.loadCampaignsFromObject);
-  const activeCampaignName = activeCampaignId && campaigns[activeCampaignId] ? campaigns[activeCampaignId].name : '';
 
   const [exportStatus, setExportStatus] = useState(false);
 
+  const clustersEnabled = clusterMode !== 'off';
+
   const handleTitleChange = (e) => {
-    if (updateMeta) {
-      updateMeta({ title: e.target.value });
-    }
-  };
-
-
-  const handleExitCampaign = () => {
-    exitCampaign();
-  };
-
-  const handleResetSimulation = () => {
-    resetSimulation();
+    updateMeta({ title: e.target.value });
   };
 
   const handleTidyLayout = () => {
-
     const graphState = useNarrativeStore.getState();
     const storeNodes = [
       ...Object.values(graphState.common || {}),
@@ -89,21 +73,19 @@ export default function TopBar() {
 
   const handleNew = async () => {
     if (window.confirm("Start a new project? Unsaved changes will be lost.")) {
-        // NOTE: unrelated issue — not touching in refactor [Violation] 'click' handler took 1682ms
-        await clearCampaignsIndexedDB();
-        await clearIndexedDB();
-        clearCampaignsStore();
-        newGraph();
-        exitCampaign();
-      }
+      await clearCampaignsIndexedDB();
+      await clearIndexedDB();
+      clearCampaignsStore();
+      newGraph();
+      useSimulationStore.getState().exitCampaign();
+    }
   };
 
   const handleImport = async () => {
     try {
       const data = await importProject();
       if (data) {
-        // PRESERVED: Teardown logic requires that loading a graph resets UI selection and explicitly exits Campaign Mode
-        exitCampaign();
+        useSimulationStore.getState().exitCampaign();
         clearCampaignsStore();
         if (data.campaigns) {
           loadCampaignsFromObject(data.campaigns);
@@ -111,7 +93,6 @@ export default function TopBar() {
         if (data.graphData) {
           loadGraph(data.graphData);
         } else {
-          // fallback for older returned structure just in case
           loadGraph(data);
         }
       }
@@ -135,72 +116,77 @@ export default function TopBar() {
 
   return (
     <div className="topbar-content">
-      <div className="topbar__left">
-        <strong>Branching Routes</strong>
-      </div>
-      <div className="topbar__center">
-        <input
-          type="text"
-          value={meta?.title || ''}
-          onChange={handleTitleChange}
-          onFocus={(e) => {
-            if (e.target.value === 'Untitled Graph') {
-              e.target.select();
-            }
-          }}
-          placeholder="Project Title"
-          className="topbar__title-input"
-        />
-      </div>
-      {/* ADDED: Phase 4 proxy to disable authoring inputs during simulation */}
-      <CreationBar disabled={isCampaignActive} />
-      {/* PROTECTED: TopBar existing controls and layout preserved */}
-      <div className="topbar__right">
-        {isCampaignActive && (
-          <span style={{ display: 'flex', alignItems: 'center', marginRight: '10px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'orange', marginRight: 6 }}></span>
-            {/* MODIFIED: Inject active campaign name label next to Campaign Active */}
-            <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Campaign Active {activeCampaignName ? `— ${activeCampaignName}` : ''}</span>
-          </span>
-        )}
-        <button onClick={handleTidyLayout} disabled={isCampaignActive} className="topbar__btn">
-          Tidy Layout
-        </button>
-        <button onClick={toggleSnapToGrid} className="topbar__btn" disabled={isCampaignActive}>
-          Snap: {snapToGrid ? 'ON' : 'OFF'}
-        </button>
-        {/* ADDED: Phase 3 — cluster mode cycle button (view-only, enabled during campaign) */}
-        <button onClick={cycleClusterMode} className="topbar__btn">
-          Clusters: {clusterMode.toUpperCase()}
-        </button>
-        <button className="topbar__btn" disabled={isCampaignActive} onClick={handleNew}>New</button>
-        <button className="topbar__btn" disabled={isCampaignActive} onClick={handleImport}>Import</button>
-        <button className="topbar__btn" disabled={isCampaignActive} onClick={handleExport}>
-          {exportStatus ? "Exported ✓" : "Export"}
-        </button>
+      {/* SECTION 1: BRAND + TITLE */}
+      <div className="topbar__section topbar__section--left">
+        <div className="topbar__brand">
+          <Network className="topbar__brand-icon" />
+          <span>Branching Routes</span>
+        </div>
 
-        {isCampaignActive ? (
-          <>
-            {/* ADDED: Phase 1 — undo button */}
-            <button onClick={undoLastNode} disabled={traversalRecordsLength === 0} className="topbar__btn">
-              Undo Step
-            </button>
-            <button onClick={handleResetSimulation} className="topbar__btn topbar__btn--secondary">
-              Reset Simulation
-            </button>
-            <button onClick={handleExitCampaign} className="topbar__btn topbar__btn--primary">
-              Exit Campaign Mode
-            </button>
-          </>
-        ) : (
-          <>
-            {/* ADDED: Phase 4 — route finder button (edit-mode only authoring tool) */}
-            <button onClick={toggleRouteFinderDialog} className="topbar__btn" disabled={!hasNodes}>
-              Route Finder
-            </button>
-            <CampaignSelector />
-          </>
-        )}
+        <div className="topbar__divider" />
+
+        <div className="topbar__center">
+          <input
+            type="text"
+            value={meta?.title || ''}
+            onChange={handleTitleChange}
+            onFocus={(e) => {
+              if (e.target.value === 'Untitled Graph') e.target.select();
+            }}
+            placeholder="Project Title"
+            className="topbar__title-input"
+          />
+        </div>
+      </div>
+
+      {/* SECTION 2: VIEW CONTROLS */}
+      <div className="topbar__section topbar__section--center">
+        <div className="topbar__controls-group">
+          <button
+            onClick={handleTidyLayout}
+            disabled={isCampaignActive}
+            className="topbar__control-btn"
+            title="Tidy Layout (Dagre)"
+          >
+            <Wand2 className="topbar__control-icon" />
+            <span>Tidy</span>
+          </button>
+          <button
+            onClick={toggleSnapToGrid}
+            disabled={isCampaignActive}
+            className={`topbar__control-btn ${snapToGrid ? 'topbar__control-btn--active' : ''}`}
+            title="Toggle Grid Snapping"
+          >
+            <LayoutGrid className="topbar__control-icon" />
+            <span>Snap: {snapToGrid ? 'ON' : 'OFF'}</span>
+          </button>
+          <button
+            onClick={cycleClusterMode}
+            className={`topbar__control-btn ${clustersEnabled ? 'topbar__control-btn--active' : ''}`}
+            title="Cycle Cluster Visualization"
+          >
+            <BoxSelect className="topbar__control-icon" />
+            <span>Clusters: {clusterMode.toUpperCase()}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* SECTION 3: FILE ACTIONS */}
+      <div className="topbar__section topbar__section--right">
+        <div className="topbar__actions-group">
+          <button onClick={handleNew} disabled={isCampaignActive} className="topbar__action-btn">
+            <FilePlus className="topbar__control-icon" />
+            <span>New</span>
+          </button>
+          <button onClick={handleImport} disabled={isCampaignActive} className="topbar__action-btn">
+            <Upload className="topbar__control-icon" />
+            <span>Import</span>
+          </button>
+          <button onClick={handleExport} disabled={isCampaignActive} className="topbar__action-btn">
+            {exportStatus ? <Check className="topbar__control-icon" /> : <Download className="topbar__control-icon" />}
+            <span>{exportStatus ? 'Exported' : 'Export'}</span>
+          </button>
+        </div>
       </div>
     </div>
   );
