@@ -1,0 +1,303 @@
+/* src/components/floating/FloatingMiddleBar.css */
+
+.ui-v2-floating-bar {
+    position: absolute;
+    top: var(--space-4);
+    /* moved slightly up */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    border-radius: 9999px;
+    /* full rounded */
+    display: flex;
+    align-items: center;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all var(--transition-normal);
+}
+
+.ui-v2-floating-bar--authoring {
+    background-color: rgba(11, 15, 25, 0.9);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    padding: 3px 5px;
+    gap: 6px;
+}
+
+.ui-v2-floating-bar--campaign {
+    background-color: rgba(30, 27, 75, 0.9);
+    /* indigo-950/90 */
+    border: 1px solid rgba(99, 102, 241, 0.5);
+    box-shadow: 0 10px 30px -10px rgba(79, 70, 229, 0.5);
+    padding: 4px 6px;
+    /* reduced from 6px 8px */
+    gap: var(--space-1);
+    /* reduced from space-2 */
+    animation: slide-in-from-top-4 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slide-in-from-top-4 {
+    0% {
+        transform: translate(-50%, -16px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
+/* Node Buttons */
+.ui-v2-floating-nodes {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    /* reduced */
+    padding: 0 2px;
+}
+
+.ui-v2-floating-node-btn {
+    padding: 4px;
+    /* reduced */
+    border-radius: 9999px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ui-v2-floating-node-btn:hover {
+    background-color: var(--color-bg-hover);
+}
+
+.ui-v2-floating-node-btn:active {
+    transform: scale(0.95);
+}
+
+/* Vertical Divider */
+.ui-v2-floating-divider {
+    width: 1px;
+    height: 14px;
+    /* reduced */
+    background-color: var(--color-border);
+}
+
+.ui-v2-floating-divider-indigo {
+    background-color: rgba(55, 48, 163, 0.5);
+    /* indigo-800/50 */
+    width: 1px;
+    height: 12px;
+    /* reduced */
+    margin: 0 2px;
+}
+
+/* Campaign Controls (Authoring) */
+.ui-v2-floating-campaign-start {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-right: 2px;
+}
+
+.ui-v2-floating-select-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.ui-v2-floating-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: #020617;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    font-size: 10px;
+    border-radius: 9999px;
+    padding: 2px 22px 2px 8px;
+    outline: none;
+    transition: all var(--transition-fast);
+    font-weight: var(--font-weight-medium);
+    width: 110px;
+    height: 22px;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.ui-v2-floating-select:hover {
+    border-color: var(--color-text-secondary);
+}
+
+.ui-v2-floating-select:focus {
+    border-color: var(--color-accent-500);
+}
+
+.ui-v2-floating-select-icon {
+    position: absolute;
+    right: 10px;
+    pointer-events: none;
+    color: var(--color-text-secondary);
+    opacity: 0.8;
+}
+
+.ui-v2-floating-btn-start {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background-color: #0d8b5b;
+    /* muted green */
+    color: #ffffff;
+    border-radius: 9999px;
+    padding: 0 16px;
+    /* slightly wider */
+    height: 22px;
+    box-sizing: border-box;
+    font-size: 10px;
+    line-height: normal;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ui-v2-floating-btn-start:hover:not(:disabled) {
+    background-color: #10b981;
+    /* emerald-500 hover */
+}
+
+.ui-v2-floating-btn-start:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.ui-v2-floating-btn-start:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Campaign Active Pill Sub-components */
+.ui-v2-floating-active-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    /* reduced */
+    padding: 0 10px;
+    /* reduced */
+    border-right: 1px solid rgba(55, 48, 163, 0.5);
+}
+
+.ui-v2-floating-pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background-color: #34d399;
+    /* emerald-400 — explicitly green */
+    animation: ui-v2-pulse 2s infinite;
+    box-shadow: 0 0 7px rgba(52, 211, 153, 0.85);
+    flex-shrink: 0;
+}
+
+@keyframes ui-v2-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.ui-v2-floating-campaign-name {
+    font-size: 11px;
+    font-weight: var(--font-weight-bold);
+    color: #ffffff;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    /* no wrap; pill grows with name */
+}
+
+.ui-v2-floating-btn-action {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    /* reduced */
+    padding: 4px 12px;
+    /* reduced */
+    border-radius: 9999px;
+    color: #e0e7ff;
+    /* indigo-100 */
+    font-size: 11px;
+    /* reduced */
+    font-weight: var(--font-weight-medium);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.ui-v2-floating-btn-action:hover:not(:disabled) {
+    background-color: rgba(49, 46, 129, 0.8);
+    /* indigo-900/80 */
+}
+
+.ui-v2-floating-btn-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ui-v2-floating-btn-danger {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    /* reduced */
+    padding: 4px 12px;
+    /* reduced */
+    border-radius: 9999px;
+    background-color: rgba(239, 68, 68, 0.2);
+    /* red-500/20 */
+    color: #fca5a5;
+    /* red-300 */
+    font-size: 11px;
+    /* reduced */
+    font-weight: var(--font-weight-bold);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.ui-v2-floating-btn-danger:hover {
+    background-color: rgba(239, 68, 68, 0.3);
+}
+
+/* FIX 3: Autosave inline label in campaign pill */
+.ui-v2-floating-autosave {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: var(--font-weight-medium);
+    color: #e0e7ff;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 9999px;
+    transition: background var(--transition-fast);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.ui-v2-floating-autosave:hover {
+    background-color: rgba(49, 46, 129, 0.8);
+}
+
+.ui-v2-floating-autosave__checkbox {
+    width: 11px;
+    height: 11px;
+    accent-color: #818cf8;
+    cursor: pointer;
+    flex-shrink: 0;
+}

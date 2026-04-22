@@ -12,7 +12,7 @@ export const useUIStore = create((set, get) => ({
 
   // ADDED: Phase 1 — overlay toggle states for route tracing visualization
   showTraversalOverlay: true,
-  showRouteFinderDialog: false,
+  // REMOVED (Phase 8): showRouteFinderDialog — RouteFinderDialog component deleted, replaced by RouteTracingPanel tab
   showShortestRouteOverlay: false,
   // ADDED: Phase 4 — selected route index for displaying specific path
   selectedRouteIndex: 0,
@@ -27,7 +27,7 @@ export const useUIStore = create((set, get) => ({
 
   // ADDED: Phase 1 — overlay toggle actions
   toggleTraversalOverlay: () => set(state => ({ showTraversalOverlay: !state.showTraversalOverlay })),
-  toggleRouteFinderDialog: () => set(state => ({ showRouteFinderDialog: !state.showRouteFinderDialog })),
+  // REMOVED (Phase 8): toggleRouteFinderDialog — RouteFinderDialog deleted
   // MODIFIED: Phase 4 — reset selected route index when turning off overlay
   toggleShortestRouteOverlay: () => set(state => {
     const isNowOff = state.showShortestRouteOverlay;

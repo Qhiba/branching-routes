@@ -15,7 +15,9 @@ import '@xyflow/react/dist/style.css';
 import { useNarrativeStore, useSimulationStore, useUIStore } from 'store';
 import useKeyboardShortcuts from 'hooks/useKeyboardShortcuts'; // ADDED: Phase 1 hook import
 import NameModal from 'components/NameModal'; // ADDED: Phase 2 NameModal import
-import NodeInspector from 'components/NodeInspector'; // FIX: used by node creation modal
+// CHANGED: NodeInspector docked panel → NodeConfigModal full-screen modal (Phase 6)
+import NodeConfigModal from 'components/modals/NodeConfigModal';
+import EdgeConfigModal from 'components/modals/EdgeConfigModal'; // ADDED: Phase 6
 import ContextMenu from 'components/ContextMenu'; // ADDED: Phase 3 ContextMenu import
 
 import CommonNode from './nodes/CommonNode';
@@ -149,6 +151,12 @@ function GraphCanvasInner() {
   // FIX: local state for node creation modal (common/choice/ending via creation bar)
   const [pendingNodeModal, setPendingNodeModal] = useState(null);
 
+  // ADDED: Phase 3 state for node editing modal
+  const [editingNodeModal, setEditingNodeModal] = useState(null);
+
+  // ADDED: Phase 6 state for edge editing modal
+  const [editingEdgeModal, setEditingEdgeModal] = useState(null);
+
   // FIX: Ref to the canvas wrapper for computing canvas-relative mouse coordinates
   const canvasRef = useRef(null);
 
@@ -226,6 +234,24 @@ function GraphCanvasInner() {
     window.addEventListener('canvas-open-node-modal', handleOpenNodeModal);
     return () => window.removeEventListener('canvas-open-node-modal', handleOpenNodeModal);
   }, [addNode, selectNode, screenToFlowPosition]);
+
+  // ADDED: Phase 3 listen for node edit modal requests
+  useEffect(() => {
+    const handleEditNodeModal = (e) => {
+      setEditingNodeModal(e.detail.nodeId);
+    };
+    window.addEventListener('canvas-edit-node-modal', handleEditNodeModal);
+    return () => window.removeEventListener('canvas-edit-node-modal', handleEditNodeModal);
+  }, []);
+
+  // ADDED: Phase 6 listen for edge edit modal requests (from context menu + double-click)
+  useEffect(() => {
+    const handleEditEdgeModal = (e) => {
+      setEditingEdgeModal(e.detail.edgeId);
+    };
+    window.addEventListener('canvas-edit-edge-modal', handleEditEdgeModal);
+    return () => window.removeEventListener('canvas-edit-edge-modal', handleEditEdgeModal);
+  }, []);
 
   // FIX: listen for focus-node requests from delete guards in FlagManager/StatusManager
   // MODIFIED: Phase 2 — add setCenter for canvas-navigate-to-node event
@@ -399,7 +425,21 @@ function GraphCanvasInner() {
     }));
   }, [storeEdges, selectedEdgeId]);
 
-  // PROTECTED: Campaign advance-by-click in onNodeClick
+  // CHANGED: Phase 6 fix — double-click on node opens edit modal
+  const onNodeDoubleClick = useCallback((event, node) => {
+    if (isCampaignActive) return;
+    event.stopPropagation();
+    window.dispatchEvent(new CustomEvent('canvas-edit-node-modal', { detail: { nodeId: node.id } }));
+  }, [isCampaignActive]);
+
+  // ADDED: Phase 6 — double-click on edge opens EdgeConfigModal
+  const onEdgeDoubleClick = useCallback((event, edge) => {
+    if (isCampaignActive) return;
+    event.stopPropagation();
+    window.dispatchEvent(new CustomEvent('canvas-edit-edge-modal', { detail: { edgeId: edge.id } }));
+  }, [isCampaignActive]);
+
+  // PRESERVED: Campaign advance-by-click in onNodeClick
   const onNodeClick = useCallback((event, node) => {
     if (isCampaignActive) {
       const activeStateId = useSimulationStore.getState().activeNodeId;
@@ -413,7 +453,7 @@ function GraphCanvasInner() {
           advance(edge.id);
         }
       }
-      return; 
+      return;
     }
     selectNode(node.id);
   }, [selectNode, isCampaignActive, reachableNodeIds, reachableEdgeIds, storeEdges, advance]);
@@ -436,17 +476,12 @@ function GraphCanvasInner() {
     }
   }, [addEdge]);
 
-  const lastClickTime = useRef(0);
-  // PROTECTED: Double-click-to-add behavior in onPaneClick
+  // CHANGED: Phase 6 fix — double-click pane no longer creates a node (was: double-click-to-add)
+  // Node creation is now exclusively via FloatingMiddleBar or context menu
   const onPaneClick = useCallback((event) => {
     closeContextMenu(); // ADDED: Phase 3 dismiss
-    if (isCampaignActive) return; // FIX: Prevent node creation in campaign mode
+    if (isCampaignActive) return;
     clearSelection();
-    const now = Date.now();
-    if (now - lastClickTime.current < 300) {
-      window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'common', screenX: event.clientX, screenY: event.clientY } }));
-    }
-    lastClickTime.current = now;
   }, [clearSelection, closeContextMenu, isCampaignActive]);
 
   const onNodesChange = useCallback((changes) => {
@@ -493,15 +528,7 @@ function GraphCanvasInner() {
       {/* ADDED: Phase 3 — Cluster overlay (chapter/path regions behind nodes) */}
       <ClusterOverlay chapterBoxes={clusterBoxes.chapterBoxes} pathBoxes={clusterBoxes.pathBoxes} />
 
-      {isCampaignActive && (
-        <div className="simulation-banner" style={{
-          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-          backgroundColor: 'var(--color-active)', color: '#000', textAlign: 'center',
-          padding: '8px', fontWeight: 'bold'
-        }}>
-          ⚡ Campaign Active — click a highlighted node to advance
-        </div>
-      )}
+      {/* REMOVED: Phase 5 — Legacy campaign banner retired; FloatingMiddleBar pill takes over */}
 
       {/* ADDED: Phase 2 naming modal render */}
       {pendingNameModal !== null && (
@@ -511,8 +538,8 @@ function GraphCanvasInner() {
         />
       )}
 
-      {/* FIX: node creation modal — shows NodeInspector for the just-created node.
-           Cancelling (backdrop/ESC) deletes the node. Done keeps it. */}
+      {/* CHANGED: Phase 6 — Node creation modal now uses NodeConfigModal (was NodeInspector) */}
+      {/* FIX (self-review): onCancel wired to cancelNodeModal — deletes orphan if user cancels */}
       {pendingNodeModal !== null && (() => {
         const cancelNodeModal = () => {
           deleteNode(pendingNodeModal);
@@ -520,24 +547,29 @@ function GraphCanvasInner() {
           setPendingNodeModal(null);
         };
         return (
-          <div className="name-modal__backdrop" onClick={cancelNodeModal}>
-            <div
-              className="name-modal node-creation-modal"
-              onClick={e => e.stopPropagation()}
-              onKeyDown={e => { e.stopPropagation(); if (e.key === 'Escape') cancelNodeModal(); }}
-            >
-              <div className="name-modal__header">Configure New Node</div>
-              <div className="name-modal__body node-creation-modal__body">
-                <NodeInspector nodeId={pendingNodeModal} hideDelete />
-              </div>
-              <div className="name-modal__footer">
-                <button className="button" onClick={cancelNodeModal}>Cancel</button>
-                <button className="button button--primary" onClick={() => setPendingNodeModal(null)}>Done</button>
-              </div>
-            </div>
-          </div>
+          <NodeConfigModal
+            nodeId={pendingNodeModal}
+            onClose={() => setPendingNodeModal(null)}
+            onCancel={cancelNodeModal}
+          />
         );
       })()}
+
+      {/* CHANGED: Phase 6 — Node edit modal now uses NodeConfigModal (was NodeInspector) */}
+      {editingNodeModal !== null && (
+        <NodeConfigModal
+          nodeId={editingNodeModal}
+          onClose={() => setEditingNodeModal(null)}
+        />
+      )}
+
+      {/* ADDED: Phase 6 — Edge config modal */}
+      {editingEdgeModal !== null && (
+        <EdgeConfigModal
+          edgeId={editingEdgeModal}
+          onClose={() => setEditingEdgeModal(null)}
+        />
+      )}
 
       {/* ADDED: Phase 3 context menu render */}
       {contextMenuState.visible && (
@@ -549,7 +581,7 @@ function GraphCanvasInner() {
           onClose={closeContextMenu}
         />
       )}
-      
+
       <ReactFlow
         nodes={rfNodes}
         edges={reactFlowEdges}
@@ -557,7 +589,9 @@ function GraphCanvasInner() {
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         onEdgeClick={onEdgeClick}
+        onEdgeDoubleClick={onEdgeDoubleClick}
         onConnect={onConnect}
         onPaneClick={onPaneClick}
         onNodeDragStart={onNodeDragStart}

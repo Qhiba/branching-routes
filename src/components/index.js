@@ -5,24 +5,27 @@ export { default as ChoiceNode } from './nodes/ChoiceNode';
 export { default as EndingNode } from './nodes/EndingNode';
 export { default as ConditionalEdge } from './edges/ConditionalEdge';
 export { default as TopBar } from './TopBar';
-export { default as Sidebar } from './Sidebar';
-export { default as NodeInspector } from './NodeInspector';
-export { default as EdgeInspector } from './EdgeInspector';
+// REMOVED (Phase 8): Sidebar — wrapper only, superseded by RightSidebar hosting SandboxPanel directly
+// REMOVED (Phase 6/8): NodeInspector — superseded by NodeConfigModal
+// REMOVED (Phase 8): EdgeInspector — superseded by EdgeConfigModal
 export { default as FlagManager } from './FlagManager';
 export { default as StatusManager } from './StatusManager';
 export { default as PathChapterManager } from './PathChapterManager';
-export { default as OptionEditor } from './OptionEditor';
-export { default as VariantEditor } from './VariantEditor';
+// REMOVED (Phase 6/8): OptionEditor, VariantEditor — absorbed into NodeConfigModal
 export { default as SandboxPanel } from './SandboxPanel';
-export { default as CampaignSelector } from './CampaignSelector.jsx';
-export { default as NameModal } from './NameModal'; // ADDED: Phase 2 NameModal export
-export { default as ContextMenu } from './ContextMenu'; // ADDED: Phase 3 ContextMenu export
-export { default as CreationBar } from './CreationBar'; // ADDED: Phase 4 CreationBar export
-// ADDED: Phase 1 — Toast component export
+// REMOVED (Phase 8): CampaignSelector — superseded by CampaignListPanel
+export { default as NameModal } from './NameModal';
+export { default as NodeConfigModal } from './modals/NodeConfigModal';
+export { default as ContextMenu } from './ContextMenu';
 export { default as Toast } from './Toast';
-// ADDED: Phase 2 — Command palette component export
 export { default as CommandPalette } from './CommandPalette';
-// ADDED: Phase 2 — Status strip component export
 export { default as StatusStrip } from './StatusStrip';
-// ADDED: Phase 4 — Route finder dialog component export
-export { default as RouteFinderDialog } from './RouteFinderDialog';
+// REMOVED (Phase 8): RouteFinderDialog — superseded by RouteTracingPanel
+
+export { default as LeftSidebar } from './layout/LeftSidebar';
+export { default as RightSidebar } from './layout/RightSidebar';
+export { default as NameplateTab } from './layout/NameplateTab';
+
+export { default as FloatingMiddleBar } from './floating/FloatingMiddleBar';
+
+// REMOVED (Phase 8): CampaignBanner — unmounted in Phase 7 Fix 4, files now deleted

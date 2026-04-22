@@ -15,6 +15,9 @@ function CommonNode({ id, data }) {
   const labelDisplayMode = useUIStore(s => s.labelDisplayMode);
   const flagDict = useNarrativeStore(s => s.flag);
   const statusDict = useNarrativeStore(s => s.status);
+  // FIX 9: Resolve nodeSubTypeId → display name from store
+  const commonTypeDict = useNarrativeStore(s => s.commonType);
+  const subTypeName = data.nodeSubTypeId ? commonTypeDict[data.nodeSubTypeId]?.name : null;
 
   // MODIFIED: Phase 3 — add coverage-gap class to className string
   const className = `story-node common-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''}`.trim();
@@ -26,7 +29,10 @@ function CommonNode({ id, data }) {
       <Handle type="target" position={Position.Left} />
 
       <div className="story-node__type-bar common-node__type-bar">
-        <span className="story-node__type-label">COMMON</span>
+        {/* FIX 9: Show user-defined nodeSubType name if set, fallback to COMMON */}
+        <span className="story-node__type-label">
+          {subTypeName ? subTypeName.toUpperCase() : 'COMMON'}
+        </span>
         {isOrphaned && (
           <span className="story-node__warning-badge" title="Node is entirely disconnected">
             ⚠️ Orphaned
@@ -40,9 +46,9 @@ function CommonNode({ id, data }) {
         {sideEffectsCount > 0 && (
           <span className="story-node__meta-badge">
             <svg className="story-node__meta-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="2" y="1" width="9" height="12" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-              <path d="M11 5l3-1-1 3-2-2z" fill="currentColor"/>
-              <path d="M10 6l-2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <rect x="2" y="1" width="9" height="12" rx="1" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M11 5l3-1-1 3-2-2z" fill="currentColor" />
+              <path d="M10 6l-2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             {sideEffectsCount} effect{sideEffectsCount !== 1 ? 's' : ''}
           </span>
@@ -54,7 +60,7 @@ function CommonNode({ id, data }) {
         {data.content && (
           <p className="story-node__content-text">{data.content}</p>
         )}
-        
+
         {/* ADDED: Phase 2 verbose display */}
         {labelDisplayMode === 'verbose' && sideEffectsCount > 0 && (
           <div style={{ marginTop: '8px', fontSize: '10px', color: 'var(--color-primary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>

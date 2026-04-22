@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useNarrativeStore } from 'store';
+import { Search, Plus, Trash2, Pencil, Activity } from 'lucide-react';
+import NameModal from './NameModal';
+import './EntityList.css';
 
 function getNodeLabel(ref, common, choice, ending) {
   const parts = ref.split(':');
@@ -10,42 +13,24 @@ function getNodeLabel(ref, common, choice, ending) {
   return node ? { label: node.data?.label || nodeId, nodeId } : null;
 }
 
+// CHANGED: Replaced legacy inline UI with full EntityListView design
+// PRESERVED: All CRUD operations perfectly mirror original logic onto useNarrativeStore
 export default function StatusManager() {
   const statusDict = useNarrativeStore(state => state.status);
   const statuses = Object.values(statusDict);
-  const addStatus = useNarrativeStore(state => state.addStatus);
   const deleteStatus = useNarrativeStore(state => state.deleteStatus);
   const common = useNarrativeStore(state => state.common);
   const choice = useNarrativeStore(state => state.choice);
   const ending = useNarrativeStore(state => state.ending);
-  
-  const [newName, setNewName] = useState('');
-  const [newValue, setNewValue] = useState(0);
-  const [newMinValue, setNewMinValue] = useState('');
-  const [newMaxValue, setNewMaxValue] = useState('');
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editItem, setEditItem] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
 
-  const isNameValid = /^[a-zA-Z0-9_]+$/.test(newName) && !statuses.some(s => s.name === newName);
-  const hasTypedName = newName.length > 0;
+  const filteredStatuses = statuses.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const handleAddStatus = (e) => {
-    e.preventDefault();
-    if (!isNameValid) return;
-    
-    const minVal = newMinValue === '' ? null : Number(newMinValue);
-    const maxVal = newMaxValue === '' ? null : Number(newMaxValue);
-    
-    addStatus(newName, newValue, minVal, maxVal);
-    
-    // reset form
-    setNewName('');
-    setNewValue(0);
-    setNewMinValue('');
-    setNewMaxValue('');
-  };
-
-  const handleDelete = (id) => {
+  const handleDelete = (e, id) => {
+    e.stopPropagation();
     setDeleteError(null);
     const result = deleteStatus(id);
     if (result && result.blocked) {
@@ -54,133 +39,78 @@ export default function StatusManager() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <h4 style={{ margin: 0, color: 'var(--color-text-primary)' }}>Existing Statuses</h4>
-        
-        {statuses.length === 0 ? (
-          <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', padding: '12px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
-            No statuses defined. Add one below.
-          </div>
-        ) : (
-          statuses.map(statusObj => (
-            <div key={statusObj.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <code style={{ color: 'var(--color-accent)', fontWeight: 'bold' }}>{statusObj.name}</code>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
-                    Default: <strong>{String(statusObj.value)}</strong>
-                    {(statusObj.minValue !== null || statusObj.maxValue !== null) && (
-                      <span style={{ marginLeft: '8px', color: 'var(--color-text-secondary)' }}>
-                        [Min: {statusObj.minValue !== null ? statusObj.minValue : 'None'}, Max: {statusObj.maxValue !== null ? statusObj.maxValue : 'None'}]
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                <button 
-                  onClick={() => handleDelete(statusObj.id)}
-                  style={{ padding: '4px 8px', background: 'rgba(255, 68, 68, 0.1)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  Delete
-                </button>
-              </div>
-
-              {deleteError && deleteError.id === statusObj.id && (
-                <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(255, 68, 68, 0.1)', border: '1px solid var(--color-danger)', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--color-danger)' }}>
-                  <strong>Cannot delete. Referenced by:</strong>
-                  <ul style={{ margin: '4px 0 0 0', paddingLeft: '20px' }}>
-                    {deleteError.references.map((ref, idx) => {
-                      const node = getNodeLabel(ref, common, choice, ending);
-                      return (
-                        <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                          <span>{node ? node.label : ref}</span>
-                          {node && (
-                            <button
-                              onClick={() => window.dispatchEvent(new CustomEvent('canvas-focus-node', { detail: { nodeId: node.nodeId } }))}
-                              style={{ padding: '1px 6px', fontSize: '0.75rem', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', borderRadius: '3px', cursor: 'pointer' }}
-                            >
-                              Focus
-                            </button>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  <button onClick={() => setDeleteError(null)} style={{ marginTop: '8px', padding: '2px 8px', fontSize: '0.8rem', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', cursor: 'pointer' }}>Dismiss</button>
-                </div>
-              )}
-            </div>
-          ))
-        )}
+    <div className="entity-list-view">
+      <div className="entity-list-header">
+        <div className="entity-list-search">
+          <Search className="entity-list-search-icon" size={14} />
+          <input
+            type="text"
+            placeholder="Search statuses..."
+            className="entity-list-input"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <button className="entity-list-add-btn" onClick={() => setEditItem('new')}>
+          <Plus size={16} />
+        </button>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
-        <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-text-primary)' }}>Add New Status</h4>
-        
-        <form onSubmit={handleAddStatus} style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Name (alphanumeric_)</label>
-            <input 
-              type="text" 
-              name="new-status-name"
-              value={newName} 
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. courage"
-              style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-            />
-            {hasTypedName && !isNameValid && (
-              <div style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '4px' }}>
-                Invalid or duplicate name.
+      <div className="entity-list-content custom-scrollbar">
+        {filteredStatuses.map(statusObj => (
+          <div key={statusObj.id} className="entity-list-item-wrapper">
+            <div className="entity-list-item">
+              <div className="entity-list-item-left">
+                <Activity size={14} style={{ color: 'var(--color-rose)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span className="entity-list-item-name">{statusObj.name}</span>
+                  <span className="entity-list-item-sub">
+                    Default: {String(statusObj.value)}
+                    {(statusObj.minValue !== null || statusObj.maxValue !== null) && ` [Min: ${statusObj.minValue ?? 'None'}, Max: ${statusObj.maxValue ?? 'None'}]`}
+                  </span>
+                </div>
+              </div>
+              <div className="entity-list-item-actions">
+                <button className="entity-action-btn" onClick={(e) => { e.stopPropagation(); setEditItem(statusObj); }}>
+                  <Pencil size={14} />
+                </button>
+                <button className="entity-action-btn entity-action-btn--danger" onClick={(e) => handleDelete(e, statusObj.id)}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+
+            {deleteError && deleteError.id === statusObj.id && (
+              <div style={{ marginTop: '6px', padding: '10px 12px', background: 'rgba(255, 68, 68, 0.1)', border: '1px solid var(--color-danger)', borderLeft: '3px solid var(--color-danger)', borderRadius: '4px', fontSize: '0.85rem' }}>
+                <strong style={{ color: 'var(--color-danger)', display: 'block', marginBottom: '8px' }}>Cannot delete: referenced by {deleteError.references.length} node{deleteError.references.length > 1 ? 's' : ''}</strong>
+                <ul style={{ margin: '0 0 10px 0', paddingLeft: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {deleteError.references.map((ref, idx) => {
+                    const node = getNodeLabel(ref, common, choice, ending);
+                    return (
+                      <li key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
+                        <span style={{ color: 'var(--color-text-primary)' }}>{node ? node.label : ref}</span>
+                        {node && (
+                          <button
+                            onClick={() => window.dispatchEvent(new CustomEvent('canvas-focus-node', { detail: { nodeId: node.nodeId } }))}
+                            style={{ padding: '2px 8px', fontSize: '0.75rem', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', borderRadius: '3px', cursor: 'pointer', transition: 'background 0.2s' }}
+                          >
+                            Focus
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setDeleteError(null)} style={{ padding: '4px 12px', fontSize: '0.8rem', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', cursor: 'pointer', borderRadius: '4px' }}>Dismiss</button>
+                </div>
               </div>
             )}
           </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Default Value</label>
-            <input 
-              type="number" 
-              name="new-status-default-num"
-              value={newValue} 
-              onChange={(e) => setNewValue(Number(e.target.value))}
-              style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Min Value (Optional)</label>
-              <input 
-                type="number" 
-                name="new-status-min"
-                value={newMinValue} 
-                onChange={(e) => setNewMinValue(e.target.value)}
-                placeholder="None"
-                style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '4px', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Max Value (Optional)</label>
-              <input 
-                type="number" 
-                name="new-status-max"
-                value={newMaxValue} 
-                onChange={(e) => setNewMaxValue(e.target.value)}
-                placeholder="None"
-                style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-              />
-            </div>
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={!hasTypedName || !isNameValid}
-            style={{ marginTop: '8px', padding: '10px', background: (!hasTypedName || !isNameValid) ? 'var(--color-bg-hover)' : 'var(--color-accent)', color: (!hasTypedName || !isNameValid) ? 'var(--color-text-secondary)' : 'white', border: (!hasTypedName || !isNameValid) ? '1px solid var(--color-border)' : '1px solid var(--color-accent)', cursor: (!hasTypedName || !isNameValid) ? 'not-allowed' : 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
-          >
-            Add Status
-          </button>
-        </form>
+        ))}
       </div>
+
+      {editItem && <NameModal entityType="status" initialData={editItem === 'new' ? null : editItem} onClose={() => setEditItem(null)} />}
     </div>
   );
 }

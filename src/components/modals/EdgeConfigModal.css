@@ -1,0 +1,136 @@
+/* src/components/modals/EdgeConfigModal.css */
+
+/* Slim the container a bit relative to NodeConfigModal */
+.ecm-container {
+    width: 480px;
+}
+
+/* EDGE type badge — cool slate/cyan tone */
+.ecm-type-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid rgba(100, 116, 139, 0.4);
+    color: #94a3b8;
+    /* slate-400 */
+    background-color: rgba(100, 116, 139, 0.1);
+}
+
+/* Connection FROM → TO display */
+.ecm-connection-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.ecm-node-chip {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background-color: #020617;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    min-width: 0;
+}
+
+.ecm-node-chip--source {
+    border-left: 3px solid rgba(99, 102, 241, 0.5);
+}
+
+.ecm-node-chip--target {
+    border-left: 3px solid rgba(16, 185, 129, 0.5);
+}
+
+.ecm-node-chip__label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-secondary);
+}
+
+.ecm-node-chip__name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ecm-arrow {
+    color: var(--color-text-secondary);
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* Source option badge (read-only) */
+.ecm-option-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(59, 130, 246, 0.06);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+.ecm-option-badge__pill {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #93c5fd;
+    /* blue-300 */
+    background-color: rgba(59, 130, 246, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.ecm-option-badge__name {
+    font-size: 12px;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Danger zone */
+.ecm-danger-zone {
+    border-top: 1px solid var(--color-border);
+    padding-top: 16px;
+    margin-top: 4px;
+}
+
+.ecm-delete-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 16px;
+    background-color: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 6px;
+    color: var(--color-danger);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    justify-content: center;
+}
+
+.ecm-delete-btn:hover {
+    background-color: rgba(239, 68, 68, 0.14);
+    border-color: var(--color-danger);
+}
+
+.ecm-delete-btn:active {
+    transform: scale(0.98);
+}

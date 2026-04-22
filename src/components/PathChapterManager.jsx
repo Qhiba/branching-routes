@@ -1,159 +1,91 @@
 import React, { useState } from 'react';
 import { useNarrativeStore } from 'store';
+import { Search, Plus, Trash2, Pencil, FolderTree, BookOpen } from 'lucide-react';
+import NameModal from './NameModal';
+import './EntityList.css';
 
-export default function PathChapterManager() {
-  const pathDict = useNarrativeStore(state => state.path);
-  const paths = Object.values(pathDict);
-  const addPath = useNarrativeStore(state => state.addPath);
-  const updatePath = useNarrativeStore(state => state.updatePath);
-  const deletePath = useNarrativeStore(state => state.deletePath);
+// CHANGED: Replaced dual-view UI with isolated EntityListView filter logic
+// PRESERVED: All CRUD operations perfectly mirror original logic onto useNarrativeStore
+export default function PathChapterManager({ filterType }) {
+  const isChapter = filterType === 'chapter';
+  const isCommonType = filterType === 'commonType';
+  const isEndingType = filterType === 'endingType';
 
-  const chapterDict = useNarrativeStore(state => state.chapter);
-  const chapters = Object.values(chapterDict);
-  const addChapter = useNarrativeStore(state => state.addChapter);
-  const updateChapter = useNarrativeStore(state => state.updateChapter);
-  const deleteChapter = useNarrativeStore(state => state.deleteChapter);
+  const dict = useNarrativeStore(state =>
+    isChapter ? state.chapter :
+      isCommonType ? state.commonType :
+        isEndingType ? state.endingType :
+          state.path
+  );
+  const items = Object.values(dict);
 
-  const [newPathName, setNewPathName] = useState('');
-  const [newChapterName, setNewChapterName] = useState('');
+  const deleteItem = useNarrativeStore(state =>
+    isChapter ? state.deleteChapter :
+      isCommonType ? state.deleteCommonType :
+        isEndingType ? state.deleteEndingType :
+          state.deletePath
+  );
 
-  const handleAddPath = (e) => {
-    e.preventDefault();
-    if (newPathName.trim().length > 0) {
-      addPath(newPathName);
-      setNewPathName('');
-    }
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editItem, setEditItem] = useState(null);
+
+  const filteredItems = items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const handleRename = (e, item) => {
+    e.stopPropagation();
+    setEditItem(item);
   };
 
-  const handleAddChapter = (e) => {
-    e.preventDefault();
-    if (newChapterName.trim().length > 0) {
-      addChapter(newChapterName);
-      setNewChapterName('');
-    }
+  const handleDelete = (e, id) => {
+    e.stopPropagation();
+    deleteItem(id);
   };
 
-  const handleRenamePath = (id, currentName) => {
-    const newName = window.prompt('Rename path:', currentName);
-    if (newName !== null && newName.trim().length > 0) {
-      updatePath(id, { name: newName.trim() });
-    }
-  };
+  const Icon = isCommonType || isEndingType ? FolderTree : isChapter ? BookOpen : FolderTree;
+  const iconColor = isCommonType ? 'var(--color-emerald)' : isEndingType ? 'var(--color-amber)' : isChapter ? 'var(--color-indigo)' : 'var(--color-cyan)';
 
-  const handleRenameChapter = (id, currentName) => {
-    const newName = window.prompt('Rename chapter:', currentName);
-    if (newName !== null && newName.trim().length > 0) {
-      updateChapter(id, { name: newName.trim() });
-    }
-  };
+  const typeLabel = isChapter ? 'chapters' : isCommonType ? 'common types' : isEndingType ? 'ending types' : 'paths';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-      {/* Paths Section */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <h4 style={{ margin: 0, color: 'var(--color-text-primary)' }}>Paths</h4>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {paths.length === 0 ? (
-            <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', padding: '12px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
-              No paths defined. Add one below.
-            </div>
-          ) : (
-            paths.map(p => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
-                <span style={{ color: 'var(--color-text-primary)' }}>{p.name}</span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    onClick={() => handleRenamePath(p.id, p.name)}
-                    style={{ padding: '4px 8px', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Rename
-                  </button>
-                  <button 
-                    onClick={() => deletePath(p.id)}
-                    style={{ padding: '4px 8px', background: 'rgba(255, 68, 68, 0.1)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+    <div className="entity-list-view">
+      <div className="entity-list-header">
+        <div className="entity-list-search">
+          <Search className="entity-list-search-icon" size={14} />
+          <input
+            type="text"
+            placeholder={`Search ${typeLabel}...`}
+            className="entity-list-input"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
         </div>
-
-        <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
-          <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-text-primary)' }}>Add New Path</h4>
-          <form onSubmit={handleAddPath} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <input 
-              type="text" 
-              value={newPathName} 
-              onChange={(e) => setNewPathName(e.target.value)}
-              placeholder="e.g. Act 1"
-              style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-            />
-            <button 
-              type="submit" 
-              disabled={newPathName.trim().length === 0}
-              style={{ padding: '8px 16px', background: newPathName.trim().length === 0 ? 'var(--color-bg-hover)' : 'var(--color-accent)', color: newPathName.trim().length === 0 ? 'var(--color-text-secondary)' : 'white', border: newPathName.trim().length === 0 ? '1px solid var(--color-border)' : '1px solid var(--color-accent)', cursor: newPathName.trim().length === 0 ? 'not-allowed' : 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
-            >
-              Confirm
-            </button>
-          </form>
-        </div>
+        <button className="entity-list-add-btn" onClick={() => setEditItem('new')}>
+          <Plus size={16} />
+        </button>
       </div>
 
-      {/* Chapters Section */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <h4 style={{ margin: 0, color: 'var(--color-text-primary)' }}>Chapters</h4>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {chapters.length === 0 ? (
-            <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', padding: '12px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
-              No chapters defined. Add one below.
-            </div>
-          ) : (
-            chapters.map(c => (
-              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
-                <span style={{ color: 'var(--color-text-primary)' }}>{c.name}</span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    onClick={() => handleRenameChapter(c.id, c.name)}
-                    style={{ padding: '4px 8px', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Rename
-                  </button>
-                  <button 
-                    onClick={() => deleteChapter(c.id)}
-                    style={{ padding: '4px 8px', background: 'rgba(255, 68, 68, 0.1)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Delete
-                  </button>
-                </div>
+      <div className="entity-list-content custom-scrollbar">
+        {filteredItems.map(item => (
+          <div key={item.id} className="entity-list-item-wrapper">
+            <div className="entity-list-item">
+              <div className="entity-list-item-left">
+                <Icon size={14} style={{ color: iconColor }} />
+                <span className="entity-list-item-name">{item.name}</span>
               </div>
-            ))
-          )}
-        </div>
-
-        <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
-          <h4 style={{ margin: '0 0 12px 0', color: 'var(--color-text-primary)' }}>Add New Chapter</h4>
-          <form onSubmit={handleAddChapter} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <input 
-              type="text" 
-              value={newChapterName} 
-              onChange={(e) => setNewChapterName(e.target.value)}
-              placeholder="e.g. Chapter 1"
-              style={{ width: '100%', padding: '8px', backgroundColor: 'var(--color-bg-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
-            />
-            <button 
-              type="submit" 
-              disabled={newChapterName.trim().length === 0}
-              style={{ padding: '8px 16px', background: newChapterName.trim().length === 0 ? 'var(--color-bg-hover)' : 'var(--color-accent)', color: newChapterName.trim().length === 0 ? 'var(--color-text-secondary)' : 'white', border: newChapterName.trim().length === 0 ? '1px solid var(--color-border)' : '1px solid var(--color-accent)', cursor: newChapterName.trim().length === 0 ? 'not-allowed' : 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
-            >
-              Confirm
-            </button>
-          </form>
-        </div>
+              <div className="entity-list-item-actions">
+                <button className="entity-action-btn" onClick={(e) => handleRename(e, item)}>
+                  <Pencil size={14} />
+                </button>
+                <button className="entity-action-btn entity-action-btn--danger" onClick={(e) => handleDelete(e, item.id)}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {editItem && <NameModal entityType={filterType} initialData={editItem === 'new' ? null : editItem} onClose={() => setEditItem(null)} />}
     </div>
   );
 }

@@ -14,6 +14,8 @@ export const useNarrativeStore = create((set, get) => ({
   status: {},
   path: {},
   chapter: {},
+  commonType: {},
+  endingType: {},
 
 
 
@@ -313,6 +315,42 @@ export const useNarrativeStore = create((set, get) => ({
     return { blocked: false };
   },
 
+  // ─── TYPE CRUD ───────────────────────────────────────────────────────────
+
+  addCommonType: (name) => set((state) => {
+    if (!name || name.trim().length === 0) throw new Error('Name cannot be empty');
+    const id = generateId('ct');
+    return { commonType: { ...state.commonType, [id]: { id, name: name.trim() } }, meta: { ...state.meta, updatedAt: Date.now() } };
+  }),
+
+  updateCommonType: (id, patch) => set((state) => {
+    if (!state.commonType[id]) return state;
+    return { commonType: { ...state.commonType, [id]: { ...state.commonType[id], ...patch } }, meta: { ...state.meta, updatedAt: Date.now() } };
+  }),
+
+  deleteCommonType: (id) => set((state) => {
+    const nextList = { ...state.commonType };
+    delete nextList[id];
+    return { commonType: nextList, meta: { ...state.meta, updatedAt: Date.now() } };
+  }),
+
+  addEndingType: (name) => set((state) => {
+    if (!name || name.trim().length === 0) throw new Error('Name cannot be empty');
+    const id = generateId('et');
+    return { endingType: { ...state.endingType, [id]: { id, name: name.trim() } }, meta: { ...state.meta, updatedAt: Date.now() } };
+  }),
+
+  updateEndingType: (id, patch) => set((state) => {
+    if (!state.endingType[id]) return state;
+    return { endingType: { ...state.endingType, [id]: { ...state.endingType[id], ...patch } }, meta: { ...state.meta, updatedAt: Date.now() } };
+  }),
+
+  deleteEndingType: (id) => set((state) => {
+    const nextList = { ...state.endingType };
+    delete nextList[id];
+    return { endingType: nextList, meta: { ...state.meta, updatedAt: Date.now() } };
+  }),
+
   // ─── VARIANT CRUD ────────────────────────────────────────────────────────
 
   // variants[] is display-only; which variant is active is a simulation concern deferred to a later update
@@ -530,7 +568,9 @@ export const useNarrativeStore = create((set, get) => ({
       flag: graphData.flag || {},
       status: graphData.status || {},
       path: graphData.path || {},
-      chapter: graphData.chapter || {}
+      chapter: graphData.chapter || {},
+      commonType: graphData.commonType || {},
+      endingType: graphData.endingType || {}
     });
 
     // INVARIANT: BI-16
@@ -548,7 +588,9 @@ export const useNarrativeStore = create((set, get) => ({
       flag: {},
       status: {},
       path: {},
-      chapter: {}
+      chapter: {},
+      commonType: {},
+      endingType: {}
     });
 
     // INVARIANT: BI-16
@@ -581,7 +623,9 @@ export const useNarrativeStore = create((set, get) => ({
       flag: state.flag,
       status: state.status,
       path: state.path,
-      chapter: state.chapter
+      chapter: state.chapter,
+      commonType: state.commonType,
+      endingType: state.endingType
     };
   }
 }));

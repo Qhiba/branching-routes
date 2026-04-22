@@ -1,0 +1,66 @@
+.nameplate-tab {
+    width: 42px;
+    padding: var(--space-6) 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-base);
+    color: var(--color-text-secondary);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    z-index: 10;
+}
+
+.nameplate-tab--left {
+    border-left: none;
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    margin-left: -1px;
+}
+
+.nameplate-tab--left:hover {
+    background: var(--color-bg-elevated);
+    color: var(--color-text-primary);
+    transform: translateX(4px);
+}
+
+.nameplate-tab--left.nameplate-tab--active {
+    background: var(--color-bg-elevated);
+    border-color: var(--color-border);
+    color: var(--color-accent);
+    z-index: 20;
+    transform: translateX(0);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.nameplate-tab--right {
+    border-right: none;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+    margin-right: -1px;
+}
+
+.nameplate-tab--right:hover {
+    background: var(--color-bg-elevated);
+    color: var(--color-text-primary);
+    transform: translateX(-4px);
+}
+
+.nameplate-tab--right.nameplate-tab--active {
+    background: var(--color-bg-elevated);
+    border-color: var(--color-border);
+    color: var(--color-accent);
+    z-index: 20;
+    transform: translateX(0);
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.nameplate-tab__text {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}

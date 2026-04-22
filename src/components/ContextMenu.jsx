@@ -11,7 +11,7 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
   useLayoutEffect(() => {
     if (!menuRef.current) return;
     const rect = menuRef.current.getBoundingClientRect();
-    
+
     let nextLeft = x;
     let nextTop = y;
 
@@ -70,11 +70,16 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
         return (
           <>
             <button className="context-menu__item" onClick={handleAction(() => {
-              // Ensure we actually have the action signature in narrativeStore:
+              window.dispatchEvent(new CustomEvent('canvas-edit-node-modal', { detail: { nodeId: targetId } }));
+            })}>
+              Edit Node
+            </button>
+            <button className="context-menu__item" onClick={handleAction(() => {
               navStore.setStartNode && navStore.setStartNode(targetId);
             })}>
               Set as Start Node
             </button>
+            <div className="context-menu__divider" />
             <button className="context-menu__item context-menu__item--danger" onClick={handleAction(() => {
               navStore.deleteNode(targetId);
             })}>
@@ -84,11 +89,19 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
         );
       case 'edge':
         return (
-          <button className="context-menu__item context-menu__item--danger" onClick={handleAction(() => {
-            navStore.deleteEdge(targetId);
-          })}>
-            Delete Edge
-          </button>
+          <>
+            <button className="context-menu__item" onClick={handleAction(() => {
+              window.dispatchEvent(new CustomEvent('canvas-edit-edge-modal', { detail: { edgeId: targetId } }));
+            })}>
+              Edit Edge
+            </button>
+            <div className="context-menu__divider" />
+            <button className="context-menu__item context-menu__item--danger" onClick={handleAction(() => {
+              navStore.deleteEdge(targetId);
+            })}>
+              Delete Edge
+            </button>
+          </>
         );
       case 'multi':
         return (
@@ -111,6 +124,7 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
         className="context-menu"
         style={style}
         onClick={e => e.stopPropagation()}
+        onDoubleClick={e => e.stopPropagation()}
         onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }}
       >
         {renderItems()}

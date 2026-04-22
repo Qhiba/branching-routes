@@ -1,0 +1,61 @@
+.left-sidebar {
+    display: flex;
+    height: 100%;
+    position: relative;
+}
+
+.left-sidebar__rail {
+    width: 42px;
+    background: #070A11;
+    border-right: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-6) 0;
+    gap: var(--space-2);
+    flex-shrink: 0;
+    height: 100%;
+    z-index: 10;
+}
+
+.left-sidebar__panel {
+    position: absolute;
+    left: 42px;
+    top: 8px;
+    height: calc(100% - 16px);
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: width var(--transition-normal), opacity var(--transition-normal), transform var(--transition-normal);
+    box-shadow: var(--shadow-lg);
+    z-index: 5;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    transform: translateX(-10px);
+}
+
+.left-sidebar__panel--open {
+    width: 320px;
+    opacity: 1;
+    transform: translateX(8px);
+}
+
+.left-sidebar__panel-content {
+    width: 100%;
+    height: 100%;
+    background: var(--color-bg-elevated);
+    display: flex;
+    flex-direction: column;
+}
+
+.left-sidebar__placeholder {
+    padding: var(--space-4);
+    color: var(--color-text-muted);
+}
+
+/* CHANGED: Phase 7 — dim and disable left sidebar during campaign mode */
+.left-sidebar--campaign-mode {
+    opacity: 0.4;
+    pointer-events: none;
+    filter: grayscale(50%);
+    transition: opacity 300ms ease, filter 300ms ease;
+}

@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNarrativeStore } from 'store';
+import { X } from 'lucide-react';
 
-// ADDED: Phase 2 NameModal component for quickly creating named entities
-// MODIFIED: Expanded to show entity-specific fields (boolean for flag, min/max for status)
-// FIX: Added onConfirm prop for caller-controlled confirm (used by node creation modal flow)
-export default function NameModal({ entityType, onClose, onConfirm }) {
-  const [inputValue, setInputValue] = useState('');
-  const [flagState, setFlagState] = useState(true);       // boolean for flags
-  const [statusValue, setStatusValue] = useState(0);       // numeric for status
-  const [statusMin, setStatusMin] = useState(undefined);
-  const [statusMax, setStatusMax] = useState(undefined);
+export default function NameModal({ entityType, initialData, onClose, onConfirm }) {
+  const [inputValue, setInputValue] = useState(initialData?.name || '');
+  const [flagState, setFlagState] = useState(initialData?.state ?? true);
+  const [statusValue, setStatusValue] = useState(initialData?.value ?? 0);
+  const [statusMin, setStatusMin] = useState(initialData?.minValue ?? undefined);
+  const [statusMax, setStatusMax] = useState(initialData?.maxValue ?? undefined);
   const inputRef = useRef(null);
-  
+
   const titleMap = {
-    flag: 'New Flag',
-    status: 'New Status',
-    path: 'New Path',
-    chapter: 'New Chapter',
+    flag: initialData ? 'Edit Flag' : 'New Flag',
+    status: initialData ? 'Edit Status' : 'New Status',
+    path: initialData ? 'Edit Path' : 'New Path',
+    chapter: initialData ? 'Edit Chapter' : 'New Chapter',
+    commonType: initialData ? 'Edit Common Type' : 'New Common Type',
+    endingType: initialData ? 'Edit Ending Type' : 'New Ending Type',
     common: 'New Common Node',
     choice: 'New Choice Node',
     ending: 'New Ending Node',
@@ -33,32 +33,64 @@ export default function NameModal({ entityType, onClose, onConfirm }) {
     if (!trimmed) return;
 
     if (onConfirm) {
-      onConfirm(trimmed);
+      onConfirm(trimmed, { flagState, statusValue, statusMin, statusMax });
       onClose();
       return;
     }
 
     const store = useNarrativeStore.getState();
-    switch (entityType) {
-      case 'flag':
-        store.addFlag(trimmed, flagState);
-        break;
-      case 'status':
-        store.addStatus(trimmed, statusValue, statusMin, statusMax);
-        break;
-      case 'path':
-        store.addPath(trimmed);
-        break;
-      case 'chapter':
-        store.addChapter(trimmed);
-        break;
-      default: break;
+    if (initialData) {
+      // update mode
+      switch (entityType) {
+        case 'flag':
+          store.updateFlag(initialData.id, { name: trimmed, state: flagState });
+          break;
+        case 'status':
+          store.updateStatus(initialData.id, { name: trimmed, value: statusValue, minValue: statusMin, maxValue: statusMax });
+          break;
+        case 'path':
+          store.updatePath(initialData.id, { name: trimmed });
+          break;
+        case 'chapter':
+          store.updateChapter(initialData.id, { name: trimmed });
+          break;
+        case 'commonType':
+          store.updateCommonType(initialData.id, { name: trimmed });
+          break;
+        case 'endingType':
+          store.updateEndingType(initialData.id, { name: trimmed });
+          break;
+        default: break;
+      }
+    } else {
+      // create mode
+      switch (entityType) {
+        case 'flag':
+          store.addFlag(trimmed, flagState);
+          break;
+        case 'status':
+          store.addStatus(trimmed, statusValue, statusMin, statusMax);
+          break;
+        case 'path':
+          store.addPath(trimmed);
+          break;
+        case 'chapter':
+          store.addChapter(trimmed);
+          break;
+        case 'commonType':
+          store.addCommonType(trimmed);
+          break;
+        case 'endingType':
+          store.addEndingType(trimmed);
+          break;
+        default: break;
+      }
     }
     onClose();
   };
 
   const handleKeyDown = (e) => {
-    e.stopPropagation(); // PROTECTED: RISK-CMK-08 mitigation, prevents global escape from clearing selection
+    e.stopPropagation();
     if (e.key === 'Escape') {
       onClose();
     } else if (e.key === 'Enter') {
@@ -72,7 +104,10 @@ export default function NameModal({ entityType, onClose, onConfirm }) {
     <div className="name-modal__backdrop" onClick={onClose}>
       <div className="name-modal" onClick={e => e.stopPropagation()}>
         <div className="name-modal__header">
-          {titleMap[entityType] || 'New Entity'}
+          <span>{titleMap[entityType] || 'New Entity'}</span>
+          <button className="name-modal__close-btn" onClick={onClose}>
+            <X size={16} />
+          </button>
         </div>
         <div className="name-modal__body">
           <div className="name-modal__field">
@@ -88,34 +123,17 @@ export default function NameModal({ entityType, onClose, onConfirm }) {
             />
           </div>
 
-          {/* ADDED: Flag-specific field: initial boolean state */}
           {entityType === 'flag' && (
             <div className="name-modal__field">
               <label className="name-modal__label">Initial State</label>
               <div className="name-modal__toggle-row">
-                <label className="name-modal__toggle-option">
-                  <input
-                    type="radio"
-                    name="flag-state"
-                    checked={flagState === true}
-                    onChange={() => setFlagState(true)}
-                  />
-                  <span>True</span>
-                </label>
-                <label className="name-modal__toggle-option">
-                  <input
-                    type="radio"
-                    name="flag-state"
-                    checked={flagState === false}
-                    onChange={() => setFlagState(false)}
-                  />
-                  <span>False</span>
-                </label>
+                <div className="name-modal__toggle-slider" style={{ transform: flagState ? 'translateX(0)' : 'translateX(100%)' }}></div>
+                <div className="name-modal__toggle-option" onClick={() => setFlagState(true)} style={{ color: flagState ? 'white' : 'var(--color-text-secondary)' }}>True</div>
+                <div className="name-modal__toggle-option" onClick={() => setFlagState(false)} style={{ color: !flagState ? 'white' : 'var(--color-text-secondary)' }}>False</div>
               </div>
             </div>
           )}
 
-          {/* ADDED: Status-specific fields: initial value, min, max */}
           {entityType === 'status' && (
             <>
               <div className="name-modal__field">
@@ -123,6 +141,7 @@ export default function NameModal({ entityType, onClose, onConfirm }) {
                 <input
                   type="number"
                   className="name-modal__input"
+                  style={{ fontFamily: 'monospace' }}
                   value={statusValue}
                   onChange={e => setStatusValue(Number(e.target.value))}
                   onKeyDown={handleKeyDown}
@@ -134,6 +153,7 @@ export default function NameModal({ entityType, onClose, onConfirm }) {
                   <input
                     type="number"
                     className="name-modal__input"
+                    style={{ fontFamily: 'monospace' }}
                     value={statusMin ?? ''}
                     placeholder="None"
                     onChange={e => setStatusMin(e.target.value === '' ? undefined : Number(e.target.value))}
@@ -145,6 +165,7 @@ export default function NameModal({ entityType, onClose, onConfirm }) {
                   <input
                     type="number"
                     className="name-modal__input"
+                    style={{ fontFamily: 'monospace' }}
                     value={statusMax ?? ''}
                     placeholder="None"
                     onChange={e => setStatusMax(e.target.value === '' ? undefined : Number(e.target.value))}
@@ -156,9 +177,10 @@ export default function NameModal({ entityType, onClose, onConfirm }) {
           )}
         </div>
         <div className="name-modal__footer">
-          <button className="button" onClick={onClose}>Cancel</button>
-          <button 
-            className="button button--primary" 
+          <button className="button" style={{ background: 'transparent', color: 'var(--color-text-secondary)', border: 'none', boxShadow: 'none' }} onClick={onClose}>Cancel</button>
+          <button
+            className="button button--primary"
+            style={{ padding: '8px 24px', borderRadius: '6px' }}
             onClick={handleConfirm}
             disabled={isConfirmDisabled}
           >

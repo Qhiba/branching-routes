@@ -1,0 +1,63 @@
+/* src/styles/utilities.css */
+/* ADDED: Phase 0 — Vision-style primitives for reused UI components */
+
+.ui-v2-pill {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-full);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-fast);
+}
+
+.ui-v2-nameplate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2);
+    background: var(--color-bg-base);
+    border-bottom: 1px solid var(--color-border);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-xs);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+}
+
+.ui-v2-floating-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    background: rgba(30, 34, 49, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-float);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.ui-v2-modal-shell {
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-nameplate);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ui-v2-segmented-control {
+    display: flex;
+    align-items: center;
+    background: var(--color-bg-base);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    border: 1px solid var(--color-border);
+    gap: 2px;
+}

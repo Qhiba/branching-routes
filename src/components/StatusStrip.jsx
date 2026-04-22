@@ -1,82 +1,101 @@
 import React, { useMemo } from 'react';
-import { useSimulationStore, useUIStore, useNarrativeStore } from 'store';
-// ADDED: Phase 3 — dead-end detection utility
+import { useSimulationStore, useNarrativeStore } from 'store';
+import { GitCommit, GitPullRequest, BoxSelect, Flag, Activity, FolderTree, BookOpen } from 'lucide-react';
 import { detectDeadEnds } from 'utils';
+import './StatusStrip.css';
 
-// ADDED: Phase 2 — Coverage metrics and traversal overlay toggle component
 export default function StatusStrip() {
-  // ADDED: Phase 2 — per-slice selectors (AR-23, AR-14) — all hooks called unconditionally at top
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
   const seenCount = useSimulationStore(s => s.seenNodeIds.length);
   const traversedCount = useSimulationStore(s => s.traversedEdgeIds.length);
-  const showTraversalOverlay = useUIStore(s => s.showTraversalOverlay);
-  const toggleTraversalOverlay = useUIStore(s => s.toggleTraversalOverlay);
+  // FIX 2: showTraversalOverlay and toggleTraversalOverlay removed from StatusStrip;
+  //         overlay toggle moved to FloatingMiddleBar campaign pill
   const seenNodeIds = useSimulationStore(s => s.seenNodeIds);
+  const activeNodeId = useSimulationStore(s => s.activeNodeId);
 
   const common = useNarrativeStore(s => s.common);
   const choice = useNarrativeStore(s => s.choice);
   const ending = useNarrativeStore(s => s.ending);
   const edges = useNarrativeStore(s => s.edges);
-  // ADDED: Phase 2 fix — activeNodeId selector for ending node detection
-  const activeNodeId = useSimulationStore(s => s.activeNodeId);
 
-  // ADDED: Phase 2 — derive coverage counts with useMemo (no inline computation per render)
-  const totalNodeCount = useMemo(() =>
-    Object.keys(common).length + Object.keys(choice).length + Object.keys(ending).length,
-    [common, choice, ending]
-  );
+  // CHANGED: Phase 7 — fixed field names: s.flags→s.flag, s.statuses→s.status, etc.
+  // CONFLICT: prior code used s.flags/s.statuses/s.paths/s.chapters which don't exist in narrativeStore;
+  //           correct fields are flag/status/path/chapter (singular) per AR-05
+  const flag = useNarrativeStore(s => s.flag);
+  const status = useNarrativeStore(s => s.status);
+  const path = useNarrativeStore(s => s.path);
+  const chapter = useNarrativeStore(s => s.chapter);
 
-  const totalEndingCount = useMemo(() =>
-    Object.keys(ending).length,
-    [ending]
-  );
+  const commonCount = Object.keys(common).length;
+  const choiceCount = Object.keys(choice).length;
+  const endingCount = Object.keys(ending).length;
 
-  const totalEdgeCount = useMemo(() =>
-    edges.length,
-    [edges]
-  );
+  // CHANGED: variable names updated to match corrected selectors above
+  const flagsCount = Object.keys(flag ?? {}).length;
+  const statusesCount = Object.keys(status ?? {}).length;
+  const pathsCount = Object.keys(path ?? {}).length;
+  const chaptersCount = Object.keys(chapter ?? {}).length;
 
-  // ADDED: Phase 3 — detect dead-end nodes (nodes with no outgoing edges that are not endings)
+  const totalNodeCount = commonCount + choiceCount + endingCount;
+  const totalEdgeCount = edges.length;
+
   const deadEndCount = useMemo(() =>
     detectDeadEnds({ common, choice, ending, edges }).length,
     [common, choice, ending, edges]
   );
 
   const endingsReachedCount = useMemo(() => {
-    // MODIFIED: Phase 2 fix — count ending nodes in seenNodeIds plus active node if it's an ending
     const seenEndings = seenNodeIds.filter(id => !!ending[id]).length;
     const activeIsEnding = isCampaignActive && !!ending[activeNodeId];
     return seenEndings + (activeIsEnding ? 1 : 0);
   }, [seenNodeIds, ending, isCampaignActive, activeNodeId]);
 
-  // PROTECTED: Campaign-only visibility (conditional render after all hooks)
-  if (!isCampaignActive) return null;
-
-  // ADDED: Phase 2 — visitedCount includes current active node
   const visitedCount = seenCount + (isCampaignActive ? 1 : 0);
 
   return (
-    <div className="status-strip">
-      <div className="status-strip__readout">
-        <span className="status-strip__label">Nodes:</span>
-        <span className="status-strip__count">{visitedCount} / {totalNodeCount}</span>
+    <div className="ui-v2-status-strip">
+      <div className="ui-v2-status-strip-global">
+        <div className="ui-v2-status-strip-group">
+          <span className="ui-v2-status-item" title="Common Nodes">
+            <GitCommit className="w-3.5 h-3.5" style={{ color: 'var(--color-emerald-500)' }} />
+            <strong>{commonCount}</strong>
+          </span>
+          <span className="ui-v2-status-item" title="Choice Nodes">
+            <GitPullRequest className="w-3.5 h-3.5" style={{ color: 'var(--color-blue-500)' }} />
+            <strong>{choiceCount}</strong>
+          </span>
+          <span className="ui-v2-status-item" title="Ending Nodes">
+            <BoxSelect className="w-3.5 h-3.5" style={{ color: 'var(--color-amber-500)' }} />
+            <strong>{endingCount}</strong>
+          </span>
+        </div>
+
+        <div className="ui-v2-status-divider"></div>
+
+        <div className="ui-v2-status-strip-group">
+          <span className="ui-v2-status-item" title="Flags">
+            <Flag className="w-3.5 h-3.5" style={{ color: 'var(--color-purple-500)' }} /> Flags: <strong>{flagsCount}</strong>
+          </span>
+          <span className="ui-v2-status-item" title="Statuses">
+            <Activity className="w-3.5 h-3.5" style={{ color: 'var(--color-rose-500)' }} /> Statuses: <strong>{statusesCount}</strong>
+          </span>
+          <span className="ui-v2-status-item" title="Paths">
+            <FolderTree className="w-3.5 h-3.5" style={{ color: 'var(--color-cyan-500)' }} /> Paths: <strong>{pathsCount}</strong>
+          </span>
+          <span className="ui-v2-status-item" title="Chapters">
+            <BookOpen className="w-3.5 h-3.5" style={{ color: 'var(--color-accent)' }} /> Chapters: <strong>{chaptersCount}</strong>
+          </span>
+        </div>
       </div>
-      <div className="status-strip__readout">
-        <span className="status-strip__label">Endings:</span>
-        <span className="status-strip__count">{endingsReachedCount} / {totalEndingCount}</span>
-      </div>
-      <div className="status-strip__readout">
-        <span className="status-strip__label">Edges:</span>
-        <span className="status-strip__count">{traversedCount} / {totalEdgeCount}</span>
-      </div>
-      {/* ADDED: Phase 3 — dead-end count readout */}
-      <div className="status-strip__readout">
-        <span className="status-strip__label">Dead-ends:</span>
-        <span className="status-strip__count">{deadEndCount}</span>
-      </div>
-      <button onClick={toggleTraversalOverlay} className="status-strip__toggle">
-        Overlay: {showTraversalOverlay ? 'ON' : 'OFF'}
-      </button>
+
+      {isCampaignActive && (
+        <div className="ui-v2-status-strip-campaign">
+          <span>Nodes: <strong style={{ color: '#fbbf24' }}>{visitedCount} / {totalNodeCount}</strong></span>
+          <span>Endings: <strong style={{ color: '#34d399' }}>{endingsReachedCount} / {endingCount}</strong></span>
+          <span>Edges: <strong style={{ color: '#818cf8' }}>{traversedCount} / {totalEdgeCount}</strong></span>
+          <span>Dead-ends: <strong style={{ color: '#f87171' }}>{deadEndCount}</strong></span>
+        </div>
+      )}
     </div>
   );
 }
