@@ -40,9 +40,9 @@ branching-routes/
 │   │
 │   ├── store/
 │   │   ├── narrativeStore.js # Zustand store: canonical graph (common, choice, ending, edges, flag, status, path, chapter, meta)
-│   │   ├── uiStore.js      # Zustand store: UI state (selection, multi-select, snap-to-grid, choice display mode, label display mode, cluster mode)
+│   │   ├── uiStore.js      # Zustand store: UI state (selection, multi-select, snap-to-grid, choice display mode, label display mode, cluster mode, shortest route overlays)
 │   │   ├── toastStore.js   # Zustand store: ephemeral toast notifications (toasts[], addToast, removeToast, auto-dismiss timer); never persisted to IndexedDB
-│   │   ├── simulationStore.js  # Zustand store: campaign-mode lifecycle, six-state node enum, seen tracking, selected option, passive analysis, sandbox overrides, campaign snapshotting
+│   │   ├── simulationStore.js  # Zustand store: campaign-mode lifecycle, six-state node enum, seen tracking, traversal records/undo, forward-reachability pass, selected option, passive analysis, sequence pathfinding (Route Finder), sandbox overrides, campaign snapshotting
 │   │   ├── campaignStore.js    # Zustand store: campaign dictionary (CRUD, IndexedDB persistence, ZIP import restore)
 │   │   └── index.js        # Barrel re-export for all stores
 │   │
@@ -50,17 +50,20 @@ branching-routes/
 │   │   ├── uuid.js         # UUID v4 generation wrapper
 │   │   ├── conditionEvaluator.js  # Pure functions for AND/OR condition evaluation
 │   │   ├── fileSystem.js   # IndexedDB auto-save; campaign IndexedDB persistence; browser File System Access API export/import with fallback; ZIP bundling via JSZip; import validation, sanitization, and migration chain
+│   │   ├── routeTracer.js  # Algorithm utilities: DFS dead-end scanning, BFS forward-reachability marking, and sequence pathfinding (k-shortest paths) over simulated graph states
 │   │   └── index.js        # Barrel re-export for all utilities
 │   │
 │   ├── hooks/
 │   │   └── useKeyboardShortcuts.js  # Global keydown handler: shortcut dispatch for node/edge CRUD, view actions, label mode toggle, Ctrl+K palette toggle (before input-field guard), and G cluster mode cycle; input-field and campaign-mode guards
 │   │
 │   └── components/
-│       ├── TopBar.jsx       # App title, file actions, Enter/Exit Campaign Mode + Reset controls, campaign status indicator, tidy layout, creation bar, and cluster mode cycle button
-│       ├── GraphCanvas.jsx  # React Flow canvas wrapper with interaction handlers, context menus (pane/node/edge/multi), keyboard shortcut hook, multi-select wiring, passive analysis trigger, option-aware edge stamping, cluster overlay SVG layer, and canvas-navigate-to-node event listener
+│       ├── TopBar.jsx       # App title, file actions, Enter/Exit Campaign Mode + undo/reset controls, campaign status indicator, tidy layout, creation bar, cluster mode cycle button, Route Finder trigger
+│       ├── GraphCanvas.jsx  # React Flow canvas wrapper with interaction handlers, context menus (pane/node/edge/multi), keyboard shortcut hook, multi-select wiring, passive analysis trigger, option-aware edge stamping, cluster overlay SVG layer, shortest route overlay wiring, and canvas-navigate-to-node event listener
 │       ├── Sidebar.jsx      # Tab panel: Inspector / Flags / Status / Paths / Sandbox (campaign only)
 │       ├── SandboxPanel.jsx # Campaign-only flag/status override panel and campaign save/load controls (never writes to narrativeStore)
 │       ├── CampaignSelector.jsx  # Campaign management UI: list, create, switch, delete campaigns; mounts in TopBar when not in campaign mode
+│       ├── StatusStrip.jsx      # Bottom-anchored dashboard reading coverage metrics (traversed counts, dead-ends) and providing overlay toggle switches
+│       ├── RouteFinderDialog.jsx # Dialog for calculating shortest sequences to target nodes in edit mode using tie-breakers
 │       ├── NodeInspector.jsx    # Form for editing node label, content, side effects, path/chapter, variants (common), options (choice)
 │       ├── EdgeInspector.jsx    # Form for editing edge label, conditions, and option provenance display
 │       ├── VariantEditor.jsx    # Variant list editor for common nodes (label, text, requires)

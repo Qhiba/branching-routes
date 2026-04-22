@@ -176,13 +176,11 @@ export const useSimulationStore = create((set, get) => ({
   setAutosaveCampaign: (value) => set({ autosaveCampaign: value }),
 
   // ADDED: Phase 4 — Shortest-route pathfinding actions
-  computeRoutes: (targetNodeId, priorities = [], limit = 5) => {
+  computeRoutesFromStart: (startNodeId, targetNodeId, priorities = [], limit = 5) => {
     const state = get();
-    if (!state.isCampaignActive) return;
-
     const graphState = useNarrativeStore.getState();
     const result = computeShortestPaths(
-      state.activeNodeId,
+      startNodeId,
       targetNodeId,
       graphState,
       state.currentFlagValues,
@@ -196,13 +194,6 @@ export const useSimulationStore = create((set, get) => ({
       isShortestRouteStale: false
     });
   },
-
-  // ADDED: Phase 4 — Set route results directly (edit-mode path, no campaign guard)
-  setShortestRouteResults: (paths) => set({
-    shortestRouteResults: paths,
-    shortestRouteTargetNodeId: null,
-    isShortestRouteStale: false
-  }),
 
   // ADDED: Phase 4 — Clear route results
   clearRouteResults: () => set({

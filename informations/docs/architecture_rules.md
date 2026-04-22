@@ -186,3 +186,11 @@ Any overlay component that presents a searchable or listable view of named narra
 Components must not subscribe to a Zustand store by destructuring the entire store object (e.g., `const { nodes, flags, actions } = useNarrativeStore()`). Each subscription must target only the specific slice of state the component needs via a selector function (e.g., `useNarrativeStore(s => s.flag)`). This applies to all stores: `narrativeStore`, `uiStore`, `simulationStore`, `campaignStore`, `toastStore`.
 
 **Rationale:** Whole-store destructuring causes the component to re-render on every state change to any field in the store, regardless of whether the component's actual data changed. At the scale of `narrativeStore` — which is mutated on every node drag, label edit, and side-effect change — this creates unnecessary re-render pressure on every subscribing component simultaneously. Per-slice selectors ensure components re-render only when their relevant slice changes. AR-14 addresses reference stability within selectors; this rule addresses subscription granularity. The CommandPalette feature surfaced a whole-store destructure (`CommandPalette.jsx:10`) as an open risk, prompting formalisation of this constraint.
+
+---
+
+## AR-24 — Store-Mediated Edit-Mode Computations
+
+Complex analytic or tracing tools meant for use outside of campaign playback (edit mode) must be implemented fundamentally as `simulationStore` actions rather than raw computation isolated within UI event handlers. If these tools reuse campaign-simulation logic (e.g. evaluating gates, verifying sequences), they should safely bypass the active campaign guard dynamically where applicable, pulling root parameters straight from the `narrativeStore` or targeting nodes explicitly.
+
+**Rationale:** The RouteFinderDialog implementation deliberately elected to bypass the `isCampaignActive` requirement so sequential evaluation could occur against structurally isolated nodes during authoring. Relocating these algorithmic responsibilities inside `simulationStore` via `computeRoutesFromStart()` protected the `narrativeStore` (AR-04) while cementing `simulationStore` as the authoritative computation environment for both live playback *and* passive offline analysis.

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNarrativeStore, useUIStore, useSimulationStore } from 'store';
-import { computeShortestPaths } from 'utils';
 
 export default function RouteFinderDialog() {
   const showRouteFinderDialog = useUIStore(s => s.showRouteFinderDialog);
@@ -9,7 +8,7 @@ export default function RouteFinderDialog() {
   const showShortestRouteOverlay = useUIStore(s => s.showShortestRouteOverlay);
   const selectedNodeId = useUIStore(s => s.selectedNodeId);
 
-  const setShortestRouteResults = useSimulationStore(s => s.setShortestRouteResults);
+  const computeRoutesFromStart = useSimulationStore(s => s.computeRoutesFromStart);
 
   const common = useNarrativeStore(s => s.common || {});
   const choice = useNarrativeStore(s => s.choice || {});
@@ -79,21 +78,8 @@ export default function RouteFinderDialog() {
     if (!selectedNodeId || !startNode) return;
     const cappedLimit = Math.min(parseInt(pathCap) || 5, 50);
 
-    const graphState = { common, choice, ending, edges };
-    const currentFlagValues = {};
-    Object.values(flag).forEach(f => { currentFlagValues[f.id] = f.state; });
-    Object.values(status).forEach(s => { currentFlagValues[s.id] = s.value; });
+    computeRoutesFromStart(startNode.id, selectedNodeId, priorities, cappedLimit);
 
-    const result = computeShortestPaths(
-      startNode.id,
-      selectedNodeId,
-      graphState,
-      currentFlagValues,
-      priorities,
-      cappedLimit
-    );
-
-    setShortestRouteResults(result.paths);
     if (!showShortestRouteOverlay) {
       toggleShortestRouteOverlay();
     }

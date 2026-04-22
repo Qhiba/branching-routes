@@ -11,8 +11,6 @@ export default function StatusStrip() {
   const traversedCount = useSimulationStore(s => s.traversedEdgeIds.length);
   const showTraversalOverlay = useUIStore(s => s.showTraversalOverlay);
   const toggleTraversalOverlay = useUIStore(s => s.toggleTraversalOverlay);
-  // ADDED: Phase 4 — route finder dialog toggle
-  const toggleRouteFinderDialog = useUIStore(s => s.toggleRouteFinderDialog);
   const seenNodeIds = useSimulationStore(s => s.seenNodeIds);
 
   const common = useNarrativeStore(s => s.common);

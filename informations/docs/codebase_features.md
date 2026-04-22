@@ -58,16 +58,16 @@
 - **Actions:** `addNode`, `updateNode`, `deleteNode`, `setStartNode`, `addEdge`, `updateEdge`, `deleteEdge`, `addFlag`, `updateFlag`, `deleteFlag`, `addStatus`, `updateStatus`, `deleteStatus`, `addPath`, `updatePath`, `deletePath`, `addChapter`, `updateChapter`, `deleteChapter`, `addVariant`, `updateVariant`, `deleteVariant`, `addOption`, `updateOption`, `deleteOption`, `updateMeta`, `loadGraph`, `newGraph`, `exportGraph`
 
 ### `src/store/uiStore.js`
-- **Purpose:** Zustand store owning UI state: `selectedNodeId`, `selectedEdgeId`, `snapToGrid`, `choiceDisplayMode`, `selectedNodeIds`, `labelDisplayMode`, and `clusterMode`. The `choiceDisplayMode` field (`'medium'` | `'full'`) controls rendering density for choice node option labels on the canvas. The `selectedNodeIds: string[]` field tracks the multi-select set populated by React Flow's `onSelectionChange` (Ctrl+click and drag-box); it is additive and does not replace `selectedNodeId`. The `labelDisplayMode` field (`'compact'` | `'verbose'`) controls whether node and edge renderers show full flag/status names or compact count badges. The `clusterMode` field (`'off'` | `'chapter'` | `'path'` | `'both'`) controls the cluster overlay visibility on the canvas; initial value `'off'`; not persisted to IndexedDB and resets on each page load.
+- **Purpose:** Zustand store owning UI state: `selectedNodeId`, `selectedEdgeId`, `snapToGrid`, `choiceDisplayMode`, `selectedNodeIds`, `labelDisplayMode`, `clusterMode`, `showTraversalOverlay`, `showShortestRouteOverlay`, and `showRouteFinderDialog`. The `choiceDisplayMode` field (`'medium'` | `'full'`) controls rendering density for choice node option labels on the canvas. The `labelDisplayMode` field (`'compact'` | `'verbose'`) controls whether node and edge renderers show full flag/status names or compact count badges. The `clusterMode` field controls the cluster overlay visibility. The three overlay toggles control visibility of the traversal paths, shortest-route trace, and dialog respectively.
 - **Key exports:** `useUIStore` (Zustand hook)
 - **Dependencies:** None.
-- **Actions:** `selectNode`, `selectEdge`, `clearSelection`, `clearIfSelected`, `resetSelection`, `toggleSnapToGrid`, `setChoiceDisplayMode`, `setSelectedNodeIds`, `toggleLabelDisplayMode`, `cycleClusterMode`
+- **Actions:** `selectNode`, `selectEdge`, `clearSelection`, `clearIfSelected`, `resetSelection`, `toggleSnapToGrid`, `setChoiceDisplayMode`, `setSelectedNodeIds`, `toggleLabelDisplayMode`, `cycleClusterMode`, `toggleTraversalOverlay`, `toggleShortestRouteOverlay`, `toggleRouteFinderDialog`
 
 ### `src/store/simulationStore.js`
-- **Purpose:** Zustand store owning campaign-mode state and live simulation. Runs in two modes: edit mode (passive structural analysis only — `runPassiveAnalysis` computes `orphanedNodeIds`/`unreachableNodeIds` via BFS from the start node) and campaign mode (full simulation lifecycle). Campaign lifecycle: `enterCampaign(campaignPayload?)` accepts an optional campaign object; when present it hydrates `currentFlagValues` from the snapshot's `flagOverrides` and `statusOverrides` filtered against currently-existing narrative IDs (stale IDs silently dropped), and resumes at `snapshot.activeNodeId` if the node still exists; without a payload it seeds from `narrativeStore` defaults. `advance(edgeId)` moves to the destination node, fires node `flags_set`/`status_set` side effects, accumulates `seenNodeIds`, and recomputes node states. `selectOption(optionId)` fires option side effects, sets `selectedOptionId`, and recomputes reachable edges. `snapshotCampaign()` writes `{ activeNodeId, seenNodeIds, traversedEdgeIds, flagOverrides, statusOverrides }` to the active campaign in `campaignStore` — separating booleans (flags) from numerics (statuses) via `narrativeStore` key discrimination. `exitCampaign()` conditionally auto-snapshots (if `autosaveCampaign === true`) then zeroes all state. `reset()` restarts from the start node within campaign mode. Sandbox: `applySandboxOverride(key, value)` writes ephemeral flag/status overrides to `currentFlagValues` only — never to `narrativeStore`. Six-state node enum values: `active`, `locked`, `complete`, `failed`, `branch_locked`, `reachable`. Separate `seenNodeIds` accumulation produces a `--seen` overlay orthogonal to the enum.
+- **Purpose:** Zustand store owning campaign-mode state and live simulation. Runs in two modes: edit mode (passive structural analysis only — `runPassiveAnalysis` computes `orphanedNodeIds`/`unreachableNodeIds` via BFS from the start node) and campaign mode (full simulation lifecycle). Campaign lifecycle: `enterCampaign(campaignPayload?)` accepts an optional campaign object. `advance(edgeId)` moves to the destination node, records the move into `traversalRecords[]` containing `{ edgeId, targetNodeId, priorFlagSnapshot, priorStatusSnapshot }`, updates `seenNodeIds` and `traversedEdgeIds`, and recomputes node states. `undoLastNode()` pops a record from `traversalRecords`, resets `activeNodeId`, completely restores `currentFlagValues` and `currentStatusValues` using the captured snapshot, and rebuilds sets. `selectOption(optionId)` fires side effects, sets `selectedOptionId`, and modifies reachability. `computeRoutesFromStart` executes pathfinding via `routeTracer.js` storing multiple potential sequence strings in `shortestRouteResults`. The store tracks forward-reachability (`forwardReachableNodeIds`) leveraging BFS scanning under `computeForwardReachable` to power `--coverage-gap` visual styles. Sandbox overrides bypass narrative defaults ephemerally.
 - **Key exports:** `useSimulationStore` (Zustand hook)
-- **Dependencies:** `store` (barrel — `useNarrativeStore`), `utils` (barrel — `evaluateCondition`), `store/campaignStore.js` (direct — `useCampaignStore`)
-- **Actions:** `enterCampaign`, `exitCampaign`, `reset`, `advance`, `selectOption`, `applySandboxOverride`, `runPassiveAnalysis`, `getNodeState`, `snapshotCampaign`, `setAutosaveCampaign`
+- **Dependencies:** `store` (barrel — `useNarrativeStore`), `utils` (barrel — `evaluateCondition`, `computeShortestPaths`, `computeForwardReachable`), `store/campaignStore.js`
+- **Actions:** `enterCampaign`, `exitCampaign`, `reset`, `advance`, `undoLastNode`, `selectOption`, `applySandboxOverride`, `runPassiveAnalysis`, `getNodeState`, `snapshotCampaign`, `setAutosaveCampaign`, `computeRoutesFromStart`, `clearRouteResults`, `setShortestRouteStale`
 
 ### `src/store/toastStore.js`
 - **Purpose:** Zustand store owning ephemeral toast state. `toasts` array holds `{ id, message, variant, duration }` objects. `addToast(message, variant, duration?)` creates a toast via `generateId('toast')`, appends it, and schedules `removeToast(id)` via `setTimeout`. `removeToast(id)` filters the toast from `toasts`. Store is ephemeral: never wired to IndexedDB, never appears in `exportGraph()` output, no boot-time restore. `toasts` initialised as `[]` in state so no selector ever needs a `?? []` fallback (AR-14 compliance).
@@ -99,6 +99,11 @@
 - **Key exports:** `evaluateCondition(condition, flagState): boolean`, `evaluateClause(clause, flagState): boolean`
 - **Dependencies:** None.
 
+### `src/utils/routeTracer.js`
+- **Purpose:** Pure functions responsible for whole-graph reachability logic decoupled from UI renders. Contains `detectDeadEnds()` scanning for nodes with no outgoing edges, `computeForwardReachable()` providing a standard BFS pass across all dynamically passable gateways starting from the active narrative state, and `computeShortestPaths()` — a K-Shortest gate-evaluating BFS tracking paths up limits respecting priority tie-breakers.
+- **Key exports:** `detectDeadEnds`, `computeForwardReachable`, `computeShortestPaths`
+- **Dependencies:** `utils/conditionEvaluator`
+
 ### `src/utils/fileSystem.js`
 - **Purpose:** Primary persistence layer and explicit file I/O. Provides narrative IndexedDB functions (`saveToIndexedDB`, `loadFromIndexedDB`, `clearIndexedDB`) and campaign IndexedDB functions (`saveCampaignsToIndexedDB`, `loadCampaignsFromIndexedDB`, `clearCampaignsIndexedDB`) on a two-store IndexedDB schema (`graphs` + `campaigns`, DB v2). Explicit file I/O via Browser File System Access API with `<a download>` / `<input type="file">` fallback. Export: produces a `.zip` bundle (JSZip, browser-only) containing `datamodel.json` + `campaigns/{name}.json` per campaign when campaigns are present; falls back to a plain `.json` download when no campaigns exist. Import: detects `.zip` vs `.json` by file extension; extracts and validates `campaignSchemaVersion: 1` campaign files from ZIP; passes narrative data through the unchanged v1→v4 migration chain and full field-level sanitization pass.
 - **Key exports:** `saveToIndexedDB(graphData): Promise<void>`, `loadFromIndexedDB(): Promise<GraphData | null>`, `clearIndexedDB(): Promise<void>`, `saveCampaignsToIndexedDB(payload): Promise<void>`, `loadCampaignsFromIndexedDB(): Promise<CampaignRecord | null>`, `clearCampaignsIndexedDB(): Promise<void>`, `exportProject(graphData, campaigns, defaultTitle): Promise<void>`, `importProject(): Promise<{ graphData, campaigns } | null>`
@@ -106,8 +111,8 @@
 
 ### `src/utils/index.js`
 - **Purpose:** Barrel re-export for all utilities.
-- **Key exports:** `generateId`, `evaluateCondition`, `evaluateClause`, `exportProject`, `importProject`, `saveToIndexedDB`, `loadFromIndexedDB`, `clearIndexedDB`, `saveCampaignsToIndexedDB`, `loadCampaignsFromIndexedDB`, `clearCampaignsIndexedDB`
-- **Dependencies:** `uuid`, `conditionEvaluator`, `fileSystem`
+- **Key exports:** `generateId`, `evaluateCondition`, `evaluateClause`, `exportProject`, `importProject`, `saveToIndexedDB`, `loadFromIndexedDB`, `clearIndexedDB`, `saveCampaignsToIndexedDB`, `loadCampaignsFromIndexedDB`, `clearCampaignsIndexedDB`, `detectDeadEnds`, `computeForwardReachable`, `computeShortestPaths`
+- **Dependencies:** `uuid`, `conditionEvaluator`, `fileSystem`, `routeTracer`
 
 ---
 
@@ -123,7 +128,7 @@
 ## `src/components/`
 
 ### `src/components/TopBar.jsx`
-- **Purpose:** Horizontal top bar with app title, editable project title, file actions (New, Import, Export), Tidy Layout button (Dagre-based), Snap-to-Grid toggle, campaign controls, `<CreationBar />`, and cluster mode cycle button. The cluster button reads `clusterMode` from `uiStore` and calls `cycleClusterMode` on click; it displays the current mode label and is visible in both edit and campaign mode (G shortcut is campaign-safe). In edit mode mounts `<CampaignSelector />` which handles campaign listing, creation, and entry, and `<CreationBar />` for entity quick-creation buttons. When a campaign is active shows `Reset Simulation` + `Exit Campaign Mode` buttons and a "Campaign Active — [name]" status indicator. All authoring controls (`disabled={isCampaignActive}`) are locked during campaign mode; `CreationBar` inherits the same guard. `handleNew` calls `clearCampaignsIndexedDB()` + `clearIndexedDB()` + `campaignStore.clearCampaigns()` before `newGraph()` and `exitCampaign()`. `handleImport` calls `exitCampaign()`, `clearCampaigns()`, then loads campaigns and graph from the `{ graphData, campaigns }` return shape. `handleExport` passes `campaigns` from `campaignStore` to `exportProject` to enable ZIP bundling.
+- **Purpose:** Horizontal top bar with app title, editable project title, file actions, Tidy Layout button, Snap-to-Grid toggle, campaign controls, `<CreationBar />`, and cluster mode cycle button. In edit mode mounts `<CampaignSelector />` and `<CreationBar />`. In campaign mode removes authoring access replacing it with an Undo action invoking `undoLastNode()` allowing single step regression. The TopBar exposes `Find Route` action leveraging shortest route dialog. `handleNew` calls IndexedDB scrubs before `newGraph()` and `exitCampaign()`.
 - **Key exports:** `default TopBar`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`, `useCampaignStore`), `utils` (barrel — `exportProject`, `importProject`, `clearIndexedDB`, `clearCampaignsIndexedDB`), `dagre`, `components/CampaignSelector`, `components/CreationBar`
 
@@ -216,14 +221,35 @@
 - **Purpose:** Barrel re-export for all components.
 - **Key exports:** `GraphCanvas`, `CommonNode`, `ChoiceNode`, `EndingNode`, `ConditionalEdge`, `TopBar`, `Sidebar`, `NodeInspector`, `EdgeInspector`, `FlagManager`, `StatusManager`, `PathChapterManager`, `OptionEditor`, `VariantEditor`, `SandboxPanel`, `CampaignSelector`, `ContextMenu`, `NameModal`, `CreationBar`, `CommandPalette`, `Toast`
 - **Dependencies:** All files in `components/`
+### `src/components/StatusStrip.jsx`
+- **Purpose:** Bottom-anchored dashboard available during active simulations. It reads `traversedEdgeIds`, `seenNodeIds`, total graph footprint, and dead-end aggregations directly via localized selectors to compute live coverage fractions (Nodes/Endings/Edges/Dead-ends). Handles toggling for `showTraversalOverlay` orthogonal UI rendering.
+- **Key exports:** `default StatusStrip`
+- **Dependencies:** `store` (barrel — `useSimulationStore`, `useNarrativeStore`, `useUIStore`), `utils` (barrel — `detectDeadEnds`)
+
+### `src/components/RouteFinderDialog.jsx`
+- **Purpose:** Interactive dialog allowing the user to compute paths mapping between the established start node and currently selected node using sequence pathing tiebreakers. Bypasses the campaign structural block to inject sequences directly into `shortestRouteResults` via `computeRoutesFromStart()`.
+- **Key exports:** `default RouteFinderDialog`
+- **Dependencies:** `store` (barrel — `useSimulationStore`, `useNarrativeStore`, `useUIStore`)
+
 ### `src/components/CampaignSelector.jsx`
-- **Purpose:** Campaign management UI mounted in `TopBar` when not in campaign mode. With no campaigns: shows a single "Enter Campaign Mode" button that creates a default campaign and enters it. With existing campaigns: shows a pill list (campaign name, Enter button, Delete button) and a create-new-campaign form. Coordinates `campaignStore.setActiveCampaign()` before calling `simulationStore.enterCampaign()` to ensure the active ID is set for snapshotting.
+- **Purpose:** Campaign management UI mounted in `TopBar` when not in campaign mode.
 - **Key exports:** `default CampaignSelector`
 - **Dependencies:** `store` (barrel — `useCampaignStore`, `useSimulationStore`)
 
 ---
 
 ## Changelog
+
+## [2026-04-22] — Route_Tracing
+### Added
+- `src/utils/routeTracer.js`: Introduced BFS-based algorithmic suite (`detectDeadEnds`, `computeForwardReachable`, `computeShortestPaths`).
+- `src/components/RouteFinderDialog.jsx`: Interactive route tie-breaker tracing tool directly bound to target node tracking.
+- `src/components/StatusStrip.jsx`: Live coverage metrics and toggle overlays spanning Node/Edge counts.
+### Changed
+- `src/store/simulationStore.js`: Added `.traversalRecords[]` tracking node advances complete with flag snapshots allowing precise `.undoLastNode()`. Added `computeForwardReachable` check producing unreachable node dims in active simulations via CSS custom class `--coverage-gap`.
+- `src/store/uiStore.js`: Implemented boolean switches for toggling overlay layers natively (`showTraversalOverlay`, `showShortestRouteOverlay`).
+- `src/components/TopBar.jsx`: Updated to include Undo action in Campaign view and trigger short paths.
+- `src/components/nodes/*`: Integrated `--coverage-gap` opacity dimming token mapping across all visual footprints.
 
 ## [2026-04-20] — Command_palette_toast_Visual_Node_Clustering
 ### Added

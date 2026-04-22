@@ -1,12 +1,16 @@
 @import './tokens.css';
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -29,7 +33,9 @@ button {
   background: none;
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
@@ -50,20 +56,34 @@ select option {
   color: var(--color-text-primary);
 }
 
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   border-color: var(--color-accent);
 }
 
 /* Simulation reachable pulse animation */
 @keyframes pulse-border {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* ADDED: Phase 4 — Route overlay flowing animation (dash offset animation) */
 @keyframes flow-dash {
-  0% { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: -12; }
+  0% {
+    stroke-dashoffset: 0;
+  }
+
+  100% {
+    stroke-dashoffset: -12;
+  }
 }
 
 /* Utility */
@@ -90,7 +110,8 @@ input:focus, textarea:focus, select:focus {
   box-shadow: var(--shadow-md);
   /* overflow: hidden removed to prevent React Flow handles from being clipped in half */
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-  padding: 0; /* type-bar handles its own padding */
+  padding: 0;
+  /* type-bar handles its own padding */
 }
 
 .story-node:hover {
@@ -150,7 +171,8 @@ input:focus, textarea:focus, select:focus {
   border-radius: 4px;
   font-size: 10px;
   font-weight: 600;
-  color: #ef4444; /* tailwind red-500 */
+  color: #ef4444;
+  /* tailwind red-500 */
   border: 1px solid rgba(239, 68, 68, 0.3);
   margin-left: auto;
   white-space: nowrap;
@@ -467,8 +489,8 @@ input:focus, textarea:focus, select:focus {
 
 /* ADDED: Phase 3 — Coverage-gap overlay (nodes not forward-reachable from active node) — MODIFIED: Lighter dimming */
 .story-node--coverage-gap {
-  opacity: 0.6;
-  filter: grayscale(40%);
+  opacity: var(--opacity-coverage-gap);
+  filter: grayscale(80%);
   transition: opacity var(--transition-normal), filter var(--transition-normal);
 }
 
@@ -538,14 +560,36 @@ input:focus, textarea:focus, select:focus {
 
 /* Campaign Mode Overrides */
 /* CHANGED: simulation-mode → campaign-mode */
-.campaign-mode .react-flow__node { cursor: default; }
-.campaign-mode .react-flow__node.story-node--reachable { cursor: pointer; }
-.campaign-mode .react-flow__node-drag-handle { pointer-events: none; }
-.campaign-mode .react-flow__handle { pointer-events: none !important; opacity: 0; }
-.campaign-mode .react-flow__edge { pointer-events: none; }
-.campaign-mode .react-flow__connection-path { display: none !important; }
+.campaign-mode .react-flow__node {
+  cursor: default;
+}
 
-header.campaign-mode .file-actions { opacity: 0.4; pointer-events: none; }
+.campaign-mode .react-flow__node.story-node--reachable {
+  cursor: pointer;
+}
+
+.campaign-mode .react-flow__node-drag-handle {
+  pointer-events: none;
+}
+
+.campaign-mode .react-flow__handle {
+  pointer-events: none !important;
+  opacity: 0;
+}
+
+.campaign-mode .react-flow__edge {
+  pointer-events: none;
+}
+
+.campaign-mode .react-flow__connection-path {
+  display: none !important;
+}
+
+header.campaign-mode .file-actions {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .topbar-content {
   display: flex;
   justify-content: space-between;
@@ -596,10 +640,12 @@ header.campaign-mode .file-actions { opacity: 0.4; pointer-events: none; }
 .react-flow__minimap {
   background-color: var(--color-bg-surface) !important;
 }
+
 .react-flow__minimap-mask {
   fill: var(--color-bg-base) !important;
   opacity: 0.6;
 }
+
 .react-flow__minimap-node {
   fill: var(--color-accent) !important;
 }
@@ -607,7 +653,10 @@ header.campaign-mode .file-actions { opacity: 0.4; pointer-events: none; }
 /* ADDED: Phase 2 naming modal styles */
 .name-modal__backdrop {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
@@ -720,7 +769,10 @@ header.campaign-mode .file-actions { opacity: 0.4; pointer-events: none; }
    ========================================= */
 .context-menu__backdrop {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 999;
 }
 
@@ -850,6 +902,7 @@ header.campaign-mode .file-actions { opacity: 0.4; pointer-events: none; }
     opacity: 0;
     transform: translateX(20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);

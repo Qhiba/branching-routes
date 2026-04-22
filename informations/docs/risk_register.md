@@ -60,6 +60,11 @@
 | RISK-CP-05 | Cluster bounding box re-computation per viewport frame | Medium | Medium | Bounding boxes computed in `GraphCanvasInner` via `useMemo`; passed as props; `ClusterOverlay` applies only CSS transform per pan frame | RESOLVED |
 | RISK-CPT-01 | Whole-store destructure in CommandPalette causes unnecessary re-renders | Low | Low | See details below | OPEN |
 | RISK-CPT-02 | Stale `isOpen` closure in palette-toggle effect | Low | Low | See details below | OPEN |
+| RISK-RT-01 | TopBar undo race condition vs campaign autosave | Medium | Medium | Action restores synchronously | RESOLVED |
+| RISK-RT-02 | Undoing past the start node bounds | Medium | High | `undoLastNode()` pop check bounding | RESOLVED |
+| RISK-RT-03 | Stale coverage metrics | Medium | Low | Status strips read atomic primitives directly | RESOLVED |
+| RISK-RT-04 | Dead-end algorithm performance on large graphs | Low | Medium | Read-only linear scans offloaded | RESOLVED |
+| RISK-RT-05 | K-shortest Path combinatorics blowup | High | High | Fixed `cappedLimit` mapped inside UI boundary | RESOLVED |
 
 ---
 
@@ -766,3 +771,53 @@
 **Mitigation Strategy:** Refactor the effect to use a `useRef` for `isOpen` (ref stays current without causing re-registration) or a functional-set pattern (`setIsOpen(prev => !prev)`) dispatched from the event listener without reading closed-over state. Either removes the staleness risk entirely.
 
 **Status:** OPEN — Surfaced in audit pass 2 §6. Non-blocking; deferred to future cleanup.
+
+---
+
+## RISK-RT-01 — TopBar Undo Race Condition Against Campaign Autosave
+
+**Description:** Undoing changes node states. Autosave operates on a 1-second debounce. If an undo happens, we could misfire saves saving temporary mismatched bounds.
+**Likelihood:** Medium
+**Impact:** Medium
+**Mitigation Strategy:** Store restores and pointers reset synchronously; the reactive subscriber triggers off the resolved output array naturally.
+**Status:** RESOLVED — `undoLastNode` executes atomically in simulation store.
+
+---
+
+## RISK-RT-02 — Undoing Past the Start Node Bounds
+
+**Description:** Activating an Undo when the user is at the initial start node, popping records that don't exist.
+**Likelihood:** Medium
+**Impact:** High
+**Mitigation Strategy:** Provide length bounds checks over traversal records.
+**Status:** RESOLVED — `undoLastNode()` implements a graceful no-op return when records are empty.
+
+---
+
+## RISK-RT-03 — Stale Coverage Metrics
+
+**Description:** Computing overall coverage outside standard Zustand subscription ticks rendering disjoint values manually tracking sets.
+**Likelihood:** Medium
+**Impact:** Low
+**Mitigation Strategy:** Local selectors used leveraging primitive counts naturally updating as standard simulation actions advance nodes.
+**Status:** RESOLVED — Integrated within `StatusStrip`.
+
+---
+
+## RISK-RT-04 — Dead-end Algorithm Performance on Large Graphs
+
+**Description:** Scanning graphs continuously running DFS scans creates jank.
+**Likelihood:** Low
+**Impact:** Medium
+**Mitigation Strategy:** Execute scans asynchronously or hook them directly into existing passive loops.
+**Status:** RESOLVED — Scans are cleanly triggered off memo boundaries reading from pure structure.
+
+---
+
+## RISK-RT-05 — K-shortest Path Combinatorics Blowup
+
+**Description:** BFS tracking arrays scaling combinatorially. Finding paths limits compute cycles un-gracefully.
+**Likelihood:** High
+**Impact:** High
+**Mitigation Strategy:** Bound with explicit limit (cap max trace at 50 nodes deep).
+**Status:** RESOLVED — RouteFinderDialog bounds limits out explicitly mapping caps cleanly out to algorithms in `routeTracer`.
