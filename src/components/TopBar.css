@@ -54,7 +54,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-2);
-    color: var(--color-accent-500, var(--color-primary));
+    color: var(--color-primary);
     font-weight: var(--font-weight-bold);
     letter-spacing: 0.05em;
     flex-shrink: 0;
@@ -96,7 +96,7 @@
 
 .ui-v2-topbar-input:focus {
     background-color: #000;
-    border-color: var(--color-accent-500, var(--color-primary));
+    border-color: var(--color-primary);
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 2px rgba(99, 102, 241, 0.2);
 }
 
@@ -114,72 +114,14 @@
 }
 
 /* Center Group Buttons */
-.ui-v2-topbar-btn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 11px;
-    border-radius: var(--radius-sm);
-    color: #8892b0;
-    transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-medium);
-    border: 1px solid transparent;
-    cursor: pointer;
-    background: transparent;
-    white-space: nowrap;
-}
-
-.ui-v2-topbar-btn svg {
-    opacity: 0.75;
-    flex-shrink: 0;
-}
-
-.ui-v2-topbar-btn:hover:not(:disabled) {
-    background-color: #2a2f45;
-    color: #e2e8f0;
-    border-color: #3d4466;
-}
-
-.ui-v2-topbar-btn:hover:not(:disabled) svg {
-    opacity: 1;
-}
-
-.ui-v2-topbar-btn:active:not(:disabled) {
-    transform: scale(0.97);
-}
-
-.ui-v2-topbar-btn:disabled {
-    opacity: 0.38;
-    cursor: not-allowed;
-}
-
-.ui-v2-topbar-btn--active {
-    background-color: #252a3d;
-    color: #c7d2fe;
-    border-color: #3d4466;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.ui-v2-topbar-btn--active svg {
-    opacity: 1;
-}
-
-/* Right File Operation Buttons — clean, no ::before hack */
-.ui-v2-topbar-file-ops {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex-shrink: 0;
-}
-
+.ui-v2-topbar-btn,
 .ui-v2-topbar-file-btn {
     display: flex;
     align-items: center;
     gap: 5px;
     padding: 5px 11px;
     border-radius: var(--radius-sm);
-    color: #8892b0;
+    color: var(--color-text-secondary);
     transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
@@ -189,26 +131,52 @@
     white-space: nowrap;
 }
 
+.ui-v2-topbar-btn svg,
 .ui-v2-topbar-file-btn svg {
     opacity: 0.75;
     flex-shrink: 0;
 }
 
+.ui-v2-topbar-btn:hover:not(:disabled),
 .ui-v2-topbar-file-btn:hover:not(:disabled) {
-    background-color: #2a2f45;
-    color: #e2e8f0;
-    border-color: #3d4466;
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
 }
 
+.ui-v2-topbar-btn:hover:not(:disabled) svg,
 .ui-v2-topbar-file-btn:hover:not(:disabled) svg {
     opacity: 1;
 }
 
+.ui-v2-topbar-btn:active:not(:disabled),
 .ui-v2-topbar-file-btn:active:not(:disabled) {
     transform: scale(0.97);
 }
 
+.ui-v2-topbar-btn:disabled,
 .ui-v2-topbar-file-btn:disabled {
     opacity: 0.38;
     cursor: not-allowed;
 }
+
+.ui-v2-topbar-btn--active {
+    background-color: var(--color-bg-elevated);
+    color: var(--color-primary);
+    border-color: var(--color-border);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.ui-v2-topbar-btn--active svg {
+    opacity: 1;
+    color: var(--color-primary);
+}
+
+/* Right File Operation Buttons — shared base with .ui-v2-topbar-btn above */
+.ui-v2-topbar-file-ops {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+/* .ui-v2-topbar-file-btn rules are merged into the shared selector block above */

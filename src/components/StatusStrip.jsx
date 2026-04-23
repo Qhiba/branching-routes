@@ -83,7 +83,7 @@ export default function StatusStrip() {
             <FolderTree className="w-3.5 h-3.5" style={{ color: 'var(--color-cyan-500)' }} /> Paths: <strong>{pathsCount}</strong>
           </span>
           <span className="ui-v2-status-item" title="Chapters">
-            <BookOpen className="w-3.5 h-3.5" style={{ color: 'var(--color-accent)' }} /> Chapters: <strong>{chaptersCount}</strong>
+            <BookOpen className="w-3.5 h-3.5" style={{ color: 'var(--color-primary)' }} /> Chapters: <strong>{chaptersCount}</strong>
           </span>
         </div>
       </div>

@@ -3,7 +3,7 @@
 .ncm-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: var(--z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -26,7 +26,7 @@
 }
 
 .ncm-container {
-    background-color: #0f172a;
+    background-color: var(--color-bg-modal);
     /* slate-900 */
     border: 1px solid var(--color-border);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
@@ -213,7 +213,7 @@
 .ncm-input,
 .ncm-textarea,
 .ncm-select {
-    background-color: #020617;
+    background-color: var(--color-bg-deep);
     /* slate-950 */
     border: 1px solid var(--color-border);
     border-radius: 6px;
@@ -244,7 +244,7 @@
 .ncm-input:focus,
 .ncm-textarea:focus,
 .ncm-select:focus {
-    border-color: var(--color-accent-500);
+    border-color: var(--color-primary);
 }
 
 /* Two-col row */
@@ -264,7 +264,7 @@
     gap: 8px;
     width: 100%;
     padding: 10px 14px;
-    background-color: #020617;
+    background-color: var(--color-bg-deep);
     border: 1px solid var(--color-border);
     border-radius: 6px;
     color: var(--color-text-secondary);
@@ -276,7 +276,7 @@
 }
 
 .ncm-start-btn:hover:not(:disabled) {
-    border-color: var(--color-accent-500);
+    border-color: var(--color-primary);
     color: var(--color-text-primary);
     background-color: rgba(99, 102, 241, 0.08);
 }
@@ -284,14 +284,14 @@
 .ncm-start-btn--active,
 .ncm-start-btn:disabled {
     border-color: rgba(99, 102, 241, 0.4);
-    color: var(--color-accent-400, #818cf8);
+    color: var(--color-primary);
     cursor: default;
     opacity: 1;
 }
 
 /* On-Enter Modifiers */
 .ncm-modifiers-box {
-    background-color: #0f172a;
+    background-color: var(--color-bg-modal);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 12px;
@@ -312,7 +312,7 @@
     gap: 6px;
     background-color: rgba(139, 92, 246, 0.1);
     border: 1px solid rgba(139, 92, 246, 0.2);
-    color: #c4b5fd;
+    color: var(--color-purple-300);
     /* purple-300 */
     font-size: 11px;
     padding: 3px 8px;
@@ -367,7 +367,7 @@
 
 .ncm-status-amount {
     width: 70px;
-    background-color: #020617;
+    background-color: var(--color-bg-deep);
     border: 1px solid var(--color-border);
     border-radius: 6px;
     color: var(--color-text-primary);
@@ -379,7 +379,7 @@
 }
 
 .ncm-status-amount:focus {
-    border-color: var(--color-accent-500);
+    border-color: var(--color-primary);
 }
 
 .ncm-remove-btn {
@@ -402,8 +402,8 @@
 
 /* Variant / Option Cards */
 .ncm-card {
-    background-color: #0f172a;
-    border: 1px solid #1e293b;
+    background-color: var(--color-bg-modal);
+    border: 1px solid var(--color-border-subtle);
     border-radius: 8px;
     overflow: hidden;
 }
@@ -414,7 +414,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid #1e293b;
+    border-bottom: 1px solid var(--color-border-subtle);
     cursor: pointer;
 }
 
@@ -439,7 +439,7 @@
 
 /* Condition builder */
 .ncm-condition-box {
-    background-color: #020617;
+    background-color: var(--color-bg-deep);
     border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 10px;
@@ -462,7 +462,7 @@
 
 .ncm-operator-toggle {
     display: flex;
-    background-color: #0f172a;
+    background-color: var(--color-bg-modal);
     border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 2px;
@@ -482,7 +482,7 @@
 }
 
 .ncm-operator-btn--active {
-    background-color: #334155;
+    background-color: var(--color-bg-selection);
     color: white;
 }
 
@@ -495,8 +495,8 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background-color: #0f172a;
-    border: 1px solid #1e293b;
+    background-color: var(--color-bg-modal);
+    border: 1px solid var(--color-border-subtle);
     padding: 6px 8px;
     border-radius: 4px;
     margin-bottom: 6px;
@@ -514,17 +514,17 @@
 
 .ncm-clause-type--flag {
     background-color: rgba(139, 92, 246, 0.2);
-    color: #c4b5fd;
+    color: var(--color-purple-300);
 }
 
 .ncm-clause-type--status {
     background-color: rgba(59, 130, 246, 0.2);
-    color: #93c5fd;
+    color: var(--color-blue-300);
 }
 
 .ncm-clause-select {
     flex: 1;
-    background-color: #020617;
+    background-color: var(--color-bg-deep);
     border: 1px solid var(--color-border);
     border-radius: 4px;
     color: var(--color-text-primary);
@@ -535,7 +535,7 @@
 }
 
 .ncm-clause-value {
-    background-color: #020617;
+    background-color: var(--color-bg-deep);
     border: 1px solid var(--color-border);
     border-radius: 4px;
     color: var(--color-emerald-500);
@@ -549,7 +549,7 @@
 
 .ncm-clause-number {
     width: 52px;
-    background-color: #020617;
+    background-color: var(--color-bg-deep);
     border: 1px solid var(--color-border);
     border-radius: 4px;
     color: var(--color-text-primary);
@@ -573,7 +573,7 @@
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    background-color: #0f172a;
+    background-color: var(--color-bg-modal);
     border: 1px solid var(--color-border);
     border-radius: 6px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -606,15 +606,17 @@
     flex-shrink: 0;
 }
 
+/* Modal footer buttons — extend the .btn base system */
+/* Use className="btn btn--ghost" for cancel and "btn btn--primary" for save in JSX */
 .ncm-btn-cancel {
     padding: 8px 20px;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     color: var(--color-text-secondary);
     background: transparent;
     border: none;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     transition: all var(--transition-fast);
 }
 
@@ -626,21 +628,22 @@
 .ncm-btn-save {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     padding: 8px 24px;
-    font-size: 13px;
-    font-weight: 700;
-    color: white;
-    background-color: var(--color-accent-500);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+    color: #fff;
+    background-color: var(--color-primary);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 12px rgba(115, 147, 248, 0.3);
     transition: all var(--transition-fast);
 }
 
 .ncm-btn-save:hover {
-    background-color: var(--color-accent-400);
+    background-color: var(--color-primary-hover);
+    box-shadow: 0 4px 16px rgba(115, 147, 248, 0.45);
 }
 
 .ncm-btn-save:active {

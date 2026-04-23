@@ -80,7 +80,7 @@
 }
 
 .confirm-modal__btn--confirm {
-    background: var(--color-accent);
+    background: var(--color-primary);
     color: #fff;
     border-color: transparent;
     box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);

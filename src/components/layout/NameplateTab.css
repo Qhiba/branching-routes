@@ -27,7 +27,7 @@
 .nameplate-tab--left.nameplate-tab--active {
     background: var(--color-bg-elevated);
     border-color: var(--color-border);
-    color: var(--color-accent);
+    color: var(--color-primary);
     z-index: 20;
     transform: translateX(0);
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
@@ -48,7 +48,7 @@
 .nameplate-tab--right.nameplate-tab--active {
     background: var(--color-bg-elevated);
     border-color: var(--color-border);
-    color: var(--color-accent);
+    color: var(--color-primary);
     z-index: 20;
     transform: translateX(0);
     box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);

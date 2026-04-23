@@ -62,7 +62,7 @@
 }
 
 .nodes-panel__input:focus {
-    border-color: var(--color-accent);
+    border-color: var(--color-primary);
 }
 
 .nodes-panel__list {
@@ -360,7 +360,7 @@
 }
 
 .trace-panel__add-select:hover {
-    border-color: var(--color-accent);
+    border-color: var(--color-primary);
     color: var(--color-text-primary);
     background: var(--color-bg-hover);
 }
@@ -451,7 +451,7 @@
 }
 
 .trace-panel__run-btn:hover {
-    background: #6366f1;
+    background: var(--color-primary);
 }
 
 .trace-panel__run-btn:disabled {
@@ -573,12 +573,12 @@
 }
 
 .trace-results__item--active {
-    border-color: var(--color-accent);
+    border-color: var(--color-primary);
     background: rgba(99, 102, 241, 0.08);
 }
 
 .trace-results__item--active:hover {
-    border-color: var(--color-accent);
+    border-color: var(--color-primary);
     background: rgba(99, 102, 241, 0.12);
 }
 
@@ -667,7 +667,7 @@
 }
 
 .campaign-panel__input:focus {
-    border-color: var(--color-accent);
+    border-color: var(--color-primary);
 }
 
 .campaign-panel__add-btn {
@@ -683,7 +683,7 @@
 }
 
 .campaign-panel__add-btn:hover {
-    background: #6366f1;
+    background: var(--color-primary);
 }
 
 .campaign-panel__hr {
@@ -787,12 +787,12 @@
 
 /* Enter (Play) — indigo accent */
 .campaign-panel__action-btn--enter {
-    color: var(--color-accent);
+    color: var(--color-primary);
 }
 
 .campaign-panel__action-btn--enter:hover {
     background: rgba(115, 147, 248, 0.15);
-    color: var(--color-accent);
+    color: var(--color-primary);
 }
 
 /* Delete (Trash) — danger on hover */
