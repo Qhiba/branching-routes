@@ -141,25 +141,22 @@ export default function FloatingMiddleBar() {
             <div className="ui-v2-floating-nodes">
                 <button
                     onClick={() => handleCreateNode('common')}
-                    className="ui-v2-floating-node-btn"
+                    className="ui-v2-floating-node-btn ui-v2-floating-node-btn--common"
                     title="Common Node"
-                    style={{ color: 'var(--color-emerald-500)' }}
                 >
                     <GitCommit className="w-4 h-4" />
                 </button>
                 <button
                     onClick={() => handleCreateNode('choice')}
-                    className="ui-v2-floating-node-btn"
+                    className="ui-v2-floating-node-btn ui-v2-floating-node-btn--choice"
                     title="Choice Node"
-                    style={{ color: 'var(--color-blue-500)' }}
                 >
                     <GitPullRequest className="w-4 h-4" />
                 </button>
                 <button
                     onClick={() => handleCreateNode('ending')}
-                    className="ui-v2-floating-node-btn"
+                    className="ui-v2-floating-node-btn ui-v2-floating-node-btn--ending"
                     title="Ending Node"
-                    style={{ color: 'var(--color-amber-500)' }}
                 >
                     <BoxSelect className="w-4 h-4" />
                 </button>
@@ -187,7 +184,7 @@ export default function FloatingMiddleBar() {
                     className="ui-v2-floating-btn-start"
                     disabled={campaigns.length === 0}
                 >
-                    <Play style={{ width: '10px', height: '10px', fill: 'currentColor' }} /> Start
+                    <Play className="ui-v2-floating-play-icon" /> Start
                 </button>
             </div>
         </div>

@@ -666,3 +666,223 @@
 .ncm-btn-save:active {
     transform: scale(0.97);
 }
+
+/* Icon sizing utilities */
+.ncm-icon-xs {
+    width: 10px;
+    height: 10px;
+}
+
+.ncm-icon-sm {
+    width: 12px;
+    height: 12px;
+}
+
+.ncm-icon-md {
+    width: 13px;
+    height: 13px;
+}
+
+.ncm-icon-base {
+    width: 14px;
+    height: 14px;
+}
+
+.ncm-icon-lg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Section title icon override */
+.ncm-section-title__icon {
+    width: 14px;
+    height: 14px;
+}
+
+/* Layout helpers */
+.ncm-flex-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ncm-flex-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ncm-flex-row--gap6 {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.ncm-flex-1 {
+    flex: 1;
+}
+
+.ncm-flex-shrink-0 {
+    flex-shrink: 0;
+}
+
+.ncm-mb-14 {
+    margin-bottom: 14px;
+}
+
+.ncm-mb-6 {
+    margin-bottom: 6px;
+}
+
+.ncm-label--block {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.ncm-border-top {
+    border-top: 1px solid var(--color-border);
+    padding-top: 12px;
+}
+
+/* Add btn variants */
+.ncm-add-btn--sm {
+    font-size: 10px;
+}
+
+.ncm-add-btn--full {
+    width: 100%;
+    justify-content: center;
+    padding: 8px;
+    margin-top: 4px;
+}
+
+/* Clause value color states */
+.ncm-clause-value--true {
+    color: var(--color-emerald-500);
+}
+
+.ncm-clause-value--false {
+    color: #f87171;
+}
+
+/* Chevron in card header */
+.ncm-card__chevron {
+    width: 14px;
+    height: 14px;
+    color: var(--color-text-secondary);
+}
+
+/* Status clause separator */
+.ncm-clause-sep {
+    color: var(--color-text-secondary);
+    font-size: 10px;
+}
+
+/* No types defined hint */
+.ncm-hint {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    padding: 6px 0;
+}
+
+/* No flags defined hint */
+.ncm-hint--inline {
+    color: var(--color-text-secondary);
+    font-size: 11px;
+}
+
+/* Star icon fill when active */
+.ncm-star-icon--active {
+    fill: currentColor;
+}
+
+/* Select width utilities for flag/status search */
+.ncm-select--narrow {
+    width: 72px;
+    flex-shrink: 0;
+}
+
+/* SearchableSelect component */
+.ncm-searchable-select {
+    position: relative;
+    cursor: pointer;
+    display: inline-block;
+    min-width: 140px;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+}
+
+.ncm-searchable-select__trigger {
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    font-size: 13px;
+    gap: 6px;
+}
+
+.ncm-searchable-select__value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ncm-searchable-select__placeholder {
+    color: var(--color-text-muted);
+}
+
+.ncm-searchable-select__caret {
+    color: var(--color-text-muted);
+    font-size: 9px;
+    flex-shrink: 0;
+}
+
+.ncm-searchable-select__dropdown {
+    position: absolute;
+    top: 100%;
+    left: -1px;
+    right: -1px;
+    z-index: 1000;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 4px;
+    margin-top: 2px;
+    box-shadow: var(--shadow-md);
+}
+
+.ncm-searchable-select__search {
+    width: 100%;
+    margin-bottom: 4px;
+}
+
+.ncm-searchable-select__options {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.ncm-searchable-select__option {
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: 2px;
+    font-size: 11px;
+}
+
+.ncm-searchable-select__option:hover {
+    background: var(--color-bg-hover);
+}
+
+.ncm-searchable-select__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+}
+
+/* Palette empty state (CommandPalette) */
+.palette-empty {
+    padding: var(--space-4);
+    color: var(--color-text-muted);
+    text-align: center;
+}

@@ -1086,3 +1086,75 @@ select:focus {
 .verbose-flag-false {
   color: var(--color-flag-false);
 }
+
+/* Verbose side-effects box (CommonNode / ChoiceNode) */
+.verbose-effects-box {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--color-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 4px;
+  border-radius: 4px;
+}
+
+/* Compact variant for option-level effects */
+.verbose-effects-box--compact {
+  margin-top: 4px;
+  font-size: 9px;
+  color: var(--color-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  opacity: 0.8;
+}
+
+/* Choice node options list */
+.choice-node__options-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Status value colors in verbose display */
+.status-val--positive {
+  color: var(--color-flag-true);
+}
+
+.status-val--negative {
+  color: var(--color-flag-false);
+}
+
+/* Canvas wrapper full size */
+.canvas-wrapper--full {
+  width: 100%;
+  height: 100%;
+}
+
+/* Name modal utilities */
+.name-modal__input--mono {
+  font-family: monospace;
+}
+
+.name-modal__btn-cancel {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: none;
+  box-shadow: none;
+}
+
+.name-modal__btn-confirm {
+  padding: 8px 24px;
+  border-radius: 6px;
+}
+
+.name-modal__toggle-option--active {
+  color: white;
+}
+
+.name-modal__toggle-option--inactive {
+  color: var(--color-text-secondary);
+}

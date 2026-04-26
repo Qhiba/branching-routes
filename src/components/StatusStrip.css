@@ -98,3 +98,49 @@
     border-color: var(--color-primary);
     color: #fff;
 }
+
+/* Icon color variants */
+.status-icon--emerald {
+    color: var(--color-emerald-500);
+}
+
+.status-icon--blue {
+    color: var(--color-blue-500);
+}
+
+.status-icon--amber {
+    color: var(--color-amber-500);
+}
+
+.status-icon--purple {
+    color: var(--color-purple-500);
+}
+
+.status-icon--rose {
+    color: var(--color-rose-500);
+}
+
+.status-icon--cyan {
+    color: var(--color-cyan-500);
+}
+
+.status-icon--indigo {
+    color: var(--color-primary);
+}
+
+/* Campaign counter colors (replace hardcoded hex) */
+.campaign-count--nodes {
+    color: var(--color-amber-500);
+}
+
+.campaign-count--endings {
+    color: var(--color-emerald-500);
+}
+
+.campaign-count--edges {
+    color: var(--color-campaign-indigo);
+}
+
+.campaign-count--deadends {
+    color: var(--color-rose-500);
+}

@@ -141,7 +141,7 @@ export default function RouteTracingPanel() {
 
                 {/* 3. Route list */}
                 <div className="trace-results__header">
-                    <Check size={12} style={{ color: 'var(--color-emerald-500)', flexShrink: 0 }} />
+                    <Check size={12} className="trace-results__check-icon" />
                     Paths Found ({shortestRouteResults.length})
                 </div>
 
@@ -213,7 +213,7 @@ export default function RouteTracingPanel() {
             {/* FIX 7: Tie-Breaking Priorities — split into Flags and Status groups */}
             <div className="trace-panel__section">
                 <label className="trace-panel__label">
-                    Tie-Breaking Priorities <span style={{ opacity: 0.6, textTransform: 'none' }}>(Optional)</span>
+                    Tie-Breaking Priorities <span className="trace-panel__label-sub">(Optional)</span>
                 </label>
 
                 {/* Flags group */}
@@ -303,11 +303,10 @@ export default function RouteTracingPanel() {
 
             {/* Path Cap */}
             <div className="trace-panel__section">
-                <label className="trace-panel__label">Path Cap <span style={{ opacity: 0.6, textTransform: 'none' }}>(Max 50)</span></label>
+                <label className="trace-panel__label">Path Cap <span className="trace-panel__label-sub">(Max 50)</span></label>
                 <input
                     type="number"
-                    className="trace-panel__select"
-                    style={{ width: '100%', fontFamily: 'monospace' }}
+                    className="trace-panel__select trace-panel__pathcap-input"
                     value={pathCap}
                     onChange={(e) => {
                         let val = parseInt(e.target.value) || 5;

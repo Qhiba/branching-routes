@@ -524,7 +524,7 @@ function GraphCanvasInner() {
   }, [fitView]);
 
   return (
-    <div ref={canvasRef} className={`canvas-wrapper ${isCampaignActive ? 'campaign-mode' : ''}`} style={{ width: '100%', height: '100%' }}>
+    <div ref={canvasRef} className={`canvas-wrapper canvas-wrapper--full ${isCampaignActive ? 'campaign-mode' : ''}`}>
       {/* ADDED: Phase 3 — Cluster overlay (chapter/path regions behind nodes) */}
       <ClusterOverlay chapterBoxes={clusterBoxes.chapterBoxes} pathBoxes={clusterBoxes.pathBoxes} />
 

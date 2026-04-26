@@ -15,7 +15,7 @@ import './NodeConfigModal.css';
 function SectionTitle({ icon: Icon, title }) {
     return (
         <div className="ncm-section-title">
-            <Icon className="ncm-section-title__icon" style={{ width: 14, height: 14 }} />
+            <Icon className="ncm-section-title__icon" />
             <h4 className="ncm-section-title__text">{title}</h4>
         </div>
     );
@@ -27,24 +27,24 @@ function SearchableSelect({ value, options, onChange, placeholder, className }) 
     const [query, setQuery] = useState('');
     const selected = options.find(o => o.id === value);
     return (
-        <div className={className} style={{ position: 'relative', cursor: 'pointer', display: 'inline-block', minWidth: 140, background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: 4 }}>
-            <div onClick={(e) => { e.stopPropagation(); setOpen(!open); }} style={{ padding: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 32, fontSize: 13, gap: 6 }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected ? selected.name : <span style={{ color: 'var(--color-text-muted)' }}>{placeholder}</span>}</span>
-                <span style={{ color: 'var(--color-text-muted)', fontSize: 9, flexShrink: 0 }}>▾</span>
+        <div className={`ncm-searchable-select ${className || ''}`}>
+            <div className="ncm-searchable-select__trigger" onClick={(e) => { e.stopPropagation(); setOpen(!open); }}>
+                <span className="ncm-searchable-select__value">{selected ? selected.name : <span className="ncm-searchable-select__placeholder">{placeholder}</span>}</span>
+                <span className="ncm-searchable-select__caret">▾</span>
             </div>
             {open && (
-                <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: -1, right: -1, zIndex: 1000, background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: 4, padding: 4, marginTop: 2, boxShadow: 'var(--shadow-md)' }}>
-                    <input type="text" autoFocus placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} className="ncm-input" style={{ width: '100%', marginBottom: 4 }} />
-                    <div style={{ maxHeight: 150, overflowY: 'auto' }}>
+                <div className="ncm-searchable-select__dropdown" onClick={e => e.stopPropagation()}>
+                    <input type="text" autoFocus placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} className="ncm-input ncm-searchable-select__search" />
+                    <div className="ncm-searchable-select__options">
                         {options.filter(o => o.name.toLowerCase().includes(query.toLowerCase())).map(o => (
-                            <div key={o.id} onClick={() => { onChange(o.id); setOpen(false); setQuery(''); }} style={{ padding: '6px 8px', cursor: 'pointer', borderRadius: 2, fontSize: 11 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <div key={o.id} className="ncm-searchable-select__option" onClick={() => { onChange(o.id); setOpen(false); setQuery(''); }}>
                                 {o.name}
                             </div>
                         ))}
                     </div>
                 </div>
             )}
-            {open && <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={(e) => { e.stopPropagation(); setOpen(false); }} />}
+            {open && <div className="ncm-searchable-select__backdrop" onClick={(e) => { e.stopPropagation(); setOpen(false); }} />}
         </div>
     );
 }
@@ -89,7 +89,7 @@ function ConditionBuilder({ requires, flags, statuses, onChange }) {
         <div className="ncm-condition-box">
             <div className="ncm-condition-header">
                 <span className="ncm-condition-label">Requires Condition</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="ncm-flex-row">
                     {requires && (
                         <div className="ncm-operator-toggle">
                             <button
@@ -102,10 +102,10 @@ function ConditionBuilder({ requires, flags, statuses, onChange }) {
                             >OR</button>
                         </div>
                     )}
-                    <button className="ncm-add-btn" onClick={handleToggle} style={{ fontSize: 10 }}>
+                    <button className="ncm-add-btn ncm-add-btn--sm" onClick={handleToggle}>
                         {requires
-                            ? <><X style={{ width: 10, height: 10 }} /> Remove</>
-                            : <><Plus style={{ width: 10, height: 10 }} /> Add Condition</>}
+                            ? <><X className="ncm-icon-xs" /> Remove</>
+                            : <><Plus className="ncm-icon-xs" /> Add Condition</>}
                     </button>
                 </div>
             </div>
@@ -126,14 +126,13 @@ function ConditionBuilder({ requires, flags, statuses, onChange }) {
                                         placeholder="Select flag..."
                                     />
                                     <button
-                                        className="ncm-clause-value"
                                         onClick={() => updateClause(idx, { state: !clause.state })}
-                                        style={{ color: clause.state ? 'var(--color-emerald-500)' : '#f87171' }}
+                                        className={`ncm-clause-value ${clause.state ? 'ncm-clause-value--true' : 'ncm-clause-value--false'}`}
                                     >
                                         {clause.state ? 'TRUE' : 'FALSE'}
                                     </button>
                                     <button className="ncm-remove-btn" onClick={() => removeClause(idx)}>
-                                        <X style={{ width: 12, height: 12 }} />
+                                        <X className="ncm-icon-sm" />
                                     </button>
                                 </div>
                             );
@@ -154,14 +153,14 @@ function ConditionBuilder({ requires, flags, statuses, onChange }) {
                                         value={clause.min !== undefined ? clause.min : ''}
                                         onChange={e => updateClause(idx, { min: e.target.value === '' ? undefined : Number(e.target.value) })}
                                     />
-                                    <span style={{ color: 'var(--color-text-secondary)', fontSize: 10 }}>≤</span>
+                                    <span className="ncm-clause-sep">≤</span>
                                     <input
                                         type="number" className="ncm-clause-number" placeholder="Max"
                                         value={clause.max !== undefined ? clause.max : ''}
                                         onChange={e => updateClause(idx, { max: e.target.value === '' ? undefined : Number(e.target.value) })}
                                     />
                                     <button className="ncm-remove-btn" onClick={() => removeClause(idx)}>
-                                        <X style={{ width: 12, height: 12 }} />
+                                        <X className="ncm-icon-sm" />
                                     </button>
                                 </div>
                             );
@@ -192,15 +191,15 @@ function VariantCard({ nodeId, variant, index, flags, statuses }) {
             <div className="ncm-card__header" onClick={() => setExpanded(v => !v)}>
                 <div className="ncm-card__header-left">
                     {expanded
-                        ? <ChevronUp style={{ width: 14, height: 14, color: 'var(--color-text-secondary)' }} />
-                        : <ChevronRight style={{ width: 14, height: 14, color: 'var(--color-text-secondary)' }} />
+                        ? <ChevronUp className="ncm-card__chevron" />
+                        : <ChevronRight className="ncm-card__chevron" />
                     }
                     <span className="ncm-card__title">
                         {variant.label && variant.label.trim() ? variant.label : `Variant ${index + 1}`}
                     </span>
                 </div>
                 <button className="ncm-remove-btn" onClick={e => { e.stopPropagation(); deleteVariant(nodeId, variant.id); }}>
-                    <Trash2 style={{ width: 13, height: 13 }} />
+                    <Trash2 className="ncm-icon-md" />
                 </button>
             </div>
             {expanded && (
@@ -279,13 +278,13 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
             <div className="ncm-card__header" onClick={() => setExpanded(v => !v)}>
                 <div className="ncm-card__header-left">
                     {expanded
-                        ? <ChevronUp style={{ width: 14, height: 14, color: 'var(--color-text-secondary)' }} />
-                        : <ChevronRight style={{ width: 14, height: 14, color: 'var(--color-text-secondary)' }} />
+                        ? <ChevronUp className="ncm-card__chevron" />
+                        : <ChevronRight className="ncm-card__chevron" />
                     }
                     <span className="ncm-card__title">{cardTitle}</span>
                 </div>
                 <button className="ncm-remove-btn" onClick={e => { e.stopPropagation(); deleteOption(nodeId, option.id); }}>
-                    <Trash2 style={{ width: 13, height: 13 }} />
+                    <Trash2 className="ncm-icon-md" />
                 </button>
             </div>
             {expanded && (
@@ -310,20 +309,18 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                         <div className="ncm-field">
                             <label className="ncm-label">On-Select: Set Flags</label>
                             {/* EXPLORE: Search + ON/OFF/BOTH filter row */}
-                            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                            <div className="ncm-flex-row--gap6">
                                 <input
-                                    className="ncm-input"
+                                    className="ncm-input ncm-flex-1"
                                     type="text"
                                     placeholder="Search flags..."
                                     value={flagSearch}
                                     onChange={e => setFlagSearch(e.target.value)}
-                                    style={{ flex: 1 }}
                                 />
                                 <select
-                                    className="ncm-select"
+                                    className="ncm-select ncm-select--narrow"
                                     value={flagFilter}
                                     onChange={e => setFlagFilter(e.target.value)}
-                                    style={{ width: 72, flexShrink: 0 }}
                                 >
                                     <option value="both">Both</option>
                                     <option value="on">ON</option>
@@ -337,7 +334,7 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                                         <span key={flagId} className="ncm-flag-tag">
                                             {f.name}
                                             <button className="ncm-flag-tag__remove" onClick={() => toggleFlagSet(flagId)}>
-                                                <X style={{ width: 10, height: 10 }} />
+                                                <X className="ncm-icon-xs" />
                                             </button>
                                         </span>
                                     ) : null;
@@ -350,7 +347,7 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                                     return true;
                                 }).map(f => (
                                     <button key={f.id} className="ncm-add-btn" onClick={() => toggleFlagSet(f.id)}>
-                                        <Plus style={{ width: 10, height: 10 }} /> {f.name}
+                                        <Plus className="ncm-icon-xs" /> {f.name}
                                     </button>
                                 ))}
                             </div>
@@ -360,7 +357,7 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                         <div className="ncm-field">
                             <label className="ncm-label">On-Select: Status Modifiers</label>
                             {(option.status_set || []).map((se, idx) => (
-                                <div key={idx} className="ncm-status-row" style={{ marginBottom: 6 }}>
+                                <div key={idx} className="ncm-status-row ncm-mb-6">
                                     <SearchableSelect
                                         className="ncm-select"
                                         value={se.statusId || ''}
@@ -375,12 +372,12 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                                         onChange={e => updateStatusEffect(idx, { amount: Number(e.target.value) })}
                                     />
                                     <button className="ncm-remove-btn" onClick={() => removeStatusEffect(idx)}>
-                                        <Trash2 style={{ width: 13, height: 13 }} />
+                                        <Trash2 className="ncm-icon-md" />
                                     </button>
                                 </div>
                             ))}
                             <button className="ncm-add-btn" onClick={addStatusEffect}>
-                                <Plus style={{ width: 10, height: 10 }} /> Add Status Modifier
+                                <Plus className="ncm-icon-xs" /> Add Status Modifier
                             </button>
                         </div>
                     )}
@@ -492,7 +489,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                         <h3 className="ncm-header__title">Configure Node</h3>
                     </div>
                     <button className="ncm-close-btn" onClick={onClose}>
-                        <X style={{ width: 18, height: 18 }} />
+                        <X className="ncm-icon-lg" />
                     </button>
                 </div>
 
@@ -504,7 +501,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                         <div>
                             <SectionTitle icon={AlignLeft} title="Narrative Content" />
                             {/* FIX 4: Label first */}
-                            <div className="ncm-field" style={{ marginBottom: 14 }}>
+                            <div className="ncm-field ncm-mb-14">
                                 <label className="ncm-label">Node Label</label>
                                 <input
                                     className="ncm-input"
@@ -516,7 +513,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                             </div>
 
                             {/* FIX 4: Chapter & Path immediately below label */}
-                            <div className="ncm-row" style={{ marginBottom: 14 }}>
+                            <div className="ncm-row ncm-mb-14">
                                 <div className="ncm-field">
                                     <label className="ncm-label">Chapter</label>
                                     <select
@@ -543,10 +540,10 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
 
                             {/* FIX 9: Common / Ending sub-type — from user-defined store types */}
                             {(isCommon || isEnding) && (
-                                <div className="ncm-field" style={{ marginBottom: 14 }}>
+                                <div className="ncm-field ncm-mb-14">
                                     <label className="ncm-label">{isCommon ? 'Common Type' : 'Ending Type'}</label>
                                     {typeOptions.length === 0 ? (
-                                        <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', padding: '6px 0' }}>
+                                        <div className="ncm-hint">
                                             No {isCommon ? 'common' : 'ending'} types defined yet. Add them in the left sidebar.
                                         </div>
                                     ) : (
@@ -584,7 +581,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                     onClick={() => setStartNode(node.id)}
                                     disabled={data.isStartNode}
                                 >
-                                    <Star style={{ width: 14, height: 14, fill: data.isStartNode ? 'currentColor' : 'none' }} />
+                                    <Star className={`ncm-icon-base ${data.isStartNode ? 'ncm-star-icon--active' : ''}`} />
                                     {data.isStartNode ? 'This is the Start Node ✓' : 'Set as Start Node'}
                                 </button>
                             </div>
@@ -599,22 +596,20 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                 <SectionTitle icon={Zap} title="On-Enter Modifiers" />
                                 <div className="ncm-modifiers-box">
                                     <div>
-                                        <label className="ncm-label" style={{ display: 'block', marginBottom: 8 }}>Set Flags (True)</label>
+                                        <label className="ncm-label ncm-label--block">Set Flags (True)</label>
                                         {/* EXPLORE: Search + ON/OFF/BOTH filter row */}
-                                        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                                        <div className="ncm-flex-row--gap6">
                                             <input
-                                                className="ncm-input"
+                                                className="ncm-input ncm-flex-1"
                                                 type="text"
                                                 placeholder="Search flags..."
                                                 value={nodeFlagSearch}
                                                 onChange={e => setNodeFlagSearch(e.target.value)}
-                                                style={{ flex: 1 }}
                                             />
                                             <select
-                                                className="ncm-select"
+                                                className="ncm-select ncm-select--narrow"
                                                 value={nodeFlagFilter}
                                                 onChange={e => setNodeFlagFilter(e.target.value)}
-                                                style={{ width: 72, flexShrink: 0 }}
                                             >
                                                 <option value="both">Both</option>
                                                 <option value="on">ON</option>
@@ -633,7 +628,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                                     <span key={flagId} className="ncm-flag-tag">
                                                         {f.name}
                                                         <button className="ncm-flag-tag__remove" onClick={() => toggleFlag(flagId)}>
-                                                            <X style={{ width: 10, height: 10 }} />
+                                                            <X className="ncm-icon-xs" />
                                                         </button>
                                                     </span>
                                                 ) : null;
@@ -646,19 +641,19 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                                 return true;
                                             }).map(f => (
                                                 <button key={f.id} className="ncm-add-btn" onClick={() => toggleFlag(f.id)}>
-                                                    <Plus style={{ width: 10, height: 10 }} /> {f.name}
+                                                    <Plus className="ncm-icon-xs" /> {f.name}
                                                 </button>
                                             ))}
                                             {flags.length === 0 && (
-                                                <span style={{ color: 'var(--color-text-secondary)', fontSize: 11 }}>No flags defined.</span>
+                                                <span className="ncm-hint--inline">No flags defined.</span>
                                             )}
                                         </div>
                                     </div>
 
-                                    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
-                                        <label className="ncm-label" style={{ display: 'block', marginBottom: 8 }}>Status Modifiers</label>
+                                    <div className="ncm-border-top">
+                                        <label className="ncm-label ncm-label--block">Status Modifiers</label>
                                         {(data.status_set || []).map((se, idx) => (
-                                            <div key={idx} className="ncm-status-row" style={{ marginBottom: 6 }}>
+                                            <div key={idx} className="ncm-status-row ncm-mb-6">
                                                 <SearchableSelect
                                                     className="ncm-select"
                                                     value={se.statusId || ''}
@@ -673,12 +668,12 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                                     onChange={e => updateStatusEffect(idx, { amount: Number(e.target.value) })}
                                                 />
                                                 <button className="ncm-remove-btn" onClick={() => removeStatusEffect(idx)}>
-                                                    <Trash2 style={{ width: 13, height: 13 }} />
+                                                    <Trash2 className="ncm-icon-md" />
                                                 </button>
                                             </div>
                                         ))}
                                         <button className="ncm-add-btn" onClick={addStatusEffect}>
-                                            <Plus style={{ width: 10, height: 10 }} /> Add Status Modifier
+                                            <Plus className="ncm-icon-xs" /> Add Status Modifier
                                         </button>
                                     </div>
                                 </div>
@@ -687,7 +682,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                             {/* Variants (Common) or Options (Choice) */}
                             <div>
                                 <SectionTitle icon={SlidersHorizontal} title={isChoice ? 'Branching Options' : 'Narrative Variants'} />
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div className="ncm-flex-col">
                                     {isCommon && (data.variants || []).map((v, i) => (
                                         <VariantCard
                                             key={v.id}
@@ -709,14 +704,13 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                         />
                                     ))}
                                     <button
-                                        className="ncm-add-btn"
-                                        style={{ width: '100%', justifyContent: 'center', padding: '8px', marginTop: 4 }}
+                                        className="ncm-add-btn ncm-add-btn--full"
                                         onClick={() => isChoice
                                             ? addOption(node.id, { label: `Option ${(data.options || []).length + 1}` })
                                             : addVariant(node.id, { label: `Variant ${(data.variants || []).length + 1}` })
                                         }
                                     >
-                                        <Plus style={{ width: 12, height: 12 }} />
+                                        <Plus className="ncm-icon-sm" />
                                         Add {isChoice ? 'Option' : 'Variant'}
                                     </button>
                                 </div>
@@ -729,7 +723,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                 <div className="ncm-footer">
                     <button className="ncm-btn-cancel" onClick={handleCancel}>Cancel</button>
                     <button className="ncm-btn-save" onClick={onClose}>
-                        <Check style={{ width: 14, height: 14 }} /> Save Node
+                        <Check className="ncm-icon-base" /> Save Node
                     </button>
                 </div>
             </div>

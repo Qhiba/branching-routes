@@ -292,3 +292,23 @@
     cursor: pointer;
     flex-shrink: 0;
 }
+
+/* Node-type color modifiers */
+.ui-v2-floating-node-btn--common {
+    color: var(--color-emerald-500);
+}
+
+.ui-v2-floating-node-btn--choice {
+    color: var(--color-blue-500);
+}
+
+.ui-v2-floating-node-btn--ending {
+    color: var(--color-amber-500);
+}
+
+/* Play icon fill */
+.ui-v2-floating-play-icon {
+    width: 10px;
+    height: 10px;
+    fill: currentColor;
+}

@@ -59,3 +59,17 @@
     filter: grayscale(50%);
     transition: opacity 300ms ease, filter 300ms ease;
 }
+
+/* Panel flex layout */
+.right-sidebar__panel-content--flex {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Sandbox scroll wrapper */
+.right-sidebar__sandbox-wrap {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+}

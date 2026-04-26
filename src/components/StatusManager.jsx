@@ -61,8 +61,8 @@ export default function StatusManager() {
           <div key={statusObj.id} className="entity-list-item-wrapper">
             <div className="entity-list-item">
               <div className="entity-list-item-left">
-                <Activity size={14} style={{ color: 'var(--color-rose)' }} />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <Activity size={14} className="entity-icon--rose" />
+                <div className="entity-list-item-col">
                   <span className="entity-list-item-name">{statusObj.name}</span>
                   <span className="entity-list-item-sub">
                     Default: {String(statusObj.value)}
@@ -81,18 +81,18 @@ export default function StatusManager() {
             </div>
 
             {deleteError && deleteError.id === statusObj.id && (
-              <div style={{ marginTop: '6px', padding: '10px 12px', background: 'rgba(255, 68, 68, 0.1)', border: '1px solid var(--color-danger)', borderLeft: '3px solid var(--color-danger)', borderRadius: '4px', fontSize: '0.85rem' }}>
-                <strong style={{ color: 'var(--color-danger)', display: 'block', marginBottom: '8px' }}>Cannot delete: referenced by {deleteError.references.length} node{deleteError.references.length > 1 ? 's' : ''}</strong>
-                <ul style={{ margin: '0 0 10px 0', paddingLeft: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div className="entity-delete-error">
+                <strong className="entity-delete-error__title">Cannot delete: referenced by {deleteError.references.length} node{deleteError.references.length > 1 ? 's' : ''}</strong>
+                <ul className="entity-delete-error__list">
                   {deleteError.references.map((ref, idx) => {
                     const node = getNodeLabel(ref, common, choice, ending);
                     return (
-                      <li key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: '4px' }}>
-                        <span style={{ color: 'var(--color-text-primary)' }}>{node ? node.label : ref}</span>
+                      <li key={idx} className="entity-delete-error__ref">
+                        <span className="entity-delete-error__ref-name">{node ? node.label : ref}</span>
                         {node && (
                           <button
                             onClick={() => window.dispatchEvent(new CustomEvent('canvas-focus-node', { detail: { nodeId: node.nodeId } }))}
-                            style={{ padding: '2px 8px', fontSize: '0.75rem', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', borderRadius: '3px', cursor: 'pointer', transition: 'background 0.2s' }}
+                            className="entity-delete-error__focus-btn"
                           >
                             Focus
                           </button>
@@ -101,8 +101,8 @@ export default function StatusManager() {
                     );
                   })}
                 </ul>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button onClick={() => setDeleteError(null)} style={{ padding: '4px 12px', fontSize: '0.8rem', background: 'var(--color-bg-hover)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', cursor: 'pointer', borderRadius: '4px' }}>Dismiss</button>
+                <div className="entity-delete-error__footer">
+                  <button onClick={() => setDeleteError(null)} className="entity-delete-error__dismiss-btn">Dismiss</button>
                 </div>
               </div>
             )}

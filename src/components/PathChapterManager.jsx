@@ -69,7 +69,7 @@ export default function PathChapterManager({ filterType }) {
           <div key={item.id} className="entity-list-item-wrapper">
             <div className="entity-list-item">
               <div className="entity-list-item-left">
-                <Icon size={14} style={{ color: iconColor }} />
+                <Icon size={14} className={`entity-icon--${isCommonType ? 'emerald' : isEndingType ? 'amber' : isChapter ? 'indigo' : 'cyan'}`} />
                 <span className="entity-list-item-name">{item.name}</span>
               </div>
               <div className="entity-list-item-actions">

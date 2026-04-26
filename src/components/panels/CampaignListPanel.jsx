@@ -37,7 +37,7 @@ export default function CampaignListPanel() {
         <div className="campaign-panel">
             <div className="campaign-panel__header">
                 <div className="campaign-panel__title">
-                    <Play size={14} style={{ fill: 'currentColor' }} /> Campaign Scenarios
+                    <Play size={14} className="play-icon--fill" /> Campaign Scenarios
                 </div>
                 <div className="campaign-panel__desc">
                     Create discrete starting points and test distinct branches of your narrative simulation.
@@ -61,14 +61,14 @@ export default function CampaignListPanel() {
             <div className="campaign-panel__hr" />
 
             <div className="campaign-panel__list custom-scrollbar">
-                <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Available Campaigns</span>
+                <span className="campaign-panel__section-label">Available Campaigns</span>
                 {campaigns.map(camp => {
                     const isActiveSession = isCampaignActive && activeCampaignId === camp.id;
                     return (
                         <div key={camp.id} className="campaign-panel__item">
                             <div className="campaign-panel__item-left">
                                 <div className={`campaign-panel__dot ${isActiveSession ? 'campaign-panel__dot--active' : ''}`} />
-                                <span className="campaign-panel__item-name" style={{ color: isActiveSession ? 'var(--color-emerald)' : 'var(--color-text-primary)' }}>{camp.name}</span>
+                                <span className={`campaign-panel__item-name ${isActiveSession ? 'campaign-panel__item-name--active' : ''}`}>{camp.name}</span>
                             </div>
 
                             <div className="campaign-panel__item-actions">
@@ -78,7 +78,7 @@ export default function CampaignListPanel() {
                                         onClick={() => handleEnter(camp)}
                                         title="Start campaign"
                                     >
-                                        <Play size={11} style={{ fill: 'currentColor' }} />
+                                        <Play size={11} className="play-icon--fill" />
                                     </button>
                                 )}
                                 <button

@@ -12,24 +12,24 @@ function SearchableSelect({ value, options, onChange, placeholder, className }) 
     const [query, setQuery] = useState('');
     const selected = options.find(o => o.id === value);
     return (
-        <div className={className} style={{ position: 'relative', cursor: 'pointer', display: 'inline-block', minWidth: 140, background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: 4 }}>
-            <div onClick={(e) => { e.stopPropagation(); setOpen(!open); }} style={{ padding: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 32, fontSize: 13, gap: 6 }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected ? selected.name : <span style={{ color: 'var(--color-text-muted)' }}>{placeholder}</span>}</span>
-                <span style={{ color: 'var(--color-text-muted)', fontSize: 9, flexShrink: 0 }}>▾</span>
+        <div className={`ncm-searchable-select ${className || ''}`}>
+            <div className="ncm-searchable-select__trigger" onClick={(e) => { e.stopPropagation(); setOpen(!open); }}>
+                <span className="ncm-searchable-select__value">{selected ? selected.name : <span className="ncm-searchable-select__placeholder">{placeholder}</span>}</span>
+                <span className="ncm-searchable-select__caret">▾</span>
             </div>
             {open && (
-                <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: -1, right: -1, zIndex: 1000, background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: 4, padding: 4, marginTop: 2, boxShadow: 'var(--shadow-md)' }}>
-                    <input type="text" autoFocus placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} className="ncm-input" style={{ width: '100%', marginBottom: 4 }} />
-                    <div style={{ maxHeight: 150, overflowY: 'auto' }}>
+                <div className="ncm-searchable-select__dropdown" onClick={e => e.stopPropagation()}>
+                    <input type="text" autoFocus placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} className="ncm-input ncm-searchable-select__search" />
+                    <div className="ncm-searchable-select__options">
                         {options.filter(o => o.name.toLowerCase().includes(query.toLowerCase())).map(o => (
-                            <div key={o.id} onClick={() => { onChange(o.id); setOpen(false); setQuery(''); }} style={{ padding: '6px 8px', cursor: 'pointer', borderRadius: 2, fontSize: 11 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <div key={o.id} className="ncm-searchable-select__option" onClick={() => { onChange(o.id); setOpen(false); setQuery(''); }}>
                                 {o.name}
                             </div>
                         ))}
                     </div>
                 </div>
             )}
-            {open && <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={(e) => { e.stopPropagation(); setOpen(false); }} />}
+            {open && <div className="ncm-searchable-select__backdrop" onClick={(e) => { e.stopPropagation(); setOpen(false); }} />}
         </div>
     );
 }
@@ -125,7 +125,7 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                         <h3 className="ncm-header__title">Configure Edge</h3>
                     </div>
                     <button className="ncm-close-btn" onClick={onClose}>
-                        <X style={{ width: 18, height: 18 }} />
+                        <X className="ncm-icon-lg" />
                     </button>
                 </div>
 
@@ -136,7 +136,7 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                         {/* Connection info */}
                         <div>
                             <div className="ncm-section-title">
-                                <Link2 className="ncm-section-title__icon" style={{ width: 14, height: 14 }} />
+                                <Link2 className="ncm-section-title__icon" />
                                 <h4 className="ncm-section-title__text">Connection</h4>
                             </div>
                             <div className="ecm-connection-row">
@@ -162,7 +162,7 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                         {/* Edge label */}
                         <div>
                             <div className="ncm-section-title">
-                                <GitBranch className="ncm-section-title__icon" style={{ width: 14, height: 14 }} />
+                                <GitBranch className="ncm-section-title__icon" />
                                 <h4 className="ncm-section-title__text">Edge Label</h4>
                             </div>
                             <div className="ncm-field">
@@ -182,7 +182,7 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                             <div className="ncm-condition-box">
                                 <div className="ncm-condition-header">
                                     <span className="ncm-condition-label">Traversal Condition</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div className="ncm-flex-row">
                                         {edge.condition && (
                                             <div className="ncm-operator-toggle">
                                                 <button
@@ -195,10 +195,10 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                                                 >OR</button>
                                             </div>
                                         )}
-                                        <button className="ncm-add-btn" onClick={toggleCondition} style={{ fontSize: 10 }}>
+                                        <button className="ncm-add-btn ncm-add-btn--sm" onClick={toggleCondition}>
                                             {edge.condition
-                                                ? <><X style={{ width: 10, height: 10 }} /> Remove</>
-                                                : <><Plus style={{ width: 10, height: 10 }} /> Add Condition</>}
+                                                ? <><X className="ncm-icon-xs" /> Remove</>
+                                                : <><Plus className="ncm-icon-xs" /> Add Condition</>}
                                         </button>
                                     </div>
                                 </div>
@@ -206,7 +206,7 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                                 {edge.condition && (
                                     <div>
                                         {flags.length === 0 && statuses.length === 0 && (
-                                            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', padding: '6px 0' }}>
+                                            <div className="ncm-hint">
                                                 No flags or statuses defined yet — add them in the left sidebar.
                                             </div>
                                         )}
@@ -223,14 +223,13 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                                                             placeholder="Select flag..."
                                                         />
                                                         <button
-                                                            className="ncm-clause-value"
+                                                            className={`ncm-clause-value ${clause.state ? 'ncm-clause-value--true' : 'ncm-clause-value--false'}`}
                                                             onClick={() => updateClause(idx, { state: !clause.state })}
-                                                            style={{ color: clause.state ? 'var(--color-emerald-500)' : '#f87171' }}
                                                         >
                                                             {clause.state ? 'TRUE' : 'FALSE'}
                                                         </button>
                                                         <button className="ncm-remove-btn" onClick={() => removeClause(idx)}>
-                                                            <X style={{ width: 12, height: 12 }} />
+                                                            <X className="ncm-icon-sm" />
                                                         </button>
                                                     </div>
                                                 );
@@ -250,14 +249,14 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                                                             value={clause.min !== undefined ? clause.min : ''}
                                                             onChange={e => updateClause(idx, { min: e.target.value === '' ? undefined : Number(e.target.value) })}
                                                         />
-                                                        <span style={{ color: 'var(--color-text-secondary)', fontSize: 10 }}>≤</span>
+                                                        <span className="ncm-clause-sep">≤</span>
                                                         <input
                                                             type="number" className="ncm-clause-number" placeholder="Max"
                                                             value={clause.max !== undefined ? clause.max : ''}
                                                             onChange={e => updateClause(idx, { max: e.target.value === '' ? undefined : Number(e.target.value) })}
                                                         />
                                                         <button className="ncm-remove-btn" onClick={() => removeClause(idx)}>
-                                                            <X style={{ width: 12, height: 12 }} />
+                                                            <X className="ncm-icon-sm" />
                                                         </button>
                                                     </div>
                                                 );
@@ -278,7 +277,7 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                         {/* Danger zone */}
                         <div className="ecm-danger-zone">
                             <button className="ecm-delete-btn" onClick={handleDelete}>
-                                <Trash2 style={{ width: 14, height: 14 }} />
+                                <Trash2 className="ncm-icon-base" />
                                 Delete Edge
                             </button>
                         </div>
@@ -290,10 +289,10 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                 <div className="ncm-footer">
                     <button className="ncm-btn-cancel" onClick={onClose}>Cancel</button>
                     <button className="ncm-btn-save" onClick={onClose}>
-                        <Check style={{ width: 14, height: 14 }} /> Done
+                        <Check className="ncm-icon-base" /> Done
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

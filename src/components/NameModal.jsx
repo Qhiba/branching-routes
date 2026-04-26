@@ -128,8 +128,8 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
               <label className="name-modal__label">Initial State</label>
               <div className="name-modal__toggle-row">
                 <div className="name-modal__toggle-slider" style={{ transform: flagState ? 'translateX(0)' : 'translateX(100%)' }}></div>
-                <div className="name-modal__toggle-option" onClick={() => setFlagState(true)} style={{ color: flagState ? 'white' : 'var(--color-text-secondary)' }}>True</div>
-                <div className="name-modal__toggle-option" onClick={() => setFlagState(false)} style={{ color: !flagState ? 'white' : 'var(--color-text-secondary)' }}>False</div>
+                <div className={`name-modal__toggle-option ${flagState ? 'name-modal__toggle-option--active' : 'name-modal__toggle-option--inactive'}`} onClick={() => setFlagState(true)}>True</div>
+                <div className={`name-modal__toggle-option ${!flagState ? 'name-modal__toggle-option--active' : 'name-modal__toggle-option--inactive'}`} onClick={() => setFlagState(false)}>False</div>
               </div>
             </div>
           )}
@@ -140,8 +140,7 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
                 <label className="name-modal__label">Initial Value</label>
                 <input
                   type="number"
-                  className="name-modal__input"
-                  style={{ fontFamily: 'monospace' }}
+                  className="name-modal__input name-modal__input--mono"
                   value={statusValue}
                   onChange={e => setStatusValue(Number(e.target.value))}
                   onKeyDown={handleKeyDown}
@@ -152,8 +151,7 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
                   <label className="name-modal__label">Min (optional)</label>
                   <input
                     type="number"
-                    className="name-modal__input"
-                    style={{ fontFamily: 'monospace' }}
+                    className="name-modal__input name-modal__input--mono"
                     value={statusMin ?? ''}
                     placeholder="None"
                     onChange={e => setStatusMin(e.target.value === '' ? undefined : Number(e.target.value))}
@@ -164,8 +162,7 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
                   <label className="name-modal__label">Max (optional)</label>
                   <input
                     type="number"
-                    className="name-modal__input"
-                    style={{ fontFamily: 'monospace' }}
+                    className="name-modal__input name-modal__input--mono"
                     value={statusMax ?? ''}
                     placeholder="None"
                     onChange={e => setStatusMax(e.target.value === '' ? undefined : Number(e.target.value))}
@@ -177,10 +174,9 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
           )}
         </div>
         <div className="name-modal__footer">
-          <button className="button" style={{ background: 'transparent', color: 'var(--color-text-secondary)', border: 'none', boxShadow: 'none' }} onClick={onClose}>Cancel</button>
+          <button className="button name-modal__btn-cancel" onClick={onClose}>Cancel</button>
           <button
-            className="button button--primary"
-            style={{ padding: '8px 24px', borderRadius: '6px' }}
+            className="button button--primary name-modal__btn-confirm"
             onClick={handleConfirm}
             disabled={isConfirmDisabled}
           >

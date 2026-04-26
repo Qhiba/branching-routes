@@ -32,12 +32,12 @@ export default function RightSidebar() {
         /* CHANGED: Phase 7 — right-sidebar--campaign-mode class dims/disables sidebar during campaign */
         <div className={`right-sidebar${isCampaignActive ? ' right-sidebar--campaign-mode' : ''}`}>
             <div className={`right-sidebar__panel ${activePanel ? 'right-sidebar__panel--open' : ''}`}>
-                <div className="right-sidebar__panel-content" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div className="right-sidebar__panel-content right-sidebar__panel-content--flex">
                     {activePanel === 'Nodes' && <NodesPanel />}
                     {activePanel === 'RouteTracing' && <RouteTracingPanel />}
                     {activePanel === 'CampaignList' && <CampaignListPanel />}
                     {activePanel === 'Sandbox' && (
-                        <div style={{ padding: '16px', overflowY: 'auto', flex: 1 }}>
+                        <div className="right-sidebar__sandbox-wrap">
                             <SandboxPanel />
                         </div>
                     )}

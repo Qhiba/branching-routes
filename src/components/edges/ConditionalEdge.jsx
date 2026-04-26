@@ -76,15 +76,15 @@ function ConditionalEdge(props) {
                 )}
               </>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '10px' }}>
-                {label && <span className="conditional-edge__label" style={{ fontWeight: 'bold' }}>{label}</span>}
+              <div className="edge-label__verbose">
+                {label && <span className="conditional-edge__label edge-label--bold">{label}</span>}
                 {condition && condition.conditions && condition.conditions.map((clause, idx) => {
                   if ('flag' in clause) {
                     const flagName = flagDict[clause.flag]?.name || 'Unknown';
                     const flagClass = clause.state ? "verbose-flag-true" : "verbose-flag-false";
                     return (
                       <div key={idx}>
-                        {idx > 0 ? <span style={{ color: 'var(--color-text-secondary)' }}>{condition.operator === 'and' ? 'AND ' : 'OR '}</span> : ''}
+                        {idx > 0 ? <span className="edge-clause--secondary">{condition.operator === 'and' ? 'AND ' : 'OR '}</span> : ''}
                         <span className={flagClass}>[{flagName}] = {clause.state ? 'true' : 'false'}</span>
                       </div>
                     );
@@ -98,8 +98,8 @@ function ConditionalEdge(props) {
                       text += ` <= ${clause.max}`;
                     }
                     return (
-                      <div key={idx} style={{ color: 'var(--color-primary)' }}>
-                        {idx > 0 ? <span style={{ color: 'var(--color-text-secondary)' }}>{condition.operator === 'and' ? 'AND ' : 'OR '}</span> : ''}
+                      <div key={idx} className="edge-clause--primary">
+                        {idx > 0 ? <span className="edge-clause--secondary">{condition.operator === 'and' ? 'AND ' : 'OR '}</span> : ''}
                         {text}
                       </div>
                     );

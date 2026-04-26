@@ -63,7 +63,7 @@ function CommonNode({ id, data }) {
 
         {/* ADDED: Phase 2 verbose display */}
         {labelDisplayMode === 'verbose' && sideEffectsCount > 0 && (
-          <div style={{ marginTop: '8px', fontSize: '10px', color: 'var(--color-primary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+          <div className="verbose-effects-box">
             {/* EXPLORE: Feature 3 - Flag true formatting */}
             {data.flags_set?.map(flagId => (
               <div key={`f-${flagId}`} className="verbose-flag-true">• {`[${flagDict[flagId]?.name || 'Unknown'}] = true`}</div>
@@ -71,10 +71,10 @@ function CommonNode({ id, data }) {
             {/* EXPLORE: Feature 3 - Status number formatting */}
             {data.status_set?.map(se => {
               const val = se.amount ?? se.value ?? 0;
-              const valStyle = val > 0 ? { color: 'var(--color-flag-true)' } : val < 0 ? { color: 'var(--color-flag-false)' } : {};
+              const valClass = val > 0 ? 'status-val--positive' : val < 0 ? 'status-val--negative' : '';
               const formattedVal = val > 0 ? `+${val}` : val;
               return (
-                <div key={`s-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: <span style={valStyle}>{formattedVal}</span></div>
+                <div key={`s-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: <span className={valClass}>{formattedVal}</span></div>
               );
             })}
           </div>

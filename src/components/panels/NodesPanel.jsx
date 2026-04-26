@@ -65,8 +65,8 @@ export default function NodesPanel() {
                     </button>
                 ))}
             </div>
-            <div className="nodes-panel__search" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ position: 'relative', width: '100%' }}>
+            <div className="nodes-panel__search nodes-panel__search--col">
+                <div className="nodes-panel__search-input-wrap">
                     <Search className="nodes-panel__search-icon" size={14} />
                     <input
                         type="text"
@@ -76,18 +76,18 @@ export default function NodesPanel() {
                         onChange={e => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="nodes-panel__filters-row">
                     {(activeTab === 'common' || activeTab === 'ending') && (
-                        <select value={filterTypeNode} onChange={e => setFilterTypeNode(e.target.value)} className="nodes-panel__input" style={{ flex: 1, padding: '6px', fontSize: '10px' }}>
+                        <select value={filterTypeNode} onChange={e => setFilterTypeNode(e.target.value)} className="nodes-panel__input nodes-panel__filter-select">
                             <option value="">All Types</option>
                             {Object.values(activeTab === 'common' ? commonTypes : endingTypes).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                     )}
-                    <select value={filterChapter} onChange={e => setFilterChapter(e.target.value)} className="nodes-panel__input" style={{ flex: 1, padding: '6px', fontSize: '10px' }}>
+                    <select value={filterChapter} onChange={e => setFilterChapter(e.target.value)} className="nodes-panel__input nodes-panel__filter-select">
                         <option value="">All Chapters</option>
                         {Object.values(chapters).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
-                    <select value={filterPath} onChange={e => setFilterPath(e.target.value)} className="nodes-panel__input" style={{ flex: 1, padding: '6px', fontSize: '10px' }}>
+                    <select value={filterPath} onChange={e => setFilterPath(e.target.value)} className="nodes-panel__input nodes-panel__filter-select">
                         <option value="">All Paths</option>
                         {Object.values(paths).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
@@ -103,19 +103,19 @@ export default function NodesPanel() {
                             <div className="nodes-panel__item-info">
                                 <span className="nodes-panel__item-name">{label}</span>
                                 {data.content && (
-                                    <span style={{ fontSize: '10px', color: 'var(--color-text-secondary)', opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}>
+                                    <span className="nodes-panel__item-content">
                                         {data.content}
                                     </span>
                                 )}
                                 {activeTab === 'common' && (
-                                    <div style={{ display: 'flex', gap: '6px', fontSize: '9px', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 'bold' }}>
+                                    <div className="nodes-panel__item-stats">
                                         <span>{(data.flags_set || []).length} Flags</span> •
                                         <span>{(data.status_set || []).length} Status</span> •
                                         <span>{(data.variants || []).length} Variants</span>
                                     </div>
                                 )}
                                 {activeTab === 'choice' && (
-                                    <div style={{ display: 'flex', gap: '6px', fontSize: '9px', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 'bold' }}>
+                                    <div className="nodes-panel__item-stats">
                                         <span>{(data.flags_set || []).length} Flags</span> •
                                         <span>{(data.status_set || []).length} Status</span> •
                                         <span>{(data.options || []).length} Options</span>
@@ -134,7 +134,7 @@ export default function NodesPanel() {
                     );
                 })}
                 {nodes.length === 0 && (
-                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-xs)' }}>
+                    <div className="nodes-panel__empty">
                         No {activeTab} nodes found.
                     </div>
                 )}

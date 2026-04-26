@@ -74,7 +74,7 @@ function ChoiceNode({ id, data }) {
 
         {/* ADDED: Phase 2 verbose display for node-level side effects */}
         {labelDisplayMode === 'verbose' && ((data.flags_set?.length || 0) + (data.status_set?.length || 0)) > 0 && (
-          <div style={{ marginTop: '8px', fontSize: '10px', color: 'var(--color-primary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+          <div className="verbose-effects-box">
             {/* EXPLORE: Feature 3 - Flag true formatting */}
             {data.flags_set?.map(flagId => (
               <div key={`nf-${flagId}`} className="verbose-flag-true">• {`[${flagDict[flagId]?.name || 'Unknown'}] = true`}</div>
@@ -82,16 +82,16 @@ function ChoiceNode({ id, data }) {
             {/* EXPLORE: Feature 3 - Status number formatting */}
             {data.status_set?.map(se => {
               const val = se.amount ?? se.value ?? 0;
-              const valStyle = val > 0 ? { color: 'var(--color-flag-true)' } : val < 0 ? { color: 'var(--color-flag-false)' } : {};
+              const valClass = val > 0 ? 'status-val--positive' : val < 0 ? 'status-val--negative' : '';
               const formattedVal = val > 0 ? `+${val}` : val;
               return (
-                <div key={`ns-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: <span style={valStyle}>{formattedVal}</span></div>
+                <div key={`ns-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: <span className={valClass}>{formattedVal}</span></div>
               );
             })}
           </div>
         )}
         {Array.isArray(data.options) && data.options.length > 0 && (
-          <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div className="choice-node__options-list">
             {data.options.map(opt => {
               const displayLabel = choiceDisplayMode === 'full' ? opt.label : (opt.label.length > 25 ? opt.label.slice(0, 22) + '...' : opt.label);
               const isSelected = isActive && selectedOptionId === opt.id;
@@ -113,7 +113,7 @@ function ChoiceNode({ id, data }) {
 
                   {/* ADDED: Phase 2 verbose display for option-level side effects */}
                   {labelDisplayMode === 'verbose' && ((opt.flags_set?.length || 0) + (opt.status_set?.length || 0)) > 0 && (
-                    <div style={{ marginTop: '4px', fontSize: '9px', color: 'var(--color-primary)', display: 'flex', flexDirection: 'column', gap: '1px', opacity: 0.8 }}>
+                    <div className="verbose-effects-box--compact">
                       {/* EXPLORE: Feature 3 - Flag true formatting */}
                       {opt.flags_set?.map(flagId => (
                         <div key={`of-${flagId}`} className="verbose-flag-true">• {`[${flagDict[flagId]?.name || 'Unknown'}] = true`}</div>
@@ -121,10 +121,10 @@ function ChoiceNode({ id, data }) {
                       {/* EXPLORE: Feature 3 - Status number formatting */}
                       {opt.status_set?.map(se => {
                         const val = se.amount ?? se.value ?? 0;
-                        const valStyle = val > 0 ? { color: 'var(--color-flag-true)' } : val < 0 ? { color: 'var(--color-flag-false)' } : {};
+                        const valClass = val > 0 ? 'status-val--positive' : val < 0 ? 'status-val--negative' : '';
                         const formattedVal = val > 0 ? `+${val}` : val;
                         return (
-                          <div key={`os-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: <span style={valStyle}>{formattedVal}</span></div>
+                          <div key={`os-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: <span className={valClass}>{formattedVal}</span></div>
                         );
                       })}
                     </div>

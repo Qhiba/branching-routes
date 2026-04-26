@@ -252,7 +252,7 @@ export default function CommandPalette() {
 
           {/* ADDED: Phase 2 — Empty state */}
           {allItems.length === 0 && (
-            <div style={{ padding: 'var(--space-4)', color: 'var(--color-text-muted)', textAlign: 'center' }}>
+            <div className="palette-empty">
               No results
             </div>
           )}
