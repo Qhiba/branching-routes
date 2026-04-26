@@ -176,6 +176,10 @@
   --color-campaign-indigo: #818cf8;
   /* indigo-400 — campaign pill accent (autosave, checkboxes) */
 
+  /* ADDED: Feature 3 — Flag colors */
+  --color-flag-true: var(--color-emerald-500);
+  --color-flag-false: var(--color-rose-500);
+
   /* ADDED: Phase 0 — Vision tokens (shadows) */
   --shadow-float: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
   --shadow-nameplate: 0 2px 10px rgba(0, 0, 0, 0.3);

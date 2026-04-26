@@ -189,6 +189,27 @@ Components must not subscribe to a Zustand store by destructuring the entire sto
 
 ---
 
+## AR-25 — Modal-First Entity Editing
+
+All direct entity editing (nodes, edges) must be routed through a dedicated full-screen modal component, never through a docked panel or an inline form embedded in a sidebar. The modal must be opened by dispatching a DOM custom event (per AR-19) with the target entity ID as its `detail` payload; `GraphCanvas` listens for the event and controls the modal mount lifecycle.
+
+For node creation specifically, the flow must be **atomic**: the node is inserted into the store immediately (to receive a valid ID and position), but the `onCancel`/ESC/backdrop path must call `deleteNode` on the pending node before unmounting — preventing orphaned data if the user cancels without saving (the "pending slot" pattern, as implemented in `GraphCanvas.pendingNodeModal`).
+
+**Rationale:** The UI integration push (Phases 6/7) validated this pattern across node editing (`NodeConfigModal`) and edge editing (`EdgeConfigModal`). The modal provides sufficient visual space for complex forms (2-column layout, condition builders, collapsible cards) that are impractical in a narrow sidebar dock. The DOM-event dispatch contract keeps the editing entry point decoupled from `ReactFlowProvider` hierarchy constraints (AR-19). Edge editing was identified as a RULE CANDIDATE during Phase 6 and subsequently confirmed stable, prompting formalisation here.
+
+**Scope:** Applies to all future entity types that require form-based editing. Simple quick-create flows (NameModal for flags/statuses/paths/chapters) are exempt — they use the lightweight `NameModal` pattern, which is sufficient for single-field creation.
+
+---
+
+## AR-26 — Campaign Controls Belong to FloatingMiddleBar
+
+All controls that initiate, progress, or terminate a campaign simulation must be mounted exclusively in `FloatingMiddleBar`. No campaign lifecycle actions (Enter, Exit, Undo, Reset, Save, Load, Autosave toggle, Traversal Overlay toggle) may be placed in `TopBar`, `LeftSidebar`, `RightSidebar`, or any panel component.
+
+**Rationale:** The UI integration push relocated campaign controls from `TopBar` (Enter/Exit/Undo/Reset) and `SandboxPanel` (Save/Load/Autosave) to `FloatingMiddleBar`, giving the author a single, spatially stable control surface for all campaign lifecycle actions. `TopBar` is now purely a project-metadata and file-operations bar. Panels and sidebars dim during campaign mode and do not present any campaign controls — they are authoring tools that are visually unavailable while a campaign is active. Enforcing this separation prevents fragmented control surfaces and ensures campaign state visibility is always centred on the canvas overlay.
+
+
+---
+
 ## AR-24 — Store-Mediated Edit-Mode Computations
 
 Complex analytic or tracing tools meant for use outside of campaign playback (edit mode) must be implemented fundamentally as `simulationStore` actions rather than raw computation isolated within UI event handlers. If these tools reuse campaign-simulation logic (e.g. evaluating gates, verifying sequences), they should safely bypass the active campaign guard dynamically where applicable, pulling root parameters straight from the `narrativeStore` or targeting nodes explicitly.

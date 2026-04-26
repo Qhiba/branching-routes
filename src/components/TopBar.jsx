@@ -200,14 +200,14 @@ export default function TopBar() {
               disabled={isCampaignActive}
               onClick={handleImport}
             >
-              <Upload className="w-3.5 h-3.5" /> Import
+              <Download className="w-3.5 h-3.5" /> Import
             </button>
             <button
               className="ui-v2-topbar-file-btn"
               disabled={isCampaignActive}
               onClick={handleExport}
             >
-              <Download className="w-3.5 h-3.5" /> {exportStatus ? "Exported ✓" : "Export"}
+              <Upload className="w-3.5 h-3.5" /> {exportStatus ? "Exported ✓" : "Export"}
             </button>
           </div>
         </div>

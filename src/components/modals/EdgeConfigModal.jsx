@@ -1,10 +1,38 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Check, Link2, GitBranch, Trash2, Plus } from 'lucide-react';
 import { useNarrativeStore } from 'store';
 import '../modals/NodeConfigModal.css'; /* Reuse ncm-* token styles */
 import './EdgeConfigModal.css';
 
 // ADDED: Phase 6 — Edge configuration modal (mirrors NodeConfigModal design language)
+
+// EXPLORE: Custom SearchableSelect
+function SearchableSelect({ value, options, onChange, placeholder, className }) {
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    const selected = options.find(o => o.id === value);
+    return (
+        <div className={className} style={{ position: 'relative', cursor: 'pointer', display: 'inline-block', minWidth: 140, background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: 4 }}>
+            <div onClick={(e) => { e.stopPropagation(); setOpen(!open); }} style={{ padding: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 32, fontSize: 13, gap: 6 }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected ? selected.name : <span style={{ color: 'var(--color-text-muted)' }}>{placeholder}</span>}</span>
+                <span style={{ color: 'var(--color-text-muted)', fontSize: 9, flexShrink: 0 }}>▾</span>
+            </div>
+            {open && (
+                <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: -1, right: -1, zIndex: 1000, background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: 4, padding: 4, marginTop: 2, boxShadow: 'var(--shadow-md)' }}>
+                    <input type="text" autoFocus placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} className="ncm-input" style={{ width: '100%', marginBottom: 4 }} />
+                    <div style={{ maxHeight: 150, overflowY: 'auto' }}>
+                        {options.filter(o => o.name.toLowerCase().includes(query.toLowerCase())).map(o => (
+                            <div key={o.id} onClick={() => { onChange(o.id); setOpen(false); setQuery(''); }} style={{ padding: '6px 8px', cursor: 'pointer', borderRadius: 2, fontSize: 11 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                {o.name}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            {open && <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={(e) => { e.stopPropagation(); setOpen(false); }} />}
+        </div>
+    );
+}
 
 export default function EdgeConfigModal({ edgeId, onClose }) {
     const edge = useNarrativeStore(s => s.edges.find(e => e.id === edgeId));
@@ -187,14 +215,13 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                                                 return (
                                                     <div key={idx} className="ncm-clause-row">
                                                         <span className="ncm-clause-type ncm-clause-type--flag">FLAG</span>
-                                                        <select
+                                                        <SearchableSelect
                                                             className="ncm-clause-select"
                                                             value={clause.flag || ''}
-                                                            onChange={e => updateClause(idx, { flag: e.target.value })}
-                                                        >
-                                                            {!clause.flag && <option value="">Select flag…</option>}
-                                                            {flags.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                                                        </select>
+                                                            onChange={val => updateClause(idx, { flag: val })}
+                                                            options={flags}
+                                                            placeholder="Select flag..."
+                                                        />
                                                         <button
                                                             className="ncm-clause-value"
                                                             onClick={() => updateClause(idx, { state: !clause.state })}
@@ -211,14 +238,13 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                                                 return (
                                                     <div key={idx} className="ncm-clause-row">
                                                         <span className="ncm-clause-type ncm-clause-type--status">STAT</span>
-                                                        <select
+                                                        <SearchableSelect
                                                             className="ncm-clause-select"
                                                             value={clause.status || ''}
-                                                            onChange={e => updateClause(idx, { status: e.target.value })}
-                                                        >
-                                                            {!clause.status && <option value="">Select status…</option>}
-                                                            {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                                        </select>
+                                                            onChange={val => updateClause(idx, { status: val })}
+                                                            options={statuses}
+                                                            placeholder="Select status..."
+                                                        />
                                                         <input
                                                             type="number" className="ncm-clause-number" placeholder="Min"
                                                             value={clause.min !== undefined ? clause.min : ''}

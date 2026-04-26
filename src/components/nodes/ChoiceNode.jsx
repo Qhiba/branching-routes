@@ -48,9 +48,9 @@ function ChoiceNode({ id, data }) {
             <>
               <span className="story-node__meta-badge">
                 <svg className="story-node__meta-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="2" y="1" width="9" height="12" rx="1" stroke="currentColor" strokeWidth="1.5"/>
-                  <path d="M11 5l3-1-1 3-2-2z" fill="currentColor"/>
-                  <path d="M10 6l-2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <rect x="2" y="1" width="9" height="12" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M11 5l3-1-1 3-2-2z" fill="currentColor" />
+                  <path d="M10 6l-2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
                 {(data.flags_set?.length || 0) + (data.status_set?.length || 0)} effect{((data.flags_set?.length || 0) + (data.status_set?.length || 0)) !== 1 ? 's' : ''}
               </span>
@@ -59,7 +59,7 @@ function ChoiceNode({ id, data }) {
           )}
           <span className="story-node__meta-badge choice-node__outgoing">
             <svg className="story-node__meta-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             → {outgoingEdgeCount} outgoing{outgoingEdgeCount !== 1 ? 's' : ''}
           </span>
@@ -71,16 +71,23 @@ function ChoiceNode({ id, data }) {
         {data.content && (
           <p className="story-node__content-text">{data.content}</p>
         )}
-        
+
         {/* ADDED: Phase 2 verbose display for node-level side effects */}
         {labelDisplayMode === 'verbose' && ((data.flags_set?.length || 0) + (data.status_set?.length || 0)) > 0 && (
           <div style={{ marginTop: '8px', fontSize: '10px', color: 'var(--color-primary)', display: 'flex', flexDirection: 'column', gap: '2px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '4px' }}>
+            {/* EXPLORE: Feature 3 - Flag true formatting */}
             {data.flags_set?.map(flagId => (
-              <div key={`nf-${flagId}`}>• {flagDict[flagId]?.name || 'Unknown'} = true</div>
+              <div key={`nf-${flagId}`} className="verbose-flag-true">• {`[${flagDict[flagId]?.name || 'Unknown'}] = true`}</div>
             ))}
-            {data.status_set?.map(se => (
-              <div key={`ns-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: {se.value > 0 ? '+' : ''}{se.value}</div>
-            ))}
+            {/* EXPLORE: Feature 3 - Status number formatting */}
+            {data.status_set?.map(se => {
+              const val = se.amount ?? se.value ?? 0;
+              const valStyle = val > 0 ? { color: 'var(--color-flag-true)' } : val < 0 ? { color: 'var(--color-flag-false)' } : {};
+              const formattedVal = val > 0 ? `+${val}` : val;
+              return (
+                <div key={`ns-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: <span style={valStyle}>{formattedVal}</span></div>
+              );
+            })}
           </div>
         )}
         {Array.isArray(data.options) && data.options.length > 0 && (
@@ -97,22 +104,29 @@ function ChoiceNode({ id, data }) {
               }
 
               return (
-                <div 
-                  key={opt.id} 
+                <div
+                  key={opt.id}
                   className={optClassName}
                   onClick={isCampaignActive && isActive ? (e) => { e.stopPropagation(); selectOption(opt.id); } : undefined}
                 >
                   {displayLabel || (<i>Unnamed Option</i>)}
-                  
+
                   {/* ADDED: Phase 2 verbose display for option-level side effects */}
                   {labelDisplayMode === 'verbose' && ((opt.flags_set?.length || 0) + (opt.status_set?.length || 0)) > 0 && (
                     <div style={{ marginTop: '4px', fontSize: '9px', color: 'var(--color-primary)', display: 'flex', flexDirection: 'column', gap: '1px', opacity: 0.8 }}>
+                      {/* EXPLORE: Feature 3 - Flag true formatting */}
                       {opt.flags_set?.map(flagId => (
-                        <div key={`of-${flagId}`}>• {flagDict[flagId]?.name || 'Unknown'} = true</div>
+                        <div key={`of-${flagId}`} className="verbose-flag-true">• {`[${flagDict[flagId]?.name || 'Unknown'}] = true`}</div>
                       ))}
-                      {opt.status_set?.map(se => (
-                        <div key={`os-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: {se.value > 0 ? '+' : ''}{se.value}</div>
-                      ))}
+                      {/* EXPLORE: Feature 3 - Status number formatting */}
+                      {opt.status_set?.map(se => {
+                        const val = se.amount ?? se.value ?? 0;
+                        const valStyle = val > 0 ? { color: 'var(--color-flag-true)' } : val < 0 ? { color: 'var(--color-flag-false)' } : {};
+                        const formattedVal = val > 0 ? `+${val}` : val;
+                        return (
+                          <div key={`os-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: <span style={valStyle}>{formattedVal}</span></div>
+                        );
+                      })}
                     </div>
                   )}
 

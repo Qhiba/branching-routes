@@ -21,6 +21,34 @@ function SectionTitle({ icon: Icon, title }) {
     );
 }
 
+// EXPLORE: Feature 1 & 2 - Searchable dropdown wrapper
+function SearchableSelect({ value, options, onChange, placeholder, className }) {
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    const selected = options.find(o => o.id === value);
+    return (
+        <div className={className} style={{ position: 'relative', cursor: 'pointer', display: 'inline-block', minWidth: 140, background: 'var(--color-bg-base)', border: '1px solid var(--color-border)', borderRadius: 4 }}>
+            <div onClick={(e) => { e.stopPropagation(); setOpen(!open); }} style={{ padding: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 32, fontSize: 13, gap: 6 }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected ? selected.name : <span style={{ color: 'var(--color-text-muted)' }}>{placeholder}</span>}</span>
+                <span style={{ color: 'var(--color-text-muted)', fontSize: 9, flexShrink: 0 }}>▾</span>
+            </div>
+            {open && (
+                <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: -1, right: -1, zIndex: 1000, background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: 4, padding: 4, marginTop: 2, boxShadow: 'var(--shadow-md)' }}>
+                    <input type="text" autoFocus placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} className="ncm-input" style={{ width: '100%', marginBottom: 4 }} />
+                    <div style={{ maxHeight: 150, overflowY: 'auto' }}>
+                        {options.filter(o => o.name.toLowerCase().includes(query.toLowerCase())).map(o => (
+                            <div key={o.id} onClick={() => { onChange(o.id); setOpen(false); setQuery(''); }} style={{ padding: '6px 8px', cursor: 'pointer', borderRadius: 2, fontSize: 11 }} onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                {o.name}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            {open && <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={(e) => { e.stopPropagation(); setOpen(false); }} />}
+        </div>
+    );
+}
+
 // -- Sub-component: Condition Builder (shared by Variants and Options) --
 function ConditionBuilder({ requires, flags, statuses, onChange }) {
     const handleToggle = () => {
@@ -89,14 +117,14 @@ function ConditionBuilder({ requires, flags, statuses, onChange }) {
                             return (
                                 <div key={idx} className="ncm-clause-row">
                                     <span className="ncm-clause-type ncm-clause-type--flag">FLAG</span>
-                                    <select
+                                    {/* EXPLORE: Searchable filter */}
+                                    <SearchableSelect
                                         className="ncm-clause-select"
                                         value={clause.flag || ''}
-                                        onChange={e => updateClause(idx, { flag: e.target.value })}
-                                    >
-                                        {!clause.flag && <option value="">Select flag...</option>}
-                                        {flags.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                                    </select>
+                                        onChange={val => updateClause(idx, { flag: val })}
+                                        options={flags}
+                                        placeholder="Select flag..."
+                                    />
                                     <button
                                         className="ncm-clause-value"
                                         onClick={() => updateClause(idx, { state: !clause.state })}
@@ -113,14 +141,14 @@ function ConditionBuilder({ requires, flags, statuses, onChange }) {
                             return (
                                 <div key={idx} className="ncm-clause-row">
                                     <span className="ncm-clause-type ncm-clause-type--status">STAT</span>
-                                    <select
+                                    {/* EXPLORE: Searchable filter */}
+                                    <SearchableSelect
                                         className="ncm-clause-select"
                                         value={clause.status || ''}
-                                        onChange={e => updateClause(idx, { status: e.target.value })}
-                                    >
-                                        {!clause.status && <option value="">Select status...</option>}
-                                        {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </select>
+                                        onChange={val => updateClause(idx, { status: val })}
+                                        options={statuses}
+                                        placeholder="Select status..."
+                                    />
                                     <input
                                         type="number" className="ncm-clause-number" placeholder="Min"
                                         value={clause.min !== undefined ? clause.min : ''}
@@ -214,6 +242,8 @@ function VariantCard({ nodeId, variant, index, flags, statuses }) {
 // FIX 8: Card title shows option.label if filled, fallback to "Option N"
 function OptionCard({ nodeId, option, index, flags, statuses }) {
     const [expanded, setExpanded] = useState(false);
+    const [flagSearch, setFlagSearch] = useState(''); // EXPLORE: Feature 1 & 2 tag search
+    const [flagFilter, setFlagFilter] = useState('both'); // EXPLORE: ON / OFF / BOTH
     const updateOption = useNarrativeStore(s => s.updateOption);
     const deleteOption = useNarrativeStore(s => s.deleteOption);
 
@@ -279,6 +309,27 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                     {flags.length > 0 && (
                         <div className="ncm-field">
                             <label className="ncm-label">On-Select: Set Flags</label>
+                            {/* EXPLORE: Search + ON/OFF/BOTH filter row */}
+                            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                                <input
+                                    className="ncm-input"
+                                    type="text"
+                                    placeholder="Search flags..."
+                                    value={flagSearch}
+                                    onChange={e => setFlagSearch(e.target.value)}
+                                    style={{ flex: 1 }}
+                                />
+                                <select
+                                    className="ncm-select"
+                                    value={flagFilter}
+                                    onChange={e => setFlagFilter(e.target.value)}
+                                    style={{ width: 72, flexShrink: 0 }}
+                                >
+                                    <option value="both">Both</option>
+                                    <option value="on">ON</option>
+                                    <option value="off">OFF</option>
+                                </select>
+                            </div>
                             <div className="ncm-flags-tags">
                                 {(option.flags_set || []).map(flagId => {
                                     const f = flags.find(fl => fl.id === flagId);
@@ -291,7 +342,13 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                                         </span>
                                     ) : null;
                                 })}
-                                {flags.filter(f => !(option.flags_set || []).includes(f.id)).map(f => (
+                                {flags.filter(f => {
+                                    const isSet = (option.flags_set || []).includes(f.id);
+                                    if (isSet) return false; // already shown as tags above
+                                    if (!f.name.toLowerCase().includes(flagSearch.toLowerCase())) return false;
+                                    if (flagFilter === 'on') return false; // ON means already-set only — none in add list
+                                    return true;
+                                }).map(f => (
                                     <button key={f.id} className="ncm-add-btn" onClick={() => toggleFlagSet(f.id)}>
                                         <Plus style={{ width: 10, height: 10 }} /> {f.name}
                                     </button>
@@ -304,14 +361,13 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                             <label className="ncm-label">On-Select: Status Modifiers</label>
                             {(option.status_set || []).map((se, idx) => (
                                 <div key={idx} className="ncm-status-row" style={{ marginBottom: 6 }}>
-                                    <select
+                                    <SearchableSelect
                                         className="ncm-select"
                                         value={se.statusId || ''}
-                                        onChange={e => updateStatusEffect(idx, { statusId: e.target.value })}
-                                    >
-                                        {!se.statusId && <option value="">Select status...</option>}
-                                        {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </select>
+                                        onChange={val => updateStatusEffect(idx, { statusId: val })}
+                                        options={statuses}
+                                        placeholder="Select status..."
+                                    />
                                     <input
                                         type="number"
                                         className="ncm-status-amount"
@@ -382,6 +438,9 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
     const isCommon = nodeType === 'common';
 
     const typeBadgeClass = isChoice ? 'ncm-type-badge--choice' : isEnding ? 'ncm-type-badge--ending' : 'ncm-type-badge--common';
+
+    const [nodeFlagSearch, setNodeFlagSearch] = useState(''); // EXPLORE: tags filter
+    const [nodeFlagFilter, setNodeFlagFilter] = useState('both'); // EXPLORE: ON / OFF / BOTH
 
     const patch = (field, value) => updateNode(node.id, { data: { ...data, [field]: value } });
 
@@ -541,8 +600,34 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                 <div className="ncm-modifiers-box">
                                     <div>
                                         <label className="ncm-label" style={{ display: 'block', marginBottom: 8 }}>Set Flags (True)</label>
+                                        {/* EXPLORE: Search + ON/OFF/BOTH filter row */}
+                                        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                                            <input
+                                                className="ncm-input"
+                                                type="text"
+                                                placeholder="Search flags..."
+                                                value={nodeFlagSearch}
+                                                onChange={e => setNodeFlagSearch(e.target.value)}
+                                                style={{ flex: 1 }}
+                                            />
+                                            <select
+                                                className="ncm-select"
+                                                value={nodeFlagFilter}
+                                                onChange={e => setNodeFlagFilter(e.target.value)}
+                                                style={{ width: 72, flexShrink: 0 }}
+                                            >
+                                                <option value="both">Both</option>
+                                                <option value="on">ON</option>
+                                                <option value="off">OFF</option>
+                                            </select>
+                                        </div>
                                         <div className="ncm-flags-tags">
-                                            {(data.flags_set || []).map(flagId => {
+                                            {(data.flags_set || []).filter(flagId => {
+                                                const f = flags.find(fl => fl.id === flagId);
+                                                if (!f) return true; // keep unknown to show remove btn
+                                                if (nodeFlagFilter === 'off') return false;
+                                                return f.name.toLowerCase().includes(nodeFlagSearch.toLowerCase());
+                                            }).map(flagId => {
                                                 const f = flags.find(fl => fl.id === flagId);
                                                 return f ? (
                                                     <span key={flagId} className="ncm-flag-tag">
@@ -553,7 +638,13 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                                     </span>
                                                 ) : null;
                                             })}
-                                            {flags.filter(f => !(data.flags_set || []).includes(f.id)).map(f => (
+                                            {flags.filter(f => {
+                                                const isSet = (data.flags_set || []).includes(f.id);
+                                                if (isSet) return false;
+                                                if (!f.name.toLowerCase().includes(nodeFlagSearch.toLowerCase())) return false;
+                                                if (nodeFlagFilter === 'on') return false; // ON = already-set only
+                                                return true;
+                                            }).map(f => (
                                                 <button key={f.id} className="ncm-add-btn" onClick={() => toggleFlag(f.id)}>
                                                     <Plus style={{ width: 10, height: 10 }} /> {f.name}
                                                 </button>
@@ -568,14 +659,13 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                         <label className="ncm-label" style={{ display: 'block', marginBottom: 8 }}>Status Modifiers</label>
                                         {(data.status_set || []).map((se, idx) => (
                                             <div key={idx} className="ncm-status-row" style={{ marginBottom: 6 }}>
-                                                <select
+                                                <SearchableSelect
                                                     className="ncm-select"
                                                     value={se.statusId || ''}
-                                                    onChange={e => updateStatusEffect(idx, { statusId: e.target.value })}
-                                                >
-                                                    {!se.statusId && <option value="">Select status...</option>}
-                                                    {statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                                </select>
+                                                    onChange={val => updateStatusEffect(idx, { statusId: val })}
+                                                    options={statuses}
+                                                    placeholder="Select status..."
+                                                />
                                                 <input
                                                     type="number"
                                                     className="ncm-status-amount"

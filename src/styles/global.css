@@ -1077,3 +1077,12 @@ select:focus {
 /* REMOVED (Phase 8): .status-strip and .status-strip__* — StatusStrip restyled in Phase 7 with ui-v2-status-strip classes in StatusStrip.css */
 
 /* REMOVED (Phase 8): .route-finder-dialog__* — RouteFinderDialog deleted, superseded by RouteTracingPanel (styles live in RightPanels.css) */
+
+/* ADDED: Feature 3 — Verbose flag colour classes */
+.verbose-flag-true {
+  color: var(--color-flag-true);
+}
+
+.verbose-flag-false {
+  color: var(--color-flag-false);
+}

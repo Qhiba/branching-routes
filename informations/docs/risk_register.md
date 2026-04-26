@@ -65,6 +65,8 @@
 | RISK-RT-03 | Stale coverage metrics | Medium | Low | Status strips read atomic primitives directly | RESOLVED |
 | RISK-RT-04 | Dead-end algorithm performance on large graphs | Low | Medium | Read-only linear scans offloaded | RESOLVED |
 | RISK-RT-05 | K-shortest Path combinatorics blowup | High | High | Fixed `cappedLimit` mapped inside UI boundary | RESOLVED |
+| RISK-UI-01 | SandboxPanel retirement scope ambiguity | Low | Medium | Retained `SandboxPanel` UI under Sandbox tab; full retirement deferred as a future feature decision | ACKNOWLEDGED |
+| RISK-UI-02 | JS bundle size exceeds Vite 500 kB advisory | Low | Low | Pre-existing; unrelated to UI integration; deferred | ACKNOWLEDGED |
 
 ---
 
@@ -821,3 +823,24 @@
 **Impact:** High
 **Mitigation Strategy:** Bound with explicit limit (cap max trace at 50 nodes deep).
 **Status:** RESOLVED — RouteFinderDialog bounds limits out explicitly mapping caps cleanly out to algorithms in `routeTracer`.
+
+---
+
+## RISK-UI-01 — SandboxPanel Retirement Scope Ambiguity
+
+**Description:** The UI integration plan marked `Sidebar.jsx` as "possibly deleted" and the vision mockup showed only three right-sidebar tabs (no Sandbox). However, `SandboxPanel` provides live campaign-time authoring overrides via `applySandboxOverride` on `simulationStore` (AR-08). Deleting the Sandbox UI silently removes an active feature, which exceeded Phase 8 cleanup scope.
+**Likelihood:** Low
+**Impact:** Medium
+**Mitigation Strategy:** Retained `SandboxPanel` and mounted it directly in `RightSidebar` under a renamed "Sandbox" tab, deleting only the legacy `Sidebar.jsx` wrapper. Full `SandboxPanel` retirement (if desired) is deferred as an explicit future feature decision, not cleanup.
+**Status:** ACKNOWLEDGED — Sandbox tab retained. Decision deferred.
+
+---
+
+## RISK-UI-02 — JS Bundle Size Exceeds Vite 500 kB Advisory
+
+**Description:** `vite build` emits a chunk-size advisory (`> 500 kB`) for the main JS bundle. This was present before the UI integration push and is unrelated to the new components added.
+**Likelihood:** Low
+**Impact:** Low
+**Mitigation Strategy:** Deferred. Not addressable within a UI integration push. Requires code-splitting analysis (lazy-load heavy dependencies, dynamic imports for modals).
+**Status:** ACKNOWLEDGED — Pre-existing. Not resolved in this push.
+

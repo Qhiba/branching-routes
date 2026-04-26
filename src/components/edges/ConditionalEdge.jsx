@@ -79,11 +79,17 @@ function ConditionalEdge(props) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '10px' }}>
                 {label && <span className="conditional-edge__label" style={{ fontWeight: 'bold' }}>{label}</span>}
                 {condition && condition.conditions && condition.conditions.map((clause, idx) => {
-                  let text = '';
                   if ('flag' in clause) {
-                    text = `${flagDict[clause.flag]?.name || 'Unknown'} = ${clause.state}`;
+                    const flagName = flagDict[clause.flag]?.name || 'Unknown';
+                    const flagClass = clause.state ? "verbose-flag-true" : "verbose-flag-false";
+                    return (
+                      <div key={idx}>
+                        {idx > 0 ? <span style={{ color: 'var(--color-text-secondary)' }}>{condition.operator === 'and' ? 'AND ' : 'OR '}</span> : ''}
+                        <span className={flagClass}>[{flagName}] = {clause.state ? 'true' : 'false'}</span>
+                      </div>
+                    );
                   } else if ('status' in clause) {
-                    text = `${statusDict[clause.status]?.name || 'Unknown'}`;
+                    let text = `${statusDict[clause.status]?.name || 'Unknown'}`;
                     if (clause.min !== undefined && clause.max !== undefined) {
                       text += ` [${clause.min}...${clause.max}]`;
                     } else if (clause.min !== undefined) {
@@ -91,13 +97,14 @@ function ConditionalEdge(props) {
                     } else if (clause.max !== undefined) {
                       text += ` <= ${clause.max}`;
                     }
+                    return (
+                      <div key={idx} style={{ color: 'var(--color-primary)' }}>
+                        {idx > 0 ? <span style={{ color: 'var(--color-text-secondary)' }}>{condition.operator === 'and' ? 'AND ' : 'OR '}</span> : ''}
+                        {text}
+                      </div>
+                    );
                   }
-                  return (
-                    <div key={idx} style={{ color: 'var(--color-primary)' }}>
-                      {idx > 0 ? <span style={{ color: 'var(--color-text-secondary)' }}>{condition.operator === 'and' ? 'AND ' : 'OR '}</span> : ''}
-                      {text}
-                    </div>
-                  );
+                  return null;
                 })}
               </div>
             )}

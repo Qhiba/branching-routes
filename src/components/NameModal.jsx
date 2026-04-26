@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 
 export default function NameModal({ entityType, initialData, onClose, onConfirm }) {
   const [inputValue, setInputValue] = useState(initialData?.name || '');
-  const [flagState, setFlagState] = useState(initialData?.state ?? true);
+  const [flagState, setFlagState] = useState(initialData?.state ?? false);
   const [statusValue, setStatusValue] = useState(initialData?.value ?? 0);
   const [statusMin, setStatusMin] = useState(initialData?.minValue ?? undefined);
   const [statusMax, setStatusMax] = useState(initialData?.maxValue ?? undefined);
