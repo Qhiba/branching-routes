@@ -24,28 +24,28 @@ export default function ConfirmModal({
     if (!isOpen) return null;
 
     return (
-        <div className="confirm-modal-backdrop" onClick={onCancel}>
+        <div className="br-confirm-modal-backdrop" onClick={onCancel}>
             <div
-                className="confirm-modal"
+                className="br-confirm-modal"
                 onClick={e => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="confirm-modal-title"
+                aria-labelledby="br-confirm-modal-title"
             >
-                <div className="confirm-modal__header">
-                    <h3 id="confirm-modal-title" className="confirm-modal__title">{title}</h3>
+                <div className="br-confirm-modal__header">
+                    <h3 id="br-confirm-modal-title" className="br-confirm-modal__title">{title}</h3>
                 </div>
                 {message && (
-                    <div className="confirm-modal__body">
-                        <p className="confirm-modal__message">{message}</p>
+                    <div className="br-confirm-modal__body">
+                        <p className="br-confirm-modal__message">{message}</p>
                     </div>
                 )}
-                <div className="confirm-modal__footer">
-                    <button className="confirm-modal__btn confirm-modal__btn--cancel" onClick={onCancel}>
+                <div className="br-confirm-modal__footer">
+                    <button className="br-confirm-modal__btn br-confirm-modal__btn--cancel" onClick={onCancel}>
                         Cancel
                     </button>
                     <button
-                        className={`confirm-modal__btn ${danger ? 'confirm-modal__btn--danger' : 'confirm-modal__btn--confirm'}`}
+                        className={`br-confirm-modal__btn ${danger ? 'br-confirm-modal__btn--danger' : 'br-confirm-modal__btn--confirm'}`}
                         onClick={onConfirm}
                         autoFocus
                     >

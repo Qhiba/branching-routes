@@ -23,9 +23,9 @@ export default function LeftSidebar() {
     ];
 
     return (
-        /* CHANGED: Phase 7 — left-sidebar--campaign-mode class dims/disables sidebar during campaign */
-        <div className={`left-sidebar${isCampaignActive ? ' left-sidebar--campaign-mode' : ''}`}>
-            <div className="left-sidebar__rail">
+        /* CHANGED: Phase 7 — br-left-sidebar--campaign-mode class dims/disables sidebar during campaign */
+        <div className={`br-left-sidebar${isCampaignActive ? ' br-left-sidebar--campaign-mode' : ''}`}>
+            <div className="br-left-sidebar__rail">
                 {mockTabs.map(tab => (
                     <NameplateTab
                         key={tab.id}
@@ -37,8 +37,8 @@ export default function LeftSidebar() {
                     />
                 ))}
             </div>
-            <div className={`left-sidebar__panel ${activePanel ? 'left-sidebar__panel--open' : ''}`}>
-                <div className="left-sidebar__panel-content">
+            <div className={`br-left-sidebar__panel ${activePanel ? 'br-left-sidebar__panel--open' : ''}`}>
+                <div className="br-left-sidebar__panel-content">
                     {activePanel === 'Flags' && <FlagManager />}
                     {activePanel === 'Status' && <StatusManager />}
                     {activePanel === 'Chapter' && <PathChapterManager filterType="chapter" />}

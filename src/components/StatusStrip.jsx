@@ -53,43 +53,43 @@ export default function StatusStrip() {
   const visitedCount = seenCount + (isCampaignActive ? 1 : 0);
 
   return (
-    <div className="ui-v2-status-strip">
-      <div className="ui-v2-status-strip-global">
-        <div className="ui-v2-status-strip-group">
-          <span className="ui-v2-status-item" title="Common Nodes">
+    <div className="br-status-strip">
+      <div className="br-status-strip__global">
+        <div className="br-status-strip__group">
+          <span className="br-status-strip__item" title="Common Nodes">
             <GitCommit className="w-3.5 h-3.5 status-icon--emerald" />
             <strong>{commonCount}</strong>
           </span>
-          <span className="ui-v2-status-item" title="Choice Nodes">
+          <span className="br-status-strip__item" title="Choice Nodes">
             <GitPullRequest className="w-3.5 h-3.5 status-icon--blue" />
             <strong>{choiceCount}</strong>
           </span>
-          <span className="ui-v2-status-item" title="Ending Nodes">
+          <span className="br-status-strip__item" title="Ending Nodes">
             <BoxSelect className="w-3.5 h-3.5 status-icon--amber" />
             <strong>{endingCount}</strong>
           </span>
         </div>
 
-        <div className="ui-v2-status-divider"></div>
+        <div className="br-status-strip__divider"></div>
 
-        <div className="ui-v2-status-strip-group">
-          <span className="ui-v2-status-item" title="Flags">
+        <div className="br-status-strip__group">
+          <span className="br-status-strip__item" title="Flags">
             <Flag className="w-3.5 h-3.5 status-icon--purple" /> Flags: <strong>{flagsCount}</strong>
           </span>
-          <span className="ui-v2-status-item" title="Statuses">
+          <span className="br-status-strip__item" title="Statuses">
             <Activity className="w-3.5 h-3.5 status-icon--rose" /> Statuses: <strong>{statusesCount}</strong>
           </span>
-          <span className="ui-v2-status-item" title="Paths">
+          <span className="br-status-strip__item" title="Paths">
             <FolderTree className="w-3.5 h-3.5 status-icon--cyan" /> Paths: <strong>{pathsCount}</strong>
           </span>
-          <span className="ui-v2-status-item" title="Chapters">
+          <span className="br-status-strip__item" title="Chapters">
             <BookOpen className="w-3.5 h-3.5 status-icon--indigo" /> Chapters: <strong>{chaptersCount}</strong>
           </span>
         </div>
       </div>
 
       {isCampaignActive && (
-        <div className="ui-v2-status-strip-campaign">
+        <div className="br-status-strip__campaign">
           <span>Nodes: <strong className="campaign-count--nodes">{visitedCount} / {totalNodeCount}</strong></span>
           <span>Endings: <strong className="campaign-count--endings">{endingsReachedCount} / {endingCount}</strong></span>
           <span>Edges: <strong className="campaign-count--edges">{traversedCount} / {totalEdgeCount}</strong></span>

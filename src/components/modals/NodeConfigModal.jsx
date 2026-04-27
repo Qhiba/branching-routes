@@ -14,9 +14,9 @@ import './NodeConfigModal.css';
 // -- Sub-component: Section Title --
 function SectionTitle({ icon: Icon, title }) {
     return (
-        <div className="ncm-section-title">
-            <Icon className="ncm-section-title__icon" />
-            <h4 className="ncm-section-title__text">{title}</h4>
+        <div className="br-node-config-modal__section-title">
+            <Icon className="br-node-config-modal__section-title__icon" />
+            <h4 className="br-node-config-modal__section-title__text">{title}</h4>
         </div>
     );
 }
@@ -27,24 +27,24 @@ function SearchableSelect({ value, options, onChange, placeholder, className }) 
     const [query, setQuery] = useState('');
     const selected = options.find(o => o.id === value);
     return (
-        <div className={`ncm-searchable-select ${className || ''}`}>
-            <div className="ncm-searchable-select__trigger" onClick={(e) => { e.stopPropagation(); setOpen(!open); }}>
-                <span className="ncm-searchable-select__value">{selected ? selected.name : <span className="ncm-searchable-select__placeholder">{placeholder}</span>}</span>
-                <span className="ncm-searchable-select__caret">▾</span>
+        <div className={`br-node-config-modal__searchable-select ${className || ''}`}>
+            <div className="br-node-config-modal__searchable-select__trigger" onClick={(e) => { e.stopPropagation(); setOpen(!open); }}>
+                <span className="br-node-config-modal__searchable-select__value">{selected ? selected.name : <span className="br-node-config-modal__searchable-select__placeholder">{placeholder}</span>}</span>
+                <span className="br-node-config-modal__searchable-select__caret">▾</span>
             </div>
             {open && (
-                <div className="ncm-searchable-select__dropdown" onClick={e => e.stopPropagation()}>
-                    <input type="text" autoFocus placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} className="ncm-input ncm-searchable-select__search" />
-                    <div className="ncm-searchable-select__options">
+                <div className="br-node-config-modal__searchable-select__dropdown" onClick={e => e.stopPropagation()}>
+                    <input type="text" autoFocus placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} className="br-node-config-modal__input br-node-config-modal__searchable-select__search" />
+                    <div className="br-node-config-modal__searchable-select__options">
                         {options.filter(o => o.name.toLowerCase().includes(query.toLowerCase())).map(o => (
-                            <div key={o.id} className="ncm-searchable-select__option" onClick={() => { onChange(o.id); setOpen(false); setQuery(''); }}>
+                            <div key={o.id} className="br-node-config-modal__searchable-select__option" onClick={() => { onChange(o.id); setOpen(false); setQuery(''); }}>
                                 {o.name}
                             </div>
                         ))}
                     </div>
                 </div>
             )}
-            {open && <div className="ncm-searchable-select__backdrop" onClick={(e) => { e.stopPropagation(); setOpen(false); }} />}
+            {open && <div className="br-node-config-modal__searchable-select__backdrop" onClick={(e) => { e.stopPropagation(); setOpen(false); }} />}
         </div>
     );
 }
@@ -86,26 +86,26 @@ function ConditionBuilder({ requires, flags, statuses, onChange }) {
     };
 
     return (
-        <div className="ncm-condition-box">
-            <div className="ncm-condition-header">
-                <span className="ncm-condition-label">Requires Condition</span>
-                <div className="ncm-flex-row">
+        <div className="br-node-config-modal__condition-box">
+            <div className="br-node-config-modal__condition-header">
+                <span className="br-node-config-modal__condition-label">Requires Condition</span>
+                <div className="br-node-config-modal__flex-row">
                     {requires && (
-                        <div className="ncm-operator-toggle">
+                        <div className="br-node-config-modal__operator-toggle">
                             <button
-                                className={`ncm-operator-btn ${requires.operator === 'and' ? 'ncm-operator-btn--active' : 'ncm-operator-btn--inactive'}`}
+                                className={`br-node-config-modal__operator-btn ${requires.operator === 'and' ? 'br-node-config-modal__operator-btn--active' : 'br-node-config-modal__operator-btn--inactive'}`}
                                 onClick={() => updateOperator('and')}
                             >AND</button>
                             <button
-                                className={`ncm-operator-btn ${requires.operator === 'or' ? 'ncm-operator-btn--active' : 'ncm-operator-btn--inactive'}`}
+                                className={`br-node-config-modal__operator-btn ${requires.operator === 'or' ? 'br-node-config-modal__operator-btn--active' : 'br-node-config-modal__operator-btn--inactive'}`}
                                 onClick={() => updateOperator('or')}
                             >OR</button>
                         </div>
                     )}
-                    <button className="ncm-add-btn ncm-add-btn--sm" onClick={handleToggle}>
+                    <button className="br-node-config-modal__add-btn br-node-config-modal__add-btn--sm" onClick={handleToggle}>
                         {requires
-                            ? <><X className="ncm-icon-xs" /> Remove</>
-                            : <><Plus className="ncm-icon-xs" /> Add Condition</>}
+                            ? <><X className="br-node-config-modal__icon-xs" /> Remove</>
+                            : <><Plus className="br-node-config-modal__icon-xs" /> Add Condition</>}
                     </button>
                 </div>
             </div>
@@ -115,11 +115,11 @@ function ConditionBuilder({ requires, flags, statuses, onChange }) {
                     {requires.conditions.map((clause, idx) => {
                         if ('flag' in clause) {
                             return (
-                                <div key={idx} className="ncm-clause-row">
-                                    <span className="ncm-clause-type ncm-clause-type--flag">FLAG</span>
+                                <div key={idx} className="br-node-config-modal__clause-row">
+                                    <span className="br-node-config-modal__clause-type br-node-config-modal__clause-type--flag">FLAG</span>
                                     {/* EXPLORE: Searchable filter */}
                                     <SearchableSelect
-                                        className="ncm-clause-select"
+                                        className="br-node-config-modal__clause-select"
                                         value={clause.flag || ''}
                                         onChange={val => updateClause(idx, { flag: val })}
                                         options={flags}
@@ -127,50 +127,50 @@ function ConditionBuilder({ requires, flags, statuses, onChange }) {
                                     />
                                     <button
                                         onClick={() => updateClause(idx, { state: !clause.state })}
-                                        className={`ncm-clause-value ${clause.state ? 'ncm-clause-value--true' : 'ncm-clause-value--false'}`}
+                                        className={`br-node-config-modal__clause-value ${clause.state ? 'br-node-config-modal__clause-value--true' : 'br-node-config-modal__clause-value--false'}`}
                                     >
                                         {clause.state ? 'TRUE' : 'FALSE'}
                                     </button>
-                                    <button className="ncm-remove-btn" onClick={() => removeClause(idx)}>
-                                        <X className="ncm-icon-sm" />
+                                    <button className="br-node-config-modal__remove-btn" onClick={() => removeClause(idx)}>
+                                        <X className="br-node-config-modal__icon-sm" />
                                     </button>
                                 </div>
                             );
                         } else if ('status' in clause) {
                             return (
-                                <div key={idx} className="ncm-clause-row">
-                                    <span className="ncm-clause-type ncm-clause-type--status">STAT</span>
+                                <div key={idx} className="br-node-config-modal__clause-row">
+                                    <span className="br-node-config-modal__clause-type br-node-config-modal__clause-type--status">STAT</span>
                                     {/* EXPLORE: Searchable filter */}
                                     <SearchableSelect
-                                        className="ncm-clause-select"
+                                        className="br-node-config-modal__clause-select"
                                         value={clause.status || ''}
                                         onChange={val => updateClause(idx, { status: val })}
                                         options={statuses}
                                         placeholder="Select status..."
                                     />
                                     <input
-                                        type="number" className="ncm-clause-number" placeholder="Min"
+                                        type="number" className="br-node-config-modal__clause-number" placeholder="Min"
                                         value={clause.min !== undefined ? clause.min : ''}
                                         onChange={e => updateClause(idx, { min: e.target.value === '' ? undefined : Number(e.target.value) })}
                                     />
-                                    <span className="ncm-clause-sep">≤</span>
+                                    <span className="br-node-config-modal__clause-sep">≤</span>
                                     <input
-                                        type="number" className="ncm-clause-number" placeholder="Max"
+                                        type="number" className="br-node-config-modal__clause-number" placeholder="Max"
                                         value={clause.max !== undefined ? clause.max : ''}
                                         onChange={e => updateClause(idx, { max: e.target.value === '' ? undefined : Number(e.target.value) })}
                                     />
-                                    <button className="ncm-remove-btn" onClick={() => removeClause(idx)}>
-                                        <X className="ncm-icon-sm" />
+                                    <button className="br-node-config-modal__remove-btn" onClick={() => removeClause(idx)}>
+                                        <X className="br-node-config-modal__icon-sm" />
                                     </button>
                                 </div>
                             );
                         }
                         return null;
                     })}
-                    <div className="ncm-add-clause-row">
-                        <button className="ncm-add-btn" onClick={addFlagClause}>+ Flag Clause</button>
+                    <div className="br-node-config-modal__add-clause-row">
+                        <button className="br-node-config-modal__add-btn" onClick={addFlagClause}>+ Flag Clause</button>
                         {statuses.length > 0 && (
-                            <button className="ncm-add-btn" onClick={addStatusClause}>+ Status Clause</button>
+                            <button className="br-node-config-modal__add-btn" onClick={addStatusClause}>+ Status Clause</button>
                         )}
                     </div>
                 </div>
@@ -187,27 +187,27 @@ function VariantCard({ nodeId, variant, index, flags, statuses }) {
     const deleteVariant = useNarrativeStore(s => s.deleteVariant);
 
     return (
-        <div className="ncm-card">
-            <div className="ncm-card__header" onClick={() => setExpanded(v => !v)}>
-                <div className="ncm-card__header-left">
+        <div className="br-node-config-modal__card">
+            <div className="br-node-config-modal__card__header" onClick={() => setExpanded(v => !v)}>
+                <div className="br-node-config-modal__card__header-left">
                     {expanded
-                        ? <ChevronUp className="ncm-card__chevron" />
-                        : <ChevronRight className="ncm-card__chevron" />
+                        ? <ChevronUp className="br-node-config-modal__card__chevron" />
+                        : <ChevronRight className="br-node-config-modal__card__chevron" />
                     }
-                    <span className="ncm-card__title">
+                    <span className="br-node-config-modal__card__title">
                         {variant.label && variant.label.trim() ? variant.label : `Variant ${index + 1}`}
                     </span>
                 </div>
-                <button className="ncm-remove-btn" onClick={e => { e.stopPropagation(); deleteVariant(nodeId, variant.id); }}>
-                    <Trash2 className="ncm-icon-md" />
+                <button className="br-node-config-modal__remove-btn" onClick={e => { e.stopPropagation(); deleteVariant(nodeId, variant.id); }}>
+                    <Trash2 className="br-node-config-modal__icon-md" />
                 </button>
             </div>
             {expanded && (
-                <div className="ncm-card__body">
-                    <div className="ncm-field">
-                        <label className="ncm-label">Internal Name</label>
+                <div className="br-node-config-modal__card__body">
+                    <div className="br-node-config-modal__field">
+                        <label className="br-node-config-modal__label">Internal Name</label>
                         <input
-                            className="ncm-input"
+                            className="br-node-config-modal__input"
                             type="text"
                             value={variant.label || ''}
                             onChange={e => updateVariant(nodeId, variant.id, { label: e.target.value })}
@@ -221,10 +221,10 @@ function VariantCard({ nodeId, variant, index, flags, statuses }) {
                         statuses={statuses}
                         onChange={val => updateVariant(nodeId, variant.id, { requires: val })}
                     />
-                    <div className="ncm-field">
-                        <label className="ncm-label">Narrative Text</label>
+                    <div className="br-node-config-modal__field">
+                        <label className="br-node-config-modal__label">Narrative Text</label>
                         <textarea
-                            className="ncm-textarea"
+                            className="br-node-config-modal__textarea"
                             rows={3}
                             value={variant.text || ''}
                             onChange={e => updateVariant(nodeId, variant.id, { text: e.target.value })}
@@ -274,25 +274,25 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
     const cardTitle = option.label && option.label.trim() ? option.label : `Option ${index + 1}`;
 
     return (
-        <div className="ncm-card">
-            <div className="ncm-card__header" onClick={() => setExpanded(v => !v)}>
-                <div className="ncm-card__header-left">
+        <div className="br-node-config-modal__card">
+            <div className="br-node-config-modal__card__header" onClick={() => setExpanded(v => !v)}>
+                <div className="br-node-config-modal__card__header-left">
                     {expanded
-                        ? <ChevronUp className="ncm-card__chevron" />
-                        : <ChevronRight className="ncm-card__chevron" />
+                        ? <ChevronUp className="br-node-config-modal__card__chevron" />
+                        : <ChevronRight className="br-node-config-modal__card__chevron" />
                     }
-                    <span className="ncm-card__title">{cardTitle}</span>
+                    <span className="br-node-config-modal__card__title">{cardTitle}</span>
                 </div>
-                <button className="ncm-remove-btn" onClick={e => { e.stopPropagation(); deleteOption(nodeId, option.id); }}>
-                    <Trash2 className="ncm-icon-md" />
+                <button className="br-node-config-modal__remove-btn" onClick={e => { e.stopPropagation(); deleteOption(nodeId, option.id); }}>
+                    <Trash2 className="br-node-config-modal__icon-md" />
                 </button>
             </div>
             {expanded && (
-                <div className="ncm-card__body">
-                    <div className="ncm-field">
-                        <label className="ncm-label">Option Text</label>
+                <div className="br-node-config-modal__card__body">
+                    <div className="br-node-config-modal__field">
+                        <label className="br-node-config-modal__label">Option Text</label>
                         <input
-                            className="ncm-input"
+                            className="br-node-config-modal__input"
                             type="text"
                             value={option.label || ''}
                             onChange={e => updateOption(nodeId, option.id, { label: e.target.value })}
@@ -306,19 +306,19 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                         onChange={val => updateOption(nodeId, option.id, { requires: val })}
                     />
                     {flags.length > 0 && (
-                        <div className="ncm-field">
-                            <label className="ncm-label">On-Select: Set Flags</label>
+                        <div className="br-node-config-modal__field">
+                            <label className="br-node-config-modal__label">On-Select: Set Flags</label>
                             {/* EXPLORE: Search + ON/OFF/BOTH filter row */}
-                            <div className="ncm-flex-row--gap6">
+                            <div className="br-node-config-modal__flex-row--gap6">
                                 <input
-                                    className="ncm-input ncm-flex-1"
+                                    className="br-node-config-modal__input br-node-config-modal__flex-1"
                                     type="text"
                                     placeholder="Search flags..."
                                     value={flagSearch}
                                     onChange={e => setFlagSearch(e.target.value)}
                                 />
                                 <select
-                                    className="ncm-select ncm-select--narrow"
+                                    className="br-node-config-modal__select br-node-config-modal__select--narrow"
                                     value={flagFilter}
                                     onChange={e => setFlagFilter(e.target.value)}
                                 >
@@ -327,14 +327,14 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                                     <option value="off">OFF</option>
                                 </select>
                             </div>
-                            <div className="ncm-flags-tags">
+                            <div className="br-node-config-modal__flags-tags">
                                 {(option.flags_set || []).map(flagId => {
                                     const f = flags.find(fl => fl.id === flagId);
                                     return f ? (
-                                        <span key={flagId} className="ncm-flag-tag">
+                                        <span key={flagId} className="br-node-config-modal__flag-tag">
                                             {f.name}
-                                            <button className="ncm-flag-tag__remove" onClick={() => toggleFlagSet(flagId)}>
-                                                <X className="ncm-icon-xs" />
+                                            <button className="br-node-config-modal__flag-tag__remove" onClick={() => toggleFlagSet(flagId)}>
+                                                <X className="br-node-config-modal__icon-xs" />
                                             </button>
                                         </span>
                                     ) : null;
@@ -346,20 +346,20 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                                     if (flagFilter === 'on') return false; // ON means already-set only — none in add list
                                     return true;
                                 }).map(f => (
-                                    <button key={f.id} className="ncm-add-btn" onClick={() => toggleFlagSet(f.id)}>
-                                        <Plus className="ncm-icon-xs" /> {f.name}
+                                    <button key={f.id} className="br-node-config-modal__add-btn" onClick={() => toggleFlagSet(f.id)}>
+                                        <Plus className="br-node-config-modal__icon-xs" /> {f.name}
                                     </button>
                                 ))}
                             </div>
                         </div>
                     )}
                     {statuses.length > 0 && (
-                        <div className="ncm-field">
-                            <label className="ncm-label">On-Select: Status Modifiers</label>
+                        <div className="br-node-config-modal__field">
+                            <label className="br-node-config-modal__label">On-Select: Status Modifiers</label>
                             {(option.status_set || []).map((se, idx) => (
-                                <div key={idx} className="ncm-status-row ncm-mb-6">
+                                <div key={idx} className="br-node-config-modal__status-row br-node-config-modal__mb-6">
                                     <SearchableSelect
-                                        className="ncm-select"
+                                        className="br-node-config-modal__select"
                                         value={se.statusId || ''}
                                         onChange={val => updateStatusEffect(idx, { statusId: val })}
                                         options={statuses}
@@ -367,17 +367,17 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                                     />
                                     <input
                                         type="number"
-                                        className="ncm-status-amount"
+                                        className="br-node-config-modal__status-amount"
                                         value={se.amount ?? 0}
                                         onChange={e => updateStatusEffect(idx, { amount: Number(e.target.value) })}
                                     />
-                                    <button className="ncm-remove-btn" onClick={() => removeStatusEffect(idx)}>
-                                        <Trash2 className="ncm-icon-md" />
+                                    <button className="br-node-config-modal__remove-btn" onClick={() => removeStatusEffect(idx)}>
+                                        <Trash2 className="br-node-config-modal__icon-md" />
                                     </button>
                                 </div>
                             ))}
-                            <button className="ncm-add-btn" onClick={addStatusEffect}>
-                                <Plus className="ncm-icon-xs" /> Add Status Modifier
+                            <button className="br-node-config-modal__add-btn" onClick={addStatusEffect}>
+                                <Plus className="br-node-config-modal__icon-xs" /> Add Status Modifier
                             </button>
                         </div>
                     )}
@@ -434,7 +434,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
     const isChoice = nodeType === 'choice';
     const isCommon = nodeType === 'common';
 
-    const typeBadgeClass = isChoice ? 'ncm-type-badge--choice' : isEnding ? 'ncm-type-badge--ending' : 'ncm-type-badge--common';
+    const typeBadgeClass = isChoice ? 'br-node-config-modal__type-badge--choice' : isEnding ? 'br-node-config-modal__type-badge--ending' : 'br-node-config-modal__type-badge--common';
 
     const [nodeFlagSearch, setNodeFlagSearch] = useState(''); // EXPLORE: tags filter
     const [nodeFlagFilter, setNodeFlagFilter] = useState('both'); // EXPLORE: ON / OFF / BOTH
@@ -474,37 +474,37 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
         : nodeType?.toUpperCase();
 
     return (
-        <div className="ncm-backdrop" onClick={handleCancel}>
+        <div className="br-node-config-modal__backdrop" onClick={handleCancel}>
             <div
-                className={`ncm-container ${isEnding ? 'ncm-container--narrow' : 'ncm-container--wide'}`}
+                className={`br-node-config-modal__container ${isEnding ? 'br-node-config-modal__container--narrow' : 'br-node-config-modal__container--wide'}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="ncm-header">
-                    <div className="ncm-header__left">
+                <div className="br-node-config-modal__header">
+                    <div className="br-node-config-modal__header__left">
                         {/* FIX 6: Badge shows subtype name if set */}
-                        <span className={`ncm-type-badge ${typeBadgeClass}`}>
+                        <span className={`br-node-config-modal__type-badge ${typeBadgeClass}`}>
                             {badgeText}
                         </span>
-                        <h3 className="ncm-header__title">Configure Node</h3>
+                        <h3 className="br-node-config-modal__header__title">Configure Node</h3>
                     </div>
-                    <button className="ncm-close-btn" onClick={onClose}>
-                        <X className="ncm-icon-lg" />
+                    <button className="br-node-config-modal__close-btn" onClick={onClose}>
+                        <X className="br-node-config-modal__icon-lg" />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="ncm-body">
+                <div className="br-node-config-modal__body">
 
                     {/* LEFT COLUMN: Narrative & Routing */}
-                    <div className={`ncm-col ${isEnding ? 'ncm-col--left-only' : 'ncm-col--left'}`}>
+                    <div className={`br-node-config-modal__col ${isEnding ? 'br-node-config-modal__col--left-only' : 'br-node-config-modal__col--left'}`}>
                         <div>
                             <SectionTitle icon={AlignLeft} title="Narrative Content" />
                             {/* FIX 4: Label first */}
-                            <div className="ncm-field ncm-mb-14">
-                                <label className="ncm-label">Node Label</label>
+                            <div className="br-node-config-modal__field br-node-config-modal__mb-14">
+                                <label className="br-node-config-modal__label">Node Label</label>
                                 <input
-                                    className="ncm-input"
+                                    className="br-node-config-modal__input"
                                     type="text"
                                     value={data.label || ''}
                                     onChange={e => patch('label', e.target.value)}
@@ -513,11 +513,11 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                             </div>
 
                             {/* FIX 4: Chapter & Path immediately below label */}
-                            <div className="ncm-row ncm-mb-14">
-                                <div className="ncm-field">
-                                    <label className="ncm-label">Chapter</label>
+                            <div className="br-node-config-modal__row br-node-config-modal__mb-14">
+                                <div className="br-node-config-modal__field">
+                                    <label className="br-node-config-modal__label">Chapter</label>
                                     <select
-                                        className="ncm-select"
+                                        className="br-node-config-modal__select"
                                         value={data.chapterId || ''}
                                         onChange={e => patch('chapterId', e.target.value || null)}
                                     >
@@ -525,10 +525,10 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                         {chapters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
-                                <div className="ncm-field">
-                                    <label className="ncm-label">Path</label>
+                                <div className="br-node-config-modal__field">
+                                    <label className="br-node-config-modal__label">Path</label>
                                     <select
-                                        className="ncm-select"
+                                        className="br-node-config-modal__select"
                                         value={data.pathId || ''}
                                         onChange={e => patch('pathId', e.target.value || null)}
                                     >
@@ -540,15 +540,15 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
 
                             {/* FIX 9: Common / Ending sub-type — from user-defined store types */}
                             {(isCommon || isEnding) && (
-                                <div className="ncm-field ncm-mb-14">
-                                    <label className="ncm-label">{isCommon ? 'Common Type' : 'Ending Type'}</label>
+                                <div className="br-node-config-modal__field br-node-config-modal__mb-14">
+                                    <label className="br-node-config-modal__label">{isCommon ? 'Common Type' : 'Ending Type'}</label>
                                     {typeOptions.length === 0 ? (
-                                        <div className="ncm-hint">
+                                        <div className="br-node-config-modal__hint">
                                             No {isCommon ? 'common' : 'ending'} types defined yet. Add them in the left sidebar.
                                         </div>
                                     ) : (
                                         <select
-                                            className="ncm-select"
+                                            className="br-node-config-modal__select"
                                             value={data.nodeSubTypeId || ''}
                                             onChange={e => patch('nodeSubTypeId', e.target.value || null)}
                                         >
@@ -560,10 +560,10 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                             )}
 
                             {/* Description */}
-                            <div className="ncm-field">
-                                <label className="ncm-label">Description / Content</label>
+                            <div className="br-node-config-modal__field">
+                                <label className="br-node-config-modal__label">Description / Content</label>
                                 <textarea
-                                    className="ncm-textarea"
+                                    className="br-node-config-modal__textarea"
                                     rows={5}
                                     value={data.content || ''}
                                     onChange={e => patch('content', e.target.value)}
@@ -577,11 +577,11 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                             <div>
                                 <SectionTitle icon={Star} title="Campaign Start" />
                                 <button
-                                    className={`ncm-start-btn ${data.isStartNode ? 'ncm-start-btn--active' : ''}`}
+                                    className={`br-node-config-modal__start-btn ${data.isStartNode ? 'br-node-config-modal__start-btn--active' : ''}`}
                                     onClick={() => setStartNode(node.id)}
                                     disabled={data.isStartNode}
                                 >
-                                    <Star className={`ncm-icon-base ${data.isStartNode ? 'ncm-star-icon--active' : ''}`} />
+                                    <Star className={`br-node-config-modal__icon-base ${data.isStartNode ? 'br-node-config-modal__star-icon--active' : ''}`} />
                                     {data.isStartNode ? 'This is the Start Node ✓' : 'Set as Start Node'}
                                 </button>
                             </div>
@@ -590,24 +590,24 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
 
                     {/* RIGHT COLUMN: Logic & Effects (hidden for Ending) */}
                     {!isEnding && (
-                        <div className="ncm-col ncm-col--right">
+                        <div className="br-node-config-modal__col br-node-config-modal__col--right">
                             {/* On-Enter Modifiers */}
                             <div>
                                 <SectionTitle icon={Zap} title="On-Enter Modifiers" />
-                                <div className="ncm-modifiers-box">
+                                <div className="br-node-config-modal__modifiers-box">
                                     <div>
-                                        <label className="ncm-label ncm-label--block">Set Flags (True)</label>
+                                        <label className="br-node-config-modal__label br-node-config-modal__label--block">Set Flags (True)</label>
                                         {/* EXPLORE: Search + ON/OFF/BOTH filter row */}
-                                        <div className="ncm-flex-row--gap6">
+                                        <div className="br-node-config-modal__flex-row--gap6">
                                             <input
-                                                className="ncm-input ncm-flex-1"
+                                                className="br-node-config-modal__input br-node-config-modal__flex-1"
                                                 type="text"
                                                 placeholder="Search flags..."
                                                 value={nodeFlagSearch}
                                                 onChange={e => setNodeFlagSearch(e.target.value)}
                                             />
                                             <select
-                                                className="ncm-select ncm-select--narrow"
+                                                className="br-node-config-modal__select br-node-config-modal__select--narrow"
                                                 value={nodeFlagFilter}
                                                 onChange={e => setNodeFlagFilter(e.target.value)}
                                             >
@@ -616,7 +616,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                                 <option value="off">OFF</option>
                                             </select>
                                         </div>
-                                        <div className="ncm-flags-tags">
+                                        <div className="br-node-config-modal__flags-tags">
                                             {(data.flags_set || []).filter(flagId => {
                                                 const f = flags.find(fl => fl.id === flagId);
                                                 if (!f) return true; // keep unknown to show remove btn
@@ -625,10 +625,10 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                             }).map(flagId => {
                                                 const f = flags.find(fl => fl.id === flagId);
                                                 return f ? (
-                                                    <span key={flagId} className="ncm-flag-tag">
+                                                    <span key={flagId} className="br-node-config-modal__flag-tag">
                                                         {f.name}
-                                                        <button className="ncm-flag-tag__remove" onClick={() => toggleFlag(flagId)}>
-                                                            <X className="ncm-icon-xs" />
+                                                        <button className="br-node-config-modal__flag-tag__remove" onClick={() => toggleFlag(flagId)}>
+                                                            <X className="br-node-config-modal__icon-xs" />
                                                         </button>
                                                     </span>
                                                 ) : null;
@@ -640,22 +640,22 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                                 if (nodeFlagFilter === 'on') return false; // ON = already-set only
                                                 return true;
                                             }).map(f => (
-                                                <button key={f.id} className="ncm-add-btn" onClick={() => toggleFlag(f.id)}>
-                                                    <Plus className="ncm-icon-xs" /> {f.name}
+                                                <button key={f.id} className="br-node-config-modal__add-btn" onClick={() => toggleFlag(f.id)}>
+                                                    <Plus className="br-node-config-modal__icon-xs" /> {f.name}
                                                 </button>
                                             ))}
                                             {flags.length === 0 && (
-                                                <span className="ncm-hint--inline">No flags defined.</span>
+                                                <span className="br-node-config-modal__hint--inline">No flags defined.</span>
                                             )}
                                         </div>
                                     </div>
 
-                                    <div className="ncm-border-top">
-                                        <label className="ncm-label ncm-label--block">Status Modifiers</label>
+                                    <div className="br-node-config-modal__border-top">
+                                        <label className="br-node-config-modal__label br-node-config-modal__label--block">Status Modifiers</label>
                                         {(data.status_set || []).map((se, idx) => (
-                                            <div key={idx} className="ncm-status-row ncm-mb-6">
+                                            <div key={idx} className="br-node-config-modal__status-row br-node-config-modal__mb-6">
                                                 <SearchableSelect
-                                                    className="ncm-select"
+                                                    className="br-node-config-modal__select"
                                                     value={se.statusId || ''}
                                                     onChange={val => updateStatusEffect(idx, { statusId: val })}
                                                     options={statuses}
@@ -663,17 +663,17 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                                 />
                                                 <input
                                                     type="number"
-                                                    className="ncm-status-amount"
+                                                    className="br-node-config-modal__status-amount"
                                                     value={se.amount ?? 0}
                                                     onChange={e => updateStatusEffect(idx, { amount: Number(e.target.value) })}
                                                 />
-                                                <button className="ncm-remove-btn" onClick={() => removeStatusEffect(idx)}>
-                                                    <Trash2 className="ncm-icon-md" />
+                                                <button className="br-node-config-modal__remove-btn" onClick={() => removeStatusEffect(idx)}>
+                                                    <Trash2 className="br-node-config-modal__icon-md" />
                                                 </button>
                                             </div>
                                         ))}
-                                        <button className="ncm-add-btn" onClick={addStatusEffect}>
-                                            <Plus className="ncm-icon-xs" /> Add Status Modifier
+                                        <button className="br-node-config-modal__add-btn" onClick={addStatusEffect}>
+                                            <Plus className="br-node-config-modal__icon-xs" /> Add Status Modifier
                                         </button>
                                     </div>
                                 </div>
@@ -682,7 +682,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                             {/* Variants (Common) or Options (Choice) */}
                             <div>
                                 <SectionTitle icon={SlidersHorizontal} title={isChoice ? 'Branching Options' : 'Narrative Variants'} />
-                                <div className="ncm-flex-col">
+                                <div className="br-node-config-modal__flex-col">
                                     {isCommon && (data.variants || []).map((v, i) => (
                                         <VariantCard
                                             key={v.id}
@@ -704,13 +704,13 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                         />
                                     ))}
                                     <button
-                                        className="ncm-add-btn ncm-add-btn--full"
+                                        className="br-node-config-modal__add-btn br-node-config-modal__add-btn--full"
                                         onClick={() => isChoice
                                             ? addOption(node.id, { label: `Option ${(data.options || []).length + 1}` })
                                             : addVariant(node.id, { label: `Variant ${(data.variants || []).length + 1}` })
                                         }
                                     >
-                                        <Plus className="ncm-icon-sm" />
+                                        <Plus className="br-node-config-modal__icon-sm" />
                                         Add {isChoice ? 'Option' : 'Variant'}
                                     </button>
                                 </div>
@@ -720,10 +720,10 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                 </div>
 
                 {/* Footer */}
-                <div className="ncm-footer">
-                    <button className="ncm-btn-cancel" onClick={handleCancel}>Cancel</button>
-                    <button className="ncm-btn-save" onClick={onClose}>
-                        <Check className="ncm-icon-base" /> Save Node
+                <div className="br-node-config-modal__footer">
+                    <button className="br-node-config-modal__btn-cancel" onClick={handleCancel}>Cancel</button>
+                    <button className="br-node-config-modal__btn-save" onClick={onClose}>
+                        <Check className="br-node-config-modal__icon-base" /> Save Node
                     </button>
                 </div>
             </div>

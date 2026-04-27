@@ -1,21 +1,21 @@
 /* src/components/modals/NodeConfigModal.css */
 
-.ncm-backdrop {
+.br-node-config-modal__backdrop {
     position: fixed;
     inset: 0;
     z-index: var(--z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(2, 6, 23, 0.7);
+    background-color: rgba(var(--color-bg-deep-rgb), 0.7);
     /* slate-950/70 */
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     padding: 24px;
-    animation: ncm-fade-in 150ms ease-out;
+    animation: br-node-config-modal__fade-in 150ms ease-out;
 }
 
-@keyframes ncm-fade-in {
+@keyframes br-node-config-modal__fade-in {
     from {
         opacity: 0;
     }
@@ -25,7 +25,7 @@
     }
 }
 
-.ncm-container {
+.br-node-config-modal__container {
     background-color: var(--color-bg-modal);
     /* slate-900 */
     border: 1px solid var(--color-border);
@@ -35,11 +35,11 @@
     flex-direction: column;
     overflow: hidden;
     max-height: calc(100vh - 48px);
-    animation: ncm-zoom-in 150ms ease-out;
+    animation: br-node-config-modal__zoom-in 150ms ease-out;
     transition: width 200ms ease;
 }
 
-@keyframes ncm-zoom-in {
+@keyframes br-node-config-modal__zoom-in {
     from {
         transform: scale(0.97);
         opacity: 0;
@@ -51,32 +51,32 @@
     }
 }
 
-.ncm-container--wide {
+.br-node-config-modal__container--wide {
     width: 860px;
 }
 
-.ncm-container--narrow {
+.br-node-config-modal__container--narrow {
     width: 420px;
 }
 
 /* Header */
-.ncm-header {
+.br-node-config-modal__header {
     padding: 16px 20px;
     border-bottom: 1px solid var(--color-border);
-    background-color: rgba(15, 23, 42, 0.8);
+    background-color: rgba(var(--color-bg-modal-rgb), 0.8);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
 }
 
-.ncm-header__left {
+.br-node-config-modal__header__left {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.ncm-type-badge {
+.br-node-config-modal__type-badge {
     padding: 2px 8px;
     border-radius: 4px;
     font-size: 10px;
@@ -86,32 +86,32 @@
     border: 1px solid;
 }
 
-.ncm-type-badge--common {
+.br-node-config-modal__type-badge--common {
     color: var(--color-emerald-500);
-    background-color: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.2);
+    background-color: rgba(var(--color-emerald-500-rgb), 0.1);
+    border-color: rgba(var(--color-emerald-500-rgb), 0.2);
 }
 
-.ncm-type-badge--choice {
+.br-node-config-modal__type-badge--choice {
     color: var(--color-blue-500);
-    background-color: rgba(59, 130, 246, 0.1);
-    border-color: rgba(59, 130, 246, 0.2);
+    background-color: rgba(var(--color-blue-500-rgb), 0.1);
+    border-color: rgba(var(--color-blue-500-rgb), 0.2);
 }
 
-.ncm-type-badge--ending {
+.br-node-config-modal__type-badge--ending {
     color: var(--color-amber-500);
-    background-color: rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.2);
+    background-color: rgba(var(--color-amber-500-rgb), 0.1);
+    border-color: rgba(var(--color-amber-500-rgb), 0.2);
 }
 
-.ncm-header__title {
+.br-node-config-modal__header__title {
     font-size: 14px;
     font-weight: 700;
     color: var(--color-text-primary);
     margin: 0;
 }
 
-.ncm-close-btn {
+.br-node-config-modal__close-btn {
     padding: 4px;
     background: transparent;
     border: none;
@@ -123,20 +123,20 @@
     align-items: center;
 }
 
-.ncm-close-btn:hover {
+.br-node-config-modal__close-btn:hover {
     background-color: var(--color-bg-hover);
     color: var(--color-text-primary);
 }
 
 /* Body */
-.ncm-body {
+.br-node-config-modal__body {
     display: flex;
     flex: 1;
     overflow: hidden;
     min-height: 400px;
 }
 
-.ncm-col {
+.br-node-config-modal__col {
     padding: 24px;
     display: flex;
     flex-direction: column;
@@ -144,49 +144,49 @@
     overflow-y: auto;
 }
 
-.ncm-col::-webkit-scrollbar {
+.br-node-config-modal__col::-webkit-scrollbar {
     width: 4px;
 }
 
-.ncm-col::-webkit-scrollbar-track {
+.br-node-config-modal__col::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.ncm-col::-webkit-scrollbar-thumb {
+.br-node-config-modal__col::-webkit-scrollbar-thumb {
     background-color: var(--color-border);
     border-radius: 2px;
 }
 
-.ncm-col--left {
+.br-node-config-modal__col--left {
     flex: 1;
     border-right: 1px solid var(--color-border);
 }
 
-.ncm-col--left-only {
+.br-node-config-modal__col--left-only {
     flex: 1;
 }
 
-.ncm-col--right {
+.br-node-config-modal__col--right {
     flex: 1;
-    background-color: rgba(7, 10, 17, 0.5);
+    background-color: rgba(var(--color-bg-sidebar-rgb), 0.5);
 }
 
 /* Section header */
-.ncm-section-title {
+.br-node-config-modal__section-title {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-bottom: 12px;
-    border-bottom: 1px solid rgba(30, 41, 59, 0.6);
+    border-bottom: 1px solid rgba(var(--color-border-subtle-rgb), 0.6);
     padding-bottom: 8px;
 }
 
-.ncm-section-title__icon {
+.br-node-config-modal__section-title__icon {
     color: var(--color-text-secondary);
     flex-shrink: 0;
 }
 
-.ncm-section-title__text {
+.br-node-config-modal__section-title__text {
     font-size: 11px;
     font-weight: 700;
     color: var(--color-text-secondary);
@@ -196,13 +196,13 @@
 }
 
 /* Field */
-.ncm-field {
+.br-node-config-modal__field {
     display: flex;
     flex-direction: column;
     gap: 6px;
 }
 
-.ncm-label {
+.br-node-config-modal__label {
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
@@ -210,9 +210,9 @@
     color: var(--color-text-secondary);
 }
 
-.ncm-input,
-.ncm-textarea,
-.ncm-select {
+.br-node-config-modal__input,
+.br-node-config-modal__textarea,
+.br-node-config-modal__select {
     background-color: var(--color-bg-deep);
     /* slate-950 */
     border: 1px solid var(--color-border);
@@ -225,40 +225,40 @@
     box-sizing: border-box;
 }
 
-.ncm-input {
+.br-node-config-modal__input {
     padding: 8px 12px;
 }
 
-.ncm-textarea {
+.br-node-config-modal__textarea {
     padding: 8px 12px;
     resize: vertical;
     min-height: 100px;
     line-height: 1.6;
 }
 
-.ncm-select {
+.br-node-config-modal__select {
     padding: 8px 12px;
     cursor: pointer;
 }
 
-.ncm-input:focus,
-.ncm-textarea:focus,
-.ncm-select:focus {
+.br-node-config-modal__input:focus,
+.br-node-config-modal__textarea:focus,
+.br-node-config-modal__select:focus {
     border-color: var(--color-primary);
 }
 
 /* Two-col row */
-.ncm-row {
+.br-node-config-modal__row {
     display: flex;
     gap: 16px;
 }
 
-.ncm-row>.ncm-field {
+.br-node-config-modal__row>.br-node-config-modal__field {
     flex: 1;
 }
 
 /* FIX 7: Start Node Button (replaces toggle) */
-.ncm-start-btn {
+.br-node-config-modal__start-btn {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -275,22 +275,22 @@
     text-align: left;
 }
 
-.ncm-start-btn:hover:not(:disabled) {
+.br-node-config-modal__start-btn:hover:not(:disabled) {
     border-color: var(--color-primary);
     color: var(--color-text-primary);
-    background-color: rgba(99, 102, 241, 0.08);
+    background-color: rgba(var(--color-campaign-indigo-rgb), 0.08);
 }
 
-.ncm-start-btn--active,
-.ncm-start-btn:disabled {
-    border-color: rgba(99, 102, 241, 0.4);
+.br-node-config-modal__start-btn--active,
+.br-node-config-modal__start-btn:disabled {
+    border-color: rgba(var(--color-campaign-indigo-rgb), 0.4);
     color: var(--color-primary);
     cursor: default;
     opacity: 1;
 }
 
 /* On-Enter Modifiers */
-.ncm-modifiers-box {
+.br-node-config-modal__modifiers-box {
     background-color: var(--color-bg-modal);
     border: 1px solid var(--color-border);
     border-radius: 8px;
@@ -302,18 +302,18 @@
     /* allow SearchableSelect dropdowns to escape */
 }
 
-.ncm-flags-tags {
+.br-node-config-modal__flags-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
 }
 
-.ncm-flag-tag {
+.br-node-config-modal__flag-tag {
     display: flex;
     align-items: center;
     gap: 6px;
-    background-color: rgba(139, 92, 246, 0.1);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background-color: rgba(var(--color-purple-500-rgb), 0.1);
+    border: 1px solid rgba(var(--color-purple-500-rgb), 0.2);
     color: var(--color-purple-300);
     /* purple-300 */
     font-size: 11px;
@@ -321,7 +321,7 @@
     border-radius: 4px;
 }
 
-.ncm-flag-tag__remove {
+.br-node-config-modal__flag-tag__remove {
     background: none;
     border: none;
     padding: 0;
@@ -333,11 +333,11 @@
     transition: opacity var(--transition-fast);
 }
 
-.ncm-flag-tag__remove:hover {
+.br-node-config-modal__flag-tag__remove:hover {
     opacity: 1;
 }
 
-.ncm-add-btn {
+.br-node-config-modal__add-btn {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -351,13 +351,13 @@
     transition: all var(--transition-fast);
 }
 
-.ncm-add-btn:hover {
+.br-node-config-modal__add-btn:hover {
     color: var(--color-text-primary);
     border-color: var(--color-text-secondary);
 }
 
 /* Status modifier rows */
-.ncm-status-row {
+.br-node-config-modal__status-row {
     display: flex;
     align-items: stretch;
     /* all children fill the same height */
@@ -365,20 +365,20 @@
 }
 
 /* SearchableSelect used inside a status row must match native input height */
-.ncm-status-row>div[style] {
+.br-node-config-modal__status-row>div[style] {
     height: 32px !important;
     min-width: 0;
     flex: 1;
 }
 
-.ncm-status-row .ncm-select {
+.br-node-config-modal__status-row .br-node-config-modal__select {
     flex: 1;
     height: 32px;
     padding-top: 0;
     padding-bottom: 0;
 }
 
-.ncm-status-amount {
+.br-node-config-modal__status-amount {
     width: 70px;
     flex-shrink: 0;
     height: 32px;
@@ -394,11 +394,11 @@
     box-sizing: border-box;
 }
 
-.ncm-status-amount:focus {
+.br-node-config-modal__status-amount:focus {
     border-color: var(--color-primary);
 }
 
-.ncm-remove-btn {
+.br-node-config-modal__remove-btn {
     background: none;
     border: none;
     color: var(--color-text-secondary);
@@ -411,13 +411,13 @@
     flex-shrink: 0;
 }
 
-.ncm-remove-btn:hover {
+.br-node-config-modal__remove-btn:hover {
     color: var(--color-danger);
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: rgba(var(--color-danger-rgb), 0.1);
 }
 
 /* Variant / Option Cards */
-.ncm-card {
+.br-node-config-modal__card {
     background-color: var(--color-bg-modal);
     border: 1px solid var(--color-border-subtle);
     border-radius: 8px;
@@ -425,8 +425,8 @@
     /* allow SearchableSelect dropdowns to escape clipping */
 }
 
-.ncm-card__header {
-    background-color: rgba(30, 41, 59, 0.5);
+.br-node-config-modal__card__header {
+    background-color: rgba(var(--color-border-subtle-rgb), 0.5);
     padding: 8px 12px;
     display: flex;
     align-items: center;
@@ -435,19 +435,19 @@
     cursor: pointer;
 }
 
-.ncm-card__header-left {
+.br-node-config-modal__card__header-left {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.ncm-card__title {
+.br-node-config-modal__card__title {
     font-size: 11px;
     font-weight: 700;
     color: var(--color-text-primary);
 }
 
-.ncm-card__body {
+.br-node-config-modal__card__body {
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -455,21 +455,21 @@
 }
 
 /* Condition builder */
-.ncm-condition-box {
+.br-node-config-modal__condition-box {
     background-color: var(--color-bg-deep);
     border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 10px;
 }
 
-.ncm-condition-header {
+.br-node-config-modal__condition-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 8px;
 }
 
-.ncm-condition-label {
+.br-node-config-modal__condition-label {
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
@@ -477,7 +477,7 @@
     color: var(--color-text-secondary);
 }
 
-.ncm-operator-toggle {
+.br-node-config-modal__operator-toggle {
     display: flex;
     background-color: var(--color-bg-modal);
     border: 1px solid var(--color-border);
@@ -487,7 +487,7 @@
     font-weight: 700;
 }
 
-.ncm-operator-btn {
+.br-node-config-modal__operator-btn {
     flex: 1;
     padding: 2px 8px;
     border: none;
@@ -498,17 +498,17 @@
     font-weight: 700;
 }
 
-.ncm-operator-btn--active {
+.br-node-config-modal__operator-btn--active {
     background-color: var(--color-bg-selection);
     color: white;
 }
 
-.ncm-operator-btn--inactive {
+.br-node-config-modal__operator-btn--inactive {
     background: transparent;
     color: var(--color-text-secondary);
 }
 
-.ncm-clause-row {
+.br-node-config-modal__clause-row {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -520,7 +520,7 @@
     font-size: 11px;
 }
 
-.ncm-clause-type {
+.br-node-config-modal__clause-type {
     padding: 1px 5px;
     border-radius: 3px;
     font-size: 9px;
@@ -529,17 +529,17 @@
     flex-shrink: 0;
 }
 
-.ncm-clause-type--flag {
-    background-color: rgba(139, 92, 246, 0.2);
+.br-node-config-modal__clause-type--flag {
+    background-color: rgba(var(--color-purple-500-rgb), 0.2);
     color: var(--color-purple-300);
 }
 
-.ncm-clause-type--status {
-    background-color: rgba(59, 130, 246, 0.2);
+.br-node-config-modal__clause-type--status {
+    background-color: rgba(var(--color-blue-500-rgb), 0.2);
     color: var(--color-blue-300);
 }
 
-.ncm-clause-select {
+.br-node-config-modal__clause-select {
     flex: 1;
     background-color: var(--color-bg-deep);
     border: 1px solid var(--color-border);
@@ -551,7 +551,7 @@
     min-width: 0;
 }
 
-.ncm-clause-value {
+.br-node-config-modal__clause-value {
     background-color: var(--color-bg-deep);
     border: 1px solid var(--color-border);
     border-radius: 4px;
@@ -564,7 +564,7 @@
     transition: all var(--transition-fast);
 }
 
-.ncm-clause-number {
+.br-node-config-modal__clause-number {
     width: 52px;
     background-color: var(--color-bg-deep);
     border: 1px solid var(--color-border);
@@ -577,7 +577,7 @@
     text-align: center;
 }
 
-.ncm-add-clause-row {
+.br-node-config-modal__add-clause-row {
     display: flex;
     gap: 8px;
     margin-top: 4px;
@@ -586,7 +586,7 @@
 /* Flag picker dropdown */
 /* Flag picker container — no intrinsic styles needed, positioning comes from children */
 
-.ncm-flag-picker__dropdown {
+.br-node-config-modal__flag-picker__dropdown {
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
@@ -594,13 +594,13 @@
     border: 1px solid var(--color-border);
     border-radius: 6px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    z-index: 60;
+    z-index: var(--z-context-menu);
     min-width: 160px;
     max-height: 160px;
     overflow-y: auto;
 }
 
-.ncm-flag-picker__item {
+.br-node-config-modal__flag-picker__item {
     padding: 6px 12px;
     font-size: 12px;
     cursor: pointer;
@@ -608,15 +608,15 @@
     transition: background-color var(--transition-fast);
 }
 
-.ncm-flag-picker__item:hover {
+.br-node-config-modal__flag-picker__item:hover {
     background-color: var(--color-bg-hover);
 }
 
 /* Footer */
-.ncm-footer {
+.br-node-config-modal__footer {
     padding: 16px 20px;
     border-top: 1px solid var(--color-border);
-    background-color: rgba(15, 23, 42, 0.8);
+    background-color: rgba(var(--color-bg-modal-rgb), 0.8);
     display: flex;
     justify-content: flex-end;
     gap: 12px;
@@ -625,7 +625,7 @@
 
 /* Modal footer buttons — extend the .btn base system */
 /* Use className="btn btn--ghost" for cancel and "btn btn--primary" for save in JSX */
-.ncm-btn-cancel {
+.br-node-config-modal__btn-cancel {
     padding: 8px 20px;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
@@ -637,119 +637,119 @@
     transition: all var(--transition-fast);
 }
 
-.ncm-btn-cancel:hover {
+.br-node-config-modal__btn-cancel:hover {
     color: var(--color-text-primary);
     background-color: var(--color-bg-hover);
 }
 
-.ncm-btn-save {
+.br-node-config-modal__btn-save {
     display: flex;
     align-items: center;
     gap: var(--space-2);
     padding: 8px 24px;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-bold);
-    color: #fff;
+    color: var(--color-text-primary);
     background-color: var(--color-primary);
     border: none;
     border-radius: var(--radius-md);
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(115, 147, 248, 0.3);
+    box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
     transition: all var(--transition-fast);
 }
 
-.ncm-btn-save:hover {
+.br-node-config-modal__btn-save:hover {
     background-color: var(--color-primary-hover);
-    box-shadow: 0 4px 16px rgba(115, 147, 248, 0.45);
+    box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.45);
 }
 
-.ncm-btn-save:active {
+.br-node-config-modal__btn-save:active {
     transform: scale(0.97);
 }
 
 /* Icon sizing utilities */
-.ncm-icon-xs {
+.br-node-config-modal__icon-xs {
     width: 10px;
     height: 10px;
 }
 
-.ncm-icon-sm {
+.br-node-config-modal__icon-sm {
     width: 12px;
     height: 12px;
 }
 
-.ncm-icon-md {
+.br-node-config-modal__icon-md {
     width: 13px;
     height: 13px;
 }
 
-.ncm-icon-base {
+.br-node-config-modal__icon-base {
     width: 14px;
     height: 14px;
 }
 
-.ncm-icon-lg {
+.br-node-config-modal__icon-lg {
     width: 18px;
     height: 18px;
 }
 
 /* Section title icon override */
-.ncm-section-title__icon {
+.br-node-config-modal__section-title__icon {
     width: 14px;
     height: 14px;
 }
 
 /* Layout helpers */
-.ncm-flex-row {
+.br-node-config-modal__flex-row {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.ncm-flex-col {
+.br-node-config-modal__flex-col {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.ncm-flex-row--gap6 {
+.br-node-config-modal__flex-row--gap6 {
     display: flex;
     gap: 6px;
     margin-bottom: 8px;
 }
 
-.ncm-flex-1 {
+.br-node-config-modal__flex-1 {
     flex: 1;
 }
 
-.ncm-flex-shrink-0 {
+.br-node-config-modal__flex-shrink-0 {
     flex-shrink: 0;
 }
 
-.ncm-mb-14 {
+.br-node-config-modal__mb-14 {
     margin-bottom: 14px;
 }
 
-.ncm-mb-6 {
+.br-node-config-modal__mb-6 {
     margin-bottom: 6px;
 }
 
-.ncm-label--block {
+.br-node-config-modal__label--block {
     display: block;
     margin-bottom: 8px;
 }
 
-.ncm-border-top {
+.br-node-config-modal__border-top {
     border-top: 1px solid var(--color-border);
     padding-top: 12px;
 }
 
 /* Add btn variants */
-.ncm-add-btn--sm {
+.br-node-config-modal__add-btn--sm {
     font-size: 10px;
 }
 
-.ncm-add-btn--full {
+.br-node-config-modal__add-btn--full {
     width: 100%;
     justify-content: center;
     padding: 8px;
@@ -757,53 +757,53 @@
 }
 
 /* Clause value color states */
-.ncm-clause-value--true {
+.br-node-config-modal__clause-value--true {
     color: var(--color-emerald-500);
 }
 
-.ncm-clause-value--false {
-    color: #f87171;
+.br-node-config-modal__clause-value--false {
+    color: var(--color-danger);
 }
 
 /* Chevron in card header */
-.ncm-card__chevron {
+.br-node-config-modal__card__chevron {
     width: 14px;
     height: 14px;
     color: var(--color-text-secondary);
 }
 
 /* Status clause separator */
-.ncm-clause-sep {
+.br-node-config-modal__clause-sep {
     color: var(--color-text-secondary);
     font-size: 10px;
 }
 
 /* No types defined hint */
-.ncm-hint {
+.br-node-config-modal__hint {
     font-size: 11px;
     color: var(--color-text-secondary);
     padding: 6px 0;
 }
 
 /* No flags defined hint */
-.ncm-hint--inline {
+.br-node-config-modal__hint--inline {
     color: var(--color-text-secondary);
     font-size: 11px;
 }
 
 /* Star icon fill when active */
-.ncm-star-icon--active {
+.br-node-config-modal__star-icon--active {
     fill: currentColor;
 }
 
 /* Select width utilities for flag/status search */
-.ncm-select--narrow {
+.br-node-config-modal__select--narrow {
     width: 72px;
     flex-shrink: 0;
 }
 
 /* SearchableSelect component */
-.ncm-searchable-select {
+.br-node-config-modal__searchable-select {
     position: relative;
     cursor: pointer;
     display: inline-block;
@@ -813,7 +813,7 @@
     border-radius: 4px;
 }
 
-.ncm-searchable-select__trigger {
+.br-node-config-modal__searchable-select__trigger {
     padding: 0 8px;
     display: flex;
     align-items: center;
@@ -823,28 +823,28 @@
     gap: 6px;
 }
 
-.ncm-searchable-select__value {
+.br-node-config-modal__searchable-select__value {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.ncm-searchable-select__placeholder {
+.br-node-config-modal__searchable-select__placeholder {
     color: var(--color-text-muted);
 }
 
-.ncm-searchable-select__caret {
+.br-node-config-modal__searchable-select__caret {
     color: var(--color-text-muted);
     font-size: 9px;
     flex-shrink: 0;
 }
 
-.ncm-searchable-select__dropdown {
+.br-node-config-modal__searchable-select__dropdown {
     position: absolute;
     top: 100%;
     left: -1px;
     right: -1px;
-    z-index: 1000;
+    z-index: var(--z-toast);
     background: var(--color-bg-elevated);
     border: 1px solid var(--color-border);
     border-radius: 4px;
@@ -853,31 +853,31 @@
     box-shadow: var(--shadow-md);
 }
 
-.ncm-searchable-select__search {
+.br-node-config-modal__searchable-select__search {
     width: 100%;
     margin-bottom: 4px;
 }
 
-.ncm-searchable-select__options {
+.br-node-config-modal__searchable-select__options {
     max-height: 150px;
     overflow-y: auto;
 }
 
-.ncm-searchable-select__option {
+.br-node-config-modal__searchable-select__option {
     padding: 6px 8px;
     cursor: pointer;
     border-radius: 2px;
     font-size: 11px;
 }
 
-.ncm-searchable-select__option:hover {
+.br-node-config-modal__searchable-select__option:hover {
     background: var(--color-bg-hover);
 }
 
-.ncm-searchable-select__backdrop {
+.br-node-config-modal__searchable-select__backdrop {
     position: fixed;
     inset: 0;
-    z-index: 999;
+    z-index: var(--z-palette);
 }
 
 /* Palette empty state (CommandPalette) */

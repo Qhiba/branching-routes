@@ -77,38 +77,38 @@ export default function FloatingMiddleBar() {
 
     if (isCampaignActive) {
         return (
-            <div className="ui-v2-floating-bar ui-v2-floating-bar--campaign">
-                <div className="ui-v2-floating-active-name">
-                    <div className="ui-v2-floating-pulse"></div>
-                    <span className="ui-v2-floating-campaign-name" title={activeCampaignName}>
+            <div className="br-floating-bar br-floating-bar--campaign">
+                <div className="br-floating-bar__active-name">
+                    <div className="br-floating-bar__pulse"></div>
+                    <span className="br-floating-bar__campaign-name" title={activeCampaignName}>
                         {activeCampaignName}
                     </span>
                 </div>
 
                 {/* FIX 2: Overlay toggle — moved here from StatusStrip, left of Undo */}
-                <button className="ui-v2-floating-btn-action" onClick={toggleTraversalOverlay}>
+                <button className="br-floating-bar__btn-action" onClick={toggleTraversalOverlay}>
                     Overlay: {showTraversalOverlay ? 'ON' : 'OFF'}
                 </button>
 
-                <div className="ui-v2-floating-divider-indigo"></div>
+                <div className="br-floating-bar__divider-indigo"></div>
 
-                <button className="ui-v2-floating-btn-action" onClick={undoLastNode}>
+                <button className="br-floating-bar__btn-action" onClick={undoLastNode}>
                     <Undo className="w-3.5 h-3.5" /> Undo
                 </button>
 
-                <button className="ui-v2-floating-btn-action" onClick={resetSimulation}>
+                <button className="br-floating-bar__btn-action" onClick={resetSimulation}>
                     <RotateCcw className="w-3.5 h-3.5" /> Reset
                 </button>
 
                 {/* FIX 3: Save / Load / Autosave — moved here from SandboxPanel, right of Reset */}
-                <div className="ui-v2-floating-divider-indigo"></div>
+                <div className="br-floating-bar__divider-indigo"></div>
 
-                <button className="ui-v2-floating-btn-action" onClick={handleSave}>
+                <button className="br-floating-bar__btn-action" onClick={handleSave}>
                     <Save className="w-3.5 h-3.5" /> {saveFlash ? '✓' : 'Save'}
                 </button>
 
                 <button
-                    className="ui-v2-floating-btn-action"
+                    className="br-floating-bar__btn-action"
                     onClick={handleLoadSave}
                     disabled={!hasSavedSnapshot}
                     title={hasSavedSnapshot ? 'Load last save' : 'No save yet'}
@@ -116,19 +116,19 @@ export default function FloatingMiddleBar() {
                     <Upload className="w-3.5 h-3.5" /> Load
                 </button>
 
-                <label className="ui-v2-floating-autosave">
+                <label className="br-floating-bar__autosave">
                     <input
                         type="checkbox"
                         checked={autosaveCampaign}
                         onChange={() => setAutosaveCampaign(!autosaveCampaign)}
-                        className="ui-v2-floating-autosave__checkbox"
+                        className="br-floating-bar__autosave__checkbox"
                     />
                     Auto
                 </label>
 
-                <div className="ui-v2-floating-divider-indigo"></div>
+                <div className="br-floating-bar__divider-indigo"></div>
 
-                <button className="ui-v2-floating-btn-danger" onClick={exitCampaign}>
+                <button className="br-floating-bar__btn-danger" onClick={exitCampaign}>
                     <X className="w-3.5 h-3.5" /> Exit
                 </button>
             </div>
@@ -137,39 +137,39 @@ export default function FloatingMiddleBar() {
 
     // Active Authoring Mode
     return (
-        <div className="ui-v2-floating-bar ui-v2-floating-bar--authoring">
-            <div className="ui-v2-floating-nodes">
+        <div className="br-floating-bar br-floating-bar--authoring">
+            <div className="br-floating-bar__nodes">
                 <button
                     onClick={() => handleCreateNode('common')}
-                    className="ui-v2-floating-node-btn ui-v2-floating-node-btn--common"
+                    className="br-floating-bar__node-btn br-floating-bar__node-btn--common"
                     title="Common Node"
                 >
                     <GitCommit className="w-4 h-4" />
                 </button>
                 <button
                     onClick={() => handleCreateNode('choice')}
-                    className="ui-v2-floating-node-btn ui-v2-floating-node-btn--choice"
+                    className="br-floating-bar__node-btn br-floating-bar__node-btn--choice"
                     title="Choice Node"
                 >
                     <GitPullRequest className="w-4 h-4" />
                 </button>
                 <button
                     onClick={() => handleCreateNode('ending')}
-                    className="ui-v2-floating-node-btn ui-v2-floating-node-btn--ending"
+                    className="br-floating-bar__node-btn br-floating-bar__node-btn--ending"
                     title="Ending Node"
                 >
                     <BoxSelect className="w-4 h-4" />
                 </button>
             </div>
 
-            <div className="ui-v2-floating-divider"></div>
+            <div className="br-floating-bar__divider"></div>
 
-            <div className="ui-v2-floating-campaign-start">
-                <div className="ui-v2-floating-select-wrap">
+            <div className="br-floating-bar__campaign-start">
+                <div className="br-floating-bar__select-wrap">
                     <select
                         value={selectedId}
                         onChange={(e) => setSelectedId(e.target.value)}
-                        className="ui-v2-floating-select"
+                        className="br-floating-bar__select"
                         disabled={campaigns.length === 0}
                     >
                         {campaigns.length === 0 && <option value="">No Campaigns</option>}
@@ -177,14 +177,14 @@ export default function FloatingMiddleBar() {
                             <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                     </select>
-                    <ChevronDown className="w-3 h-3 ui-v2-floating-select-icon" />
+                    <ChevronDown className="w-3 h-3 br-floating-bar__select-icon" />
                 </div>
                 <button
                     onClick={handleStartCampaign}
-                    className="ui-v2-floating-btn-start"
+                    className="br-floating-bar__btn-start"
                     disabled={campaigns.length === 0}
                 >
-                    <Play className="ui-v2-floating-play-icon" /> Start
+                    <Play className="br-floating-bar__play-icon" /> Start
                 </button>
             </div>
         </div>

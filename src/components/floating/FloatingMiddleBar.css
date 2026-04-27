@@ -1,12 +1,12 @@
 /* src/components/floating/FloatingMiddleBar.css */
 
-.ui-v2-floating-bar {
+.br-floating-bar {
     position: absolute;
     top: var(--space-4);
     /* moved slightly up */
     left: 50%;
     transform: translateX(-50%);
-    z-index: 40;
+    z-index: var(--z-palette);
     border-radius: 9999px;
     /* full rounded */
     display: flex;
@@ -16,7 +16,7 @@
     transition: all var(--transition-normal);
 }
 
-.ui-v2-floating-bar--authoring {
+.br-floating-bar--authoring {
     background-color: var(--color-bg-authoring-bar);
     border: 1px solid var(--color-border);
     box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
@@ -24,7 +24,7 @@
     gap: 6px;
 }
 
-.ui-v2-floating-bar--campaign {
+.br-floating-bar--campaign {
     background-color: var(--color-bg-campaign-bar);
     /* indigo-950/90 */
     border: 1px solid var(--color-campaign-bar-border);
@@ -49,7 +49,7 @@
 }
 
 /* Node Buttons */
-.ui-v2-floating-nodes {
+.br-floating-bar__nodes {
     display: flex;
     align-items: center;
     gap: 2px;
@@ -57,7 +57,7 @@
     padding: 0 2px;
 }
 
-.ui-v2-floating-node-btn {
+.br-floating-bar__node-btn {
     padding: 4px;
     /* reduced */
     border-radius: 9999px;
@@ -70,23 +70,23 @@
     justify-content: center;
 }
 
-.ui-v2-floating-node-btn:hover {
+.br-floating-bar__node-btn:hover {
     background-color: var(--color-bg-hover);
 }
 
-.ui-v2-floating-node-btn:active {
+.br-floating-bar__node-btn:active {
     transform: scale(0.95);
 }
 
 /* Vertical Divider */
-.ui-v2-floating-divider {
+.br-floating-bar__divider {
     width: 1px;
     height: 14px;
     /* reduced */
     background-color: var(--color-border);
 }
 
-.ui-v2-floating-divider-indigo {
+.br-floating-bar__divider-indigo {
     background-color: var(--color-campaign-divider);
     /* indigo-800/50 */
     width: 1px;
@@ -96,20 +96,20 @@
 }
 
 /* Campaign Controls (Authoring) */
-.ui-v2-floating-campaign-start {
+.br-floating-bar__campaign-start {
     display: flex;
     align-items: center;
     gap: 4px;
     padding-right: 2px;
 }
 
-.ui-v2-floating-select-wrap {
+.br-floating-bar__select-wrap {
     position: relative;
     display: flex;
     align-items: center;
 }
 
-.ui-v2-floating-select {
+.br-floating-bar__select {
     appearance: none;
     -webkit-appearance: none;
     background-color: var(--color-bg-deep);
@@ -127,15 +127,15 @@
     cursor: pointer;
 }
 
-.ui-v2-floating-select:hover {
+.br-floating-bar__select:hover {
     border-color: var(--color-text-secondary);
 }
 
-.ui-v2-floating-select:focus {
+.br-floating-bar__select:focus {
     border-color: var(--color-primary);
 }
 
-.ui-v2-floating-select-icon {
+.br-floating-bar__select-icon {
     position: absolute;
     right: 10px;
     pointer-events: none;
@@ -143,7 +143,7 @@
     opacity: 0.8;
 }
 
-.ui-v2-floating-btn-start {
+.br-floating-bar__btn-start {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -163,22 +163,22 @@
     transition: all var(--transition-fast);
 }
 
-.ui-v2-floating-btn-start:hover:not(:disabled) {
+.br-floating-bar__btn-start:hover:not(:disabled) {
     background-color: var(--color-btn-start-campaign-hover);
     /* emerald hover — reuses seen/visited green token */
 }
 
-.ui-v2-floating-btn-start:active:not(:disabled) {
+.br-floating-bar__btn-start:active:not(:disabled) {
     transform: scale(0.95);
 }
 
-.ui-v2-floating-btn-start:disabled {
+.br-floating-bar__btn-start:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
 /* Campaign Active Pill Sub-components */
-.ui-v2-floating-active-name {
+.br-floating-bar__active-name {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -188,18 +188,18 @@
     border-right: 1px solid var(--color-campaign-divider);
 }
 
-.ui-v2-floating-pulse {
+.br-floating-bar__pulse {
     width: 7px;
     height: 7px;
     border-radius: 9999px;
     background-color: var(--cluster-color-1);
     /* emerald-400 — explicitly green */
-    animation: ui-v2-pulse 2s infinite;
+    animation: br-pulse 2s infinite;
     box-shadow: 0 0 7px rgba(52, 211, 153, 0.85);
     flex-shrink: 0;
 }
 
-@keyframes ui-v2-pulse {
+@keyframes br-pulse {
 
     0%,
     100% {
@@ -211,7 +211,7 @@
     }
 }
 
-.ui-v2-floating-campaign-name {
+.br-floating-bar__campaign-name {
     font-size: 11px;
     font-weight: var(--font-weight-bold);
     color: #ffffff;
@@ -220,7 +220,7 @@
     /* no wrap; pill grows with name */
 }
 
-.ui-v2-floating-btn-action {
+.br-floating-bar__btn-action {
     display: flex;
     align-items: center;
     gap: var(--space-1);
@@ -235,17 +235,17 @@
     transition: all var(--transition-fast);
 }
 
-.ui-v2-floating-btn-action:hover:not(:disabled) {
+.br-floating-bar__btn-action:hover:not(:disabled) {
     background-color: var(--color-campaign-btn-hover);
     /* indigo-900/80 — intentional campaign pill context */
 }
 
-.ui-v2-floating-btn-action:disabled {
+.br-floating-bar__btn-action:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.ui-v2-floating-btn-danger {
+.br-floating-bar__btn-danger {
     display: flex;
     align-items: center;
     gap: var(--space-1);
@@ -261,12 +261,12 @@
     transition: all var(--transition-fast);
 }
 
-.ui-v2-floating-btn-danger:hover {
+.br-floating-bar__btn-danger:hover {
     background-color: rgba(229, 102, 102, 0.28);
 }
 
 /* FIX 3: Autosave inline label in campaign pill */
-.ui-v2-floating-autosave {
+.br-floating-bar__autosave {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -281,11 +281,11 @@
     user-select: none;
 }
 
-.ui-v2-floating-autosave:hover {
+.br-floating-bar__autosave:hover {
     background-color: var(--color-campaign-btn-hover);
 }
 
-.ui-v2-floating-autosave__checkbox {
+.br-floating-bar__autosave__checkbox {
     width: 11px;
     height: 11px;
     accent-color: var(--color-campaign-indigo);
@@ -294,20 +294,20 @@
 }
 
 /* Node-type color modifiers */
-.ui-v2-floating-node-btn--common {
+.br-floating-bar__node-btn--common {
     color: var(--color-emerald-500);
 }
 
-.ui-v2-floating-node-btn--choice {
+.br-floating-bar__node-btn--choice {
     color: var(--color-blue-500);
 }
 
-.ui-v2-floating-node-btn--ending {
+.br-floating-bar__node-btn--ending {
     color: var(--color-amber-500);
 }
 
 /* Play icon fill */
-.ui-v2-floating-play-icon {
+.br-floating-bar__play-icon {
     width: 10px;
     height: 10px;
     fill: currentColor;

@@ -29,21 +29,21 @@ export default function RightSidebar() {
     ];
 
     return (
-        /* CHANGED: Phase 7 — right-sidebar--campaign-mode class dims/disables sidebar during campaign */
-        <div className={`right-sidebar${isCampaignActive ? ' right-sidebar--campaign-mode' : ''}`}>
-            <div className={`right-sidebar__panel ${activePanel ? 'right-sidebar__panel--open' : ''}`}>
-                <div className="right-sidebar__panel-content right-sidebar__panel-content--flex">
+        /* CHANGED: Phase 7 — br-right-sidebar--campaign-mode class dims/disables sidebar during campaign */
+        <div className={`br-right-sidebar${isCampaignActive ? ' br-right-sidebar--campaign-mode' : ''}`}>
+            <div className={`br-right-sidebar__panel ${activePanel ? 'br-right-sidebar__panel--open' : ''}`}>
+                <div className="br-right-sidebar__panel-content br-right-sidebar__panel-content--flex">
                     {activePanel === 'Nodes' && <NodesPanel />}
                     {activePanel === 'RouteTracing' && <RouteTracingPanel />}
                     {activePanel === 'CampaignList' && <CampaignListPanel />}
                     {activePanel === 'Sandbox' && (
-                        <div className="right-sidebar__sandbox-wrap">
+                        <div className="br-right-sidebar__sandbox-wrap">
                             <SandboxPanel />
                         </div>
                     )}
                 </div>
             </div>
-            <div className="right-sidebar__rail">
+            <div className="br-right-sidebar__rail">
                 {mockTabs.map(tab => (
                     <NameplateTab
                         key={tab.id}

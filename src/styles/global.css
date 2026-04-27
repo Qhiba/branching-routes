@@ -13,6 +13,7 @@
 html,
 body,
 #root {
+  color-scheme: dark;
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -292,11 +293,23 @@ select:focus {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.5;
 }
+
+/* =========================================
+   NODE BORDERS ARCHITECTURE
+   =========================================
+   INTENT: Border widths deliberately vary by node type to serve as 
+   a pre-attentive structural differentiator on the canvas viewport.
+   - Common Nodes: Emphasized left-border (3px) denotes continuation flow.
+   - Choice Nodes: Uniform border (2px) indicates a branching hub.
+   - Ending Nodes: Heavy bottom-border (4px) denotes cessation of the route path.
+   DO NOT uniformize these border widths.
+   ========================================= */
 
 /* =========================================
    COMMON NODE
@@ -340,7 +353,7 @@ select:focus {
   border: 1px solid var(--color-border);
   border-radius: 4px;
   padding: 6px 8px;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   z-index: 1;
   transition: all var(--transition-fast);
@@ -618,7 +631,7 @@ select:focus {
 }
 
 /* ADDED: Phase 2 naming modal styles */
-.name-modal__backdrop {
+.br-name-modal__backdrop {
   position: absolute;
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
@@ -631,7 +644,7 @@ select:focus {
   animation: fade-in var(--transition-fast) ease-out;
 }
 
-.name-modal {
+.br-name-modal {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
@@ -643,7 +656,7 @@ select:focus {
   animation: zoom-in-95 var(--transition-fast) ease-out;
 }
 
-.name-modal__header {
+.br-name-modal__header {
   padding: 14px 20px;
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-sm);
@@ -655,7 +668,7 @@ select:focus {
   align-items: center;
 }
 
-.name-modal__close-btn {
+.br-name-modal__close-btn {
   color: var(--color-text-secondary);
   background: transparent;
   border: none;
@@ -667,26 +680,26 @@ select:focus {
   transition: all var(--transition-fast);
 }
 
-.name-modal__close-btn:hover {
+.br-name-modal__close-btn:hover {
   color: var(--color-text-primary);
   background: var(--color-bg-elevated);
 }
 
-.name-modal__body {
+.br-name-modal__body {
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.name-modal__field {
+.br-name-modal__field {
   display: flex;
   flex-direction: column;
   gap: 6px;
   flex: 1;
 }
 
-.name-modal__label {
+.br-name-modal__label {
   font-size: 10px;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-secondary);
@@ -694,7 +707,7 @@ select:focus {
   letter-spacing: 0.05em;
 }
 
-.name-modal__input {
+.br-name-modal__input {
   width: 100%;
   background: var(--color-bg-base);
   border: 1px solid var(--color-border);
@@ -706,17 +719,17 @@ select:focus {
   transition: border var(--transition-fast);
 }
 
-.name-modal__input:focus {
+.br-name-modal__input:focus {
   border-color: var(--color-primary);
   outline: none;
 }
 
-.name-modal__row {
+.br-name-modal__row {
   display: flex;
   gap: 16px;
 }
 
-.name-modal__toggle-row {
+.br-name-modal__toggle-row {
   display: flex;
   background: var(--color-bg-base);
   border: 1px solid var(--color-border);
@@ -725,7 +738,7 @@ select:focus {
   position: relative;
 }
 
-.name-modal__toggle-option {
+.br-name-modal__toggle-option {
   flex: 1;
   display: flex;
   align-items: center;
@@ -739,7 +752,7 @@ select:focus {
   transition: color var(--transition-fast);
 }
 
-.name-modal__toggle-slider {
+.br-name-modal__toggle-slider {
   position: absolute;
   top: 4px;
   bottom: 4px;
@@ -749,7 +762,7 @@ select:focus {
   transition: transform var(--transition-normal) ease-out;
 }
 
-.name-modal__footer {
+.br-name-modal__footer {
   padding: 14px 20px;
   display: flex;
   justify-content: flex-end;
@@ -840,7 +853,7 @@ select:focus {
   border: none;
   cursor: pointer;
   text-align: left;
-  font-size: 0.875rem;
+  font-size: var(--font-size-md);
   color: var(--color-text-primary);
 }
 
@@ -1135,26 +1148,26 @@ select:focus {
 }
 
 /* Name modal utilities */
-.name-modal__input--mono {
+.br-name-modal__input--mono {
   font-family: monospace;
 }
 
-.name-modal__btn-cancel {
+.br-name-modal__btn-cancel {
   background: transparent;
   color: var(--color-text-secondary);
   border: none;
   box-shadow: none;
 }
 
-.name-modal__btn-confirm {
+.br-name-modal__btn-confirm {
   padding: 8px 24px;
   border-radius: 6px;
 }
 
-.name-modal__toggle-option--active {
+.br-name-modal__toggle-option--active {
   color: white;
 }
 
-.name-modal__toggle-option--inactive {
+.br-name-modal__toggle-option--inactive {
   color: var(--color-text-secondary);
 }

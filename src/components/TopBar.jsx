@@ -128,15 +128,15 @@ export default function TopBar() {
         onConfirm={handleNewConfirmed}
         onCancel={() => setShowNewConfirm(false)}
       />
-      <div className="ui-v2-topbar">
+      <div className="br-topbar">
         {/* Left Side: Logo | Project Name */}
-        <div className="ui-v2-topbar-section-left">
-          <div className="ui-v2-topbar-brand">
+        <div className="br-topbar__section-left">
+          <div className="br-topbar__brand">
             <Network className="w-5 h-5" />
             <span>Branching Routes</span>
           </div>
 
-          <div className="ui-v2-topbar-divider"></div>
+          <div className="br-topbar__divider"></div>
 
           <div>
             <input
@@ -149,18 +149,18 @@ export default function TopBar() {
                 }
               }}
               placeholder="Project Title"
-              className="ui-v2-topbar-input"
+              className="br-topbar__input"
             />
           </div>
         </div>
 
         {/* Middle Side: Tidy Layout | Snap On | Clusters */}
-        <div className="ui-v2-topbar-section-center">
-          <div className="ui-v2-topbar-group">
+        <div className="br-topbar__section-center">
+          <div className="br-topbar__group">
             <button
               onClick={handleTidyLayout}
               disabled={isCampaignActive}
-              className="ui-v2-topbar-btn"
+              className="br-topbar__btn"
             >
               <Wand2 className="w-3.5 h-3.5" />
               <span>Tidy Layout</span>
@@ -169,7 +169,7 @@ export default function TopBar() {
             <button
               onClick={toggleSnapToGrid}
               disabled={isCampaignActive}
-              className={`ui-v2-topbar-btn ${snapToGrid ? 'ui-v2-topbar-btn--active' : ''}`}
+              className={`br-topbar__btn ${snapToGrid ? 'br-topbar__btn--active' : ''}`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               <span>Snap: {snapToGrid ? 'ON' : 'OFF'}</span>
@@ -177,7 +177,7 @@ export default function TopBar() {
 
             <button
               onClick={cycleClusterMode}
-              className={`ui-v2-topbar-btn ${clusterMode !== 'off' ? 'ui-v2-topbar-btn--active' : ''}`}
+              className={`br-topbar__btn ${clusterMode !== 'off' ? 'br-topbar__btn--active' : ''}`}
             >
               <BoxSelect className="w-3.5 h-3.5" />
               <span>Clusters: {clusterMode.toUpperCase()}</span>
@@ -186,24 +186,24 @@ export default function TopBar() {
         </div>
 
         {/* Right Side: New | Import | Export */}
-        <div className="ui-v2-topbar-section-right">
-          <div className="ui-v2-topbar-file-ops">
+        <div className="br-topbar__section-right">
+          <div className="br-topbar__file-ops">
             <button
-              className="ui-v2-topbar-file-btn"
+              className="br-topbar__file-btn"
               disabled={isCampaignActive}
               onClick={handleNew}
             >
               <FilePlus className="w-3.5 h-3.5" /> New
             </button>
             <button
-              className="ui-v2-topbar-file-btn"
+              className="br-topbar__file-btn"
               disabled={isCampaignActive}
               onClick={handleImport}
             >
               <Download className="w-3.5 h-3.5" /> Import
             </button>
             <button
-              className="ui-v2-topbar-file-btn"
+              className="br-topbar__file-btn"
               disabled={isCampaignActive}
               onClick={handleExport}
             >

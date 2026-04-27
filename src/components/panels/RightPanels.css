@@ -75,7 +75,7 @@
 }
 
 .nodes-panel__item {
-    background: rgba(30, 34, 49, 0.4);
+    background: rgba(var(--color-bg-elevated-rgb), 0.4);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: 12px;
@@ -162,7 +162,7 @@
 .nodes-panel__add-full-btn {
     width: 100%;
     padding: 10px;
-    background: rgba(30, 34, 49, 0.4);
+    background: rgba(var(--color-bg-elevated-rgb), 0.4);
     border: 1px dashed var(--color-border);
     color: var(--color-text-secondary);
     border-radius: var(--radius-md);
@@ -208,8 +208,8 @@
 }
 
 .trace-panel__target {
-    background: rgba(52, 211, 153, 0.07);
-    border: 1px solid rgba(52, 211, 153, 0.25);
+    background: rgba(var(--color-emerald-500-rgb), 0.07);
+    border: 1px solid rgba(var(--color-emerald-500-rgb), 0.25);
     border-left: 3px solid var(--color-emerald-500);
     padding: 10px 12px;
     border-radius: var(--radius-md);
@@ -249,20 +249,20 @@
 
 .trace-panel__type--common {
     color: var(--color-emerald-500);
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(var(--color-emerald-500-rgb), 0.1);
+    border-color: rgba(var(--color-emerald-500-rgb), 0.3);
 }
 
 .trace-panel__type--choice {
     color: var(--color-blue-500);
-    background: rgba(59, 130, 246, 0.1);
-    border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(var(--color-blue-500-rgb), 0.1);
+    border-color: rgba(var(--color-blue-500-rgb), 0.3);
 }
 
 .trace-panel__type--ending {
     color: var(--color-amber-500);
-    background: rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(var(--color-amber-500-rgb), 0.1);
+    border-color: rgba(var(--color-amber-500-rgb), 0.3);
 }
 
 /* FIX 6: one-line description */
@@ -380,12 +380,12 @@
 }
 
 .trace-panel__badge--flag {
-    background: rgba(192, 132, 252, 0.2);
+    background: rgba(var(--color-purple-500-rgb), 0.2);
     color: var(--color-purple);
 }
 
 .trace-panel__badge--status {
-    background: rgba(251, 113, 133, 0.2);
+    background: rgba(var(--color-rose-500-rgb), 0.2);
     color: var(--color-rose);
 }
 
@@ -445,7 +445,7 @@
     justify-content: center;
     gap: 8px;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(129, 140, 248, 0.2);
+    box-shadow: 0 4px 10px rgba(var(--color-campaign-indigo-rgb), 0.2);
     margin-top: 8px;
     transition: background var(--transition-fast);
 }
@@ -480,8 +480,8 @@
     font-weight: var(--font-weight-bold);
     color: var(--color-emerald-500);
     padding: 8px 10px;
-    background: rgba(16, 185, 129, 0.08);
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    background: rgba(var(--color-emerald-500-rgb), 0.08);
+    border: 1px solid rgba(var(--color-emerald-500-rgb), 0.2);
     border-radius: var(--radius-md);
 }
 
@@ -490,7 +490,7 @@
     height: 7px;
     border-radius: 50%;
     background: var(--color-emerald-500);
-    box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+    box-shadow: 0 0 6px rgba(var(--color-emerald-500-rgb), 0.7);
     animation: trace-pulse 2s infinite;
     flex-shrink: 0;
 }
@@ -575,7 +575,7 @@
 }
 
 .trace-results__item:hover {
-    border-color: rgba(115, 147, 248, 0.5);
+    border-color: rgba(var(--color-primary-rgb), 0.5);
     background: var(--color-bg-elevated);
 }
 
@@ -605,8 +605,8 @@
 .trace-results__item-steps {
     font-size: 10px;
     font-family: monospace;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    background: rgba(var(--color-emerald-500-rgb), 0.1);
+    border: 1px solid rgba(var(--color-emerald-500-rgb), 0.2);
     color: var(--color-emerald-500);
     padding: 2px 6px;
     border-radius: var(--radius-sm);
@@ -633,8 +633,8 @@
 }
 
 .campaign-panel__header {
-    background: rgba(129, 140, 248, 0.1);
-    border: 1px solid rgba(129, 140, 248, 0.2);
+    background: rgba(var(--color-campaign-indigo-rgb), 0.1);
+    border: 1px solid rgba(var(--color-campaign-indigo-rgb), 0.2);
     padding: 12px;
     border-radius: var(--radius-md);
 }
@@ -720,7 +720,7 @@
 }
 
 .campaign-panel__item:hover {
-    border-color: rgba(129, 140, 248, 0.5);
+    border-color: rgba(var(--color-campaign-indigo-rgb), 0.5);
 }
 
 .campaign-panel__item-left {
@@ -741,7 +741,7 @@
 
 .campaign-panel__dot--active {
     background: var(--color-emerald-500);
-    box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 6px rgba(var(--color-emerald-500-rgb), 0.6);
 }
 
 .campaign-panel__item:hover .campaign-panel__dot:not(.campaign-panel__dot--active) {
@@ -798,13 +798,13 @@
 }
 
 .campaign-panel__action-btn--enter:hover {
-    background: rgba(115, 147, 248, 0.15);
+    background: rgba(var(--color-primary-rgb), 0.15);
     color: var(--color-primary);
 }
 
 /* Delete (Trash) — danger on hover */
 .campaign-panel__action-btn--danger:hover {
-    background: rgba(229, 102, 102, 0.15);
+    background: rgba(var(--color-danger-rgb), 0.15);
     color: var(--color-danger);
 }
 

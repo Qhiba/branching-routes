@@ -1,6 +1,6 @@
 /* src/components/TopBar.css */
 
-.ui-v2-topbar {
+.br-topbar {
     height: 48px;
     background: linear-gradient(180deg, var(--color-bg-surface) 0%, var(--color-bg-base) 100%);
     border-bottom: 1px solid var(--color-border);
@@ -11,7 +11,7 @@
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
     font-family: var(--font-family-base);
-    z-index: 40;
+    z-index: var(--z-palette);
     flex-shrink: 0;
     width: 100%;
     overflow-x: auto;
@@ -21,11 +21,11 @@
     backdrop-filter: blur(10px);
 }
 
-.ui-v2-topbar::-webkit-scrollbar {
+.br-topbar::-webkit-scrollbar {
     display: none;
 }
 
-.ui-v2-topbar-section-left {
+.br-topbar__section-left {
     display: flex;
     align-items: center;
     gap: var(--space-4);
@@ -33,7 +33,7 @@
     justify-content: flex-start;
 }
 
-.ui-v2-topbar-section-center {
+.br-topbar__section-center {
     display: flex;
     align-items: center;
     gap: var(--space-4);
@@ -41,7 +41,7 @@
     justify-content: center;
 }
 
-.ui-v2-topbar-section-right {
+.br-topbar__section-right {
     display: flex;
     align-items: center;
     gap: var(--space-4);
@@ -50,7 +50,7 @@
 }
 
 /* Brand */
-.ui-v2-topbar-brand {
+.br-topbar__brand {
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -58,15 +58,15 @@
     font-weight: var(--font-weight-bold);
     letter-spacing: 0.05em;
     flex-shrink: 0;
-    text-shadow: 0 2px 10px rgba(99, 102, 241, 0.2);
+    text-shadow: 0 2px 10px rgba(var(--color-campaign-indigo-rgb), 0.2);
 }
 
-.ui-v2-topbar-brand svg {
-    filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.4));
+.br-topbar__brand svg {
+    filter: drop-shadow(0 2px 4px rgba(var(--color-campaign-indigo-rgb), 0.4));
 }
 
 /* Divider */
-.ui-v2-topbar-divider {
+.br-topbar__divider {
     height: 20px;
     width: 1px;
     background-color: var(--color-border);
@@ -75,7 +75,7 @@
 }
 
 /* Title Input */
-.ui-v2-topbar-input {
+.br-topbar__input {
     background-color: rgba(0, 0, 0, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-sm);
@@ -89,19 +89,19 @@
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.ui-v2-topbar-input:hover {
+.br-topbar__input:hover {
     background-color: var(--color-bg-hover);
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-.ui-v2-topbar-input:focus {
+.br-topbar__input:focus {
     background-color: #000;
     border-color: var(--color-primary);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 2px rgba(99, 102, 241, 0.2);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 2px rgba(var(--color-campaign-indigo-rgb), 0.2);
 }
 
 /* Center Button Group Container */
-.ui-v2-topbar-group {
+.br-topbar__group {
     display: flex;
     align-items: center;
     background-color: rgba(0, 0, 0, 0.25);
@@ -114,8 +114,8 @@
 }
 
 /* Center Group Buttons */
-.ui-v2-topbar-btn,
-.ui-v2-topbar-file-btn {
+.br-topbar__btn,
+.br-topbar__file-btn {
     display: flex;
     align-items: center;
     gap: 5px;
@@ -131,52 +131,53 @@
     white-space: nowrap;
 }
 
-.ui-v2-topbar-btn svg,
-.ui-v2-topbar-file-btn svg {
+.br-topbar__btn svg,
+.br-topbar__file-btn svg {
     opacity: 0.75;
     flex-shrink: 0;
 }
 
-.ui-v2-topbar-btn:hover:not(:disabled),
-.ui-v2-topbar-file-btn:hover:not(:disabled) {
+.br-topbar__btn:hover:not(:disabled),
+.br-topbar__file-btn:hover:not(:disabled) {
     background-color: var(--color-bg-hover);
     color: var(--color-text-primary);
     border-color: var(--color-border);
 }
 
-.ui-v2-topbar-btn:hover:not(:disabled) svg,
-.ui-v2-topbar-file-btn:hover:not(:disabled) svg {
+.br-topbar__btn:hover:not(:disabled) svg,
+.br-topbar__file-btn:hover:not(:disabled) svg {
     opacity: 1;
 }
 
-.ui-v2-topbar-btn:active:not(:disabled),
-.ui-v2-topbar-file-btn:active:not(:disabled) {
+.br-topbar__btn:active:not(:disabled),
+.br-topbar__file-btn:active:not(:disabled) {
     transform: scale(0.97);
 }
 
-.ui-v2-topbar-btn:disabled,
-.ui-v2-topbar-file-btn:disabled {
+.br-topbar__btn:disabled,
+.br-topbar__file-btn:disabled {
     opacity: 0.38;
     cursor: not-allowed;
 }
 
-.ui-v2-topbar-btn--active {
+.br-topbar__btn--active {
     background-color: var(--color-bg-elevated);
     color: var(--color-primary);
     border-color: var(--color-border);
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-.ui-v2-topbar-btn--active svg {
+.br-topbar__btn--active svg {
     opacity: 1;
     color: var(--color-primary);
 }
 
-/* Right File Operation Buttons — shared base with .ui-v2-topbar-btn above */
-.ui-v2-topbar-file-ops {
+/* Right File Operation Buttons — shared base with .br-topbar__btn above */
+.br-topbar__file-ops {
     display: flex;
     align-items: center;
     gap: 2px;
     flex-shrink: 0;
 }
-/* .ui-v2-topbar-file-btn rules are merged into the shared selector block above */
+
+/* .br-topbar__file-btn rules are merged into the shared selector block above */

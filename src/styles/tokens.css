@@ -122,6 +122,7 @@
   /* Transitions */
   --transition-fast: 120ms ease;
   --transition-normal: 220ms ease;
+  --transition-slow: 300ms ease;
 
   /* ADDED: Phase 1 — Z-index scale for layering overlays */
   --z-cluster: 0;
@@ -183,6 +184,22 @@
   /* ADDED: Phase 0 — Vision tokens (shadows) */
   --shadow-float: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
   --shadow-nameplate: 0 2px 10px rgba(0, 0, 0, 0.3);
+
+  /* RGB Components for Overlay Backgrounds */
+  --color-bg-elevated-rgb: 30, 34, 49;
+  --color-emerald-500-rgb: 16, 185, 129;
+  --color-blue-500-rgb: 59, 130, 246;
+  --color-amber-500-rgb: 245, 158, 11;
+  --color-rose-500-rgb: 244, 63, 94;
+  --color-purple-500-rgb: 168, 85, 247;
+  --color-campaign-indigo-rgb: 129, 140, 248;
+  --color-primary-rgb: 115, 147, 248;
+  --color-danger-rgb: 229, 102, 102;
+  --color-bg-modal-rgb: 15, 23, 42;
+  --color-bg-deep-rgb: 2, 6, 23;
+  --color-border-subtle-rgb: 30, 41, 59;
+  --color-bg-sidebar-rgb: 7, 10, 17;
+  --color-text-muted-rgb: 99, 107, 140;
 }
 
 /* ADDED: Phase 0 — Animation keyframes */

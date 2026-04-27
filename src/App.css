@@ -24,7 +24,7 @@
   grid-area: leftbar;
   display: flex;
   overflow: visible;
-  z-index: 20;
+  z-index: var(--z-palette);
 }
 
 .app__canvas {
@@ -41,7 +41,7 @@
   grid-area: rightbar;
   display: flex;
   overflow: visible;
-  z-index: 20;
+  z-index: var(--z-palette);
 }
 
 /* ADDED: Phase 2 — statusbar grid region and styling */

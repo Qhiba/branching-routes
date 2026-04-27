@@ -101,21 +101,21 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
   const isConfirmDisabled = inputValue.trim() === '';
 
   return (
-    <div className="name-modal__backdrop" onClick={onClose}>
-      <div className="name-modal" onClick={e => e.stopPropagation()}>
-        <div className="name-modal__header">
+    <div className="br-name-modal__backdrop" onClick={onClose}>
+      <div className="br-name-modal" onClick={e => e.stopPropagation()}>
+        <div className="br-name-modal__header">
           <span>{titleMap[entityType] || 'New Entity'}</span>
-          <button className="name-modal__close-btn" onClick={onClose}>
+          <button className="br-name-modal__close-btn" onClick={onClose}>
             <X size={16} />
           </button>
         </div>
-        <div className="name-modal__body">
-          <div className="name-modal__field">
-            <label className="name-modal__label">Name</label>
+        <div className="br-name-modal__body">
+          <div className="br-name-modal__field">
+            <label className="br-name-modal__label">Name</label>
             <input
               type="text"
               ref={inputRef}
-              className="name-modal__input"
+              className="br-name-modal__input"
               value={inputValue}
               onChange={e => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -124,45 +124,45 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
           </div>
 
           {entityType === 'flag' && (
-            <div className="name-modal__field">
-              <label className="name-modal__label">Initial State</label>
-              <div className="name-modal__toggle-row">
-                <div className="name-modal__toggle-slider" style={{ transform: flagState ? 'translateX(0)' : 'translateX(100%)' }}></div>
-                <div className={`name-modal__toggle-option ${flagState ? 'name-modal__toggle-option--active' : 'name-modal__toggle-option--inactive'}`} onClick={() => setFlagState(true)}>True</div>
-                <div className={`name-modal__toggle-option ${!flagState ? 'name-modal__toggle-option--active' : 'name-modal__toggle-option--inactive'}`} onClick={() => setFlagState(false)}>False</div>
+            <div className="br-name-modal__field">
+              <label className="br-name-modal__label">Initial State</label>
+              <div className="br-name-modal__toggle-row">
+                <div className="br-name-modal__toggle-slider" style={{ transform: flagState ? 'translateX(0)' : 'translateX(100%)' }}></div>
+                <div className={`br-name-modal__toggle-option ${flagState ? 'br-name-modal__toggle-option--active' : 'br-name-modal__toggle-option--inactive'}`} onClick={() => setFlagState(true)}>True</div>
+                <div className={`br-name-modal__toggle-option ${!flagState ? 'br-name-modal__toggle-option--active' : 'br-name-modal__toggle-option--inactive'}`} onClick={() => setFlagState(false)}>False</div>
               </div>
             </div>
           )}
 
           {entityType === 'status' && (
             <>
-              <div className="name-modal__field">
-                <label className="name-modal__label">Initial Value</label>
+              <div className="br-name-modal__field">
+                <label className="br-name-modal__label">Initial Value</label>
                 <input
                   type="number"
-                  className="name-modal__input name-modal__input--mono"
+                  className="br-name-modal__input br-name-modal__input--mono"
                   value={statusValue}
                   onChange={e => setStatusValue(Number(e.target.value))}
                   onKeyDown={handleKeyDown}
                 />
               </div>
-              <div className="name-modal__row">
-                <div className="name-modal__field">
-                  <label className="name-modal__label">Min (optional)</label>
+              <div className="br-name-modal__row">
+                <div className="br-name-modal__field">
+                  <label className="br-name-modal__label">Min (optional)</label>
                   <input
                     type="number"
-                    className="name-modal__input name-modal__input--mono"
+                    className="br-name-modal__input br-name-modal__input--mono"
                     value={statusMin ?? ''}
                     placeholder="None"
                     onChange={e => setStatusMin(e.target.value === '' ? undefined : Number(e.target.value))}
                     onKeyDown={handleKeyDown}
                   />
                 </div>
-                <div className="name-modal__field">
-                  <label className="name-modal__label">Max (optional)</label>
+                <div className="br-name-modal__field">
+                  <label className="br-name-modal__label">Max (optional)</label>
                   <input
                     type="number"
-                    className="name-modal__input name-modal__input--mono"
+                    className="br-name-modal__input br-name-modal__input--mono"
                     value={statusMax ?? ''}
                     placeholder="None"
                     onChange={e => setStatusMax(e.target.value === '' ? undefined : Number(e.target.value))}
@@ -173,10 +173,10 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
             </>
           )}
         </div>
-        <div className="name-modal__footer">
-          <button className="button name-modal__btn-cancel" onClick={onClose}>Cancel</button>
+        <div className="br-name-modal__footer">
+          <button className="button br-name-modal__btn-cancel" onClick={onClose}>Cancel</button>
           <button
-            className="button button--primary name-modal__btn-confirm"
+            className="button button--primary br-name-modal__btn-confirm"
             onClick={handleConfirm}
             disabled={isConfirmDisabled}
           >
