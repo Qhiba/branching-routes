@@ -2,70 +2,178 @@
   "schemaVersion": 4,
   "meta": {
     "title": "The Enchanted Forest",
-    "createdAt": "04-11-2026",
-    "updatedAt": "19-04-2026",
-    "commonNodeTypes": [],
-    "endingTypes": []
+    "createdAt": "11-04-2026",
+    "updatedAt": "27-04-2026",
+    "commonNodeTypes": [
+      "ct-00100000-0000-4000-8000-000000000001",
+      "ct-00200000-0000-4000-8000-000000000002"
+    ],
+    "endingTypes": [
+      "et-00100000-0000-4000-8000-000000000001",
+      "et-00200000-0000-4000-8000-000000000002"
+    ]
   },
   "common": {
     "n-00100000-0000-4000-8000-000000000001": {
       "id": "n-00100000-0000-4000-8000-000000000001",
       "type": "common",
-      "position": { "x": 0, "y": 150 },
+      "position": {
+        "x": 0,
+        "y": 150
+      },
       "data": {
         "label": "Forest Entrance",
         "content": "You stand at the edge of a dense forest. A narrow path leads into the darkness, and a faint glow flickers to the east.",
         "isStartNode": true,
+        "commonNodeTypeId": "ct-00100000-0000-4000-8000-000000000001",
         "flags_set": [],
-        "status_set": [],
+        "status_set": [
+          {
+            "statusId": "s-00100000-0000-4000-8000-000000000001",
+            "amount": 5
+          }
+        ],
         "pathId": "p-00100000-0000-4000-8000-000000000001",
         "chapterId": "c-00100000-0000-4000-8000-000000000001",
-        "variants": []
+        "variants": [
+          {
+            "id": "v-00100000-0000-4000-8000-000000000001",
+            "label": "Rainy Night",
+            "text": "You stand at the edge of a dense forest on a stormy night. Rain hammers the canopy. A lantern glow flickers to the east — your only guide.",
+            "requires": {
+              "operator": "and",
+              "conditions": [
+                {
+                  "id": "cond-00100000-0000-4000-8000-000000000001",
+                  "flag": "f-00200000-0000-4000-8000-000000000002",
+                  "state": true
+                }
+              ]
+            }
+          }
+        ]
       }
     },
     "n-00200000-0000-4000-8000-000000000002": {
       "id": "n-00200000-0000-4000-8000-000000000002",
       "type": "common",
-      "position": { "x": 500, "y": -100 },
+      "position": {
+        "x": 500,
+        "y": -100
+      },
       "data": {
         "label": "Old Campsite",
         "content": "A ruined campsite. Among the debris you find a battered but functional lantern.",
         "isStartNode": false,
-        "flags_set": ["f-00100000-0000-4000-8000-000000000001"],
-        "status_set": [],
+        "commonNodeTypeId": "ct-00100000-0000-4000-8000-000000000001",
+        "flags_set": [
+          "f-00100000-0000-4000-8000-000000000001"
+        ],
+        "status_set": [
+          {
+            "statusId": "s-00100000-0000-4000-8000-000000000001",
+            "amount": 10
+          }
+        ],
         "pathId": "p-00100000-0000-4000-8000-000000000001",
         "chapterId": "c-00100000-0000-4000-8000-000000000001",
-        "variants": []
+        "variants": [
+          {
+            "id": "v-00200000-0000-4000-8000-000000000002",
+            "label": "Already Has Lantern",
+            "text": "The campsite is familiar territory. You've been here before — the lantern on your belt proves it. Still, the debris hides something new beneath the ash.",
+            "requires": {
+              "operator": "and",
+              "conditions": [
+                {
+                  "id": "cond-00600000-0000-4000-8000-000000000006",
+                  "flag": "f-00100000-0000-4000-8000-000000000001",
+                  "state": true
+                }
+              ]
+            }
+          }
+        ]
       }
     },
     "n-00400000-0000-4000-8000-000000000004": {
       "id": "n-00400000-0000-4000-8000-000000000004",
       "type": "common",
-      "position": { "x": 1000, "y": 0 },
+      "position": {
+        "x": 1000,
+        "y": 0
+      },
       "data": {
         "label": "Underground Lake",
         "content": "Your lantern reveals a vast underground lake. A stone bridge leads to an island with a glowing crystal.",
         "isStartNode": false,
+        "commonNodeTypeId": "ct-00200000-0000-4000-8000-000000000002",
         "flags_set": [],
-        "status_set": [],
+        "status_set": [
+          {
+            "statusId": "s-00100000-0000-4000-8000-000000000001",
+            "amount": 15
+          }
+        ],
         "pathId": "p-00200000-0000-4000-8000-000000000002",
         "chapterId": "c-00200000-0000-4000-8000-000000000002",
-        "variants": []
+        "variants": [
+          {
+            "id": "v-00300000-0000-4000-8000-000000000003",
+            "label": "Courageous Arrival",
+            "text": "Heart steady and lantern held high, you stride across the stone bridge. The glowing crystal pulses as if it recognises your resolve.",
+            "requires": {
+              "operator": "and",
+              "conditions": [
+                {
+                  "id": "cond-00700000-0000-4000-8000-000000000007",
+                  "status": "s-00100000-0000-4000-8000-000000000001",
+                  "min": 60
+                }
+              ]
+            }
+          }
+        ]
       }
     },
     "n-00700000-0000-4000-8000-000000000007": {
       "id": "n-00700000-0000-4000-8000-000000000007",
       "type": "common",
-      "position": { "x": 500, "y": 400 },
+      "position": {
+        "x": 500,
+        "y": 400
+      },
       "data": {
         "label": "Riverside Path",
         "content": "You follow a river downstream. The sound of water calms your nerves. You spot an old bridge ahead.",
         "isStartNode": false,
+        "commonNodeTypeId": "ct-00100000-0000-4000-8000-000000000001",
         "flags_set": [],
-        "status_set": [],
+        "status_set": [
+          {
+            "statusId": "s-00100000-0000-4000-8000-000000000001",
+            "amount": -5
+          }
+        ],
         "pathId": "p-00100000-0000-4000-8000-000000000001",
         "chapterId": "c-00100000-0000-4000-8000-000000000001",
-        "variants": []
+        "variants": [
+          {
+            "id": "v-00400000-0000-4000-8000-000000000004",
+            "label": "Haunted by Darkness",
+            "text": "You stumble along the riverbank, still shaken from your brush with the cave's darkness. Every shadow looks like a gaping maw. The old bridge ahead seems impossibly far.",
+            "requires": {
+              "operator": "and",
+              "conditions": [
+                {
+                  "id": "cond-00800000-0000-4000-8000-000000000008",
+                  "flag": "f-00200000-0000-4000-8000-000000000002",
+                  "state": true
+                }
+              ]
+            }
+          }
+        ]
       }
     }
   },
@@ -73,7 +181,10 @@
     "n-CHOICE-A": {
       "id": "n-CHOICE-A",
       "type": "choice",
-      "position": { "x": 250, "y": 150 },
+      "position": {
+        "x": 250,
+        "y": 150
+      },
       "data": {
         "label": "Crossroads",
         "content": "The path splits ahead. You can hear distant sounds in both directions.",
@@ -95,7 +206,12 @@
             "label": "Follow the river south",
             "requires": null,
             "flags_set": [],
-            "status_set": []
+            "status_set": [
+              {
+                "statusId": "s-00100000-0000-4000-8000-000000000001",
+                "amount": -10
+              }
+            ]
           }
         ]
       }
@@ -103,7 +219,10 @@
     "n-00300000-0000-4000-8000-000000000003": {
       "id": "n-00300000-0000-4000-8000-000000000003",
       "type": "choice",
-      "position": { "x": 750, "y": 150 },
+      "position": {
+        "x": 750,
+        "y": 150
+      },
       "data": {
         "label": "Dark Cave",
         "content": "The cave entrance yawns before you. Without a light source, you can barely see a few steps inside.",
@@ -111,21 +230,42 @@
         "flags_set": [],
         "status_set": [],
         "pathId": "p-00200000-0000-4000-8000-000000000002",
-        "chapterId": null,
+        "chapterId": "c-00200000-0000-4000-8000-000000000002",
         "options": [
           {
             "id": "opt-00100000-0000-4000-8000-000000000001",
             "label": "Venture deeper with lantern",
-            "requires": null,
+            "requires": {
+              "operator": "and",
+              "conditions": [
+                {
+                  "id": "cond-00200000-0000-4000-8000-000000000002",
+                  "flag": "f-00100000-0000-4000-8000-000000000001",
+                  "state": true
+                }
+              ]
+            },
             "flags_set": [],
-            "status_set": []
+            "status_set": [
+              {
+                "statusId": "s-00100000-0000-4000-8000-000000000001",
+                "amount": 20
+              }
+            ]
           },
           {
             "id": "opt-00200000-0000-4000-8000-000000000002",
             "label": "Stumble into the darkness",
             "requires": null,
-            "flags_set": [],
-            "status_set": []
+            "flags_set": [
+              "f-00200000-0000-4000-8000-000000000002"
+            ],
+            "status_set": [
+              {
+                "statusId": "s-00100000-0000-4000-8000-000000000001",
+                "amount": -20
+              }
+            ]
           }
         ]
       }
@@ -135,11 +275,15 @@
     "n-00500000-0000-4000-8000-000000000005": {
       "id": "n-00500000-0000-4000-8000-000000000005",
       "type": "ending",
-      "position": { "x": 1250, "y": 0 },
+      "position": {
+        "x": 1250,
+        "y": 0
+      },
       "data": {
         "label": "Crystal Chamber",
         "content": "You grasp the crystal and the forest fills with light. The enchantment is broken. You are free.",
         "isStartNode": false,
+        "endingTypeId": "et-00100000-0000-4000-8000-000000000001",
         "flags_set": [],
         "status_set": [],
         "pathId": "p-00200000-0000-4000-8000-000000000002",
@@ -149,25 +293,33 @@
     "n-00600000-0000-4000-8000-000000000006": {
       "id": "n-00600000-0000-4000-8000-000000000006",
       "type": "ending",
-      "position": { "x": 1000, "y": 300 },
+      "position": {
+        "x": 1000,
+        "y": 300
+      },
       "data": {
         "label": "Lost in Darkness",
         "content": "Without a lantern, the darkness swallows you whole. You wander for hours and eventually find yourselves back at the forest entrance, defeated.",
         "isStartNode": false,
+        "endingTypeId": "et-00200000-0000-4000-8000-000000000002",
         "flags_set": [],
         "status_set": [],
-        "pathId": null,
-        "chapterId": null
+        "pathId": "p-00200000-0000-4000-8000-000000000002",
+        "chapterId": "c-00200000-0000-4000-8000-000000000002"
       }
     },
     "n-ENDING-RIVER": {
       "id": "n-ENDING-RIVER",
       "type": "ending",
-      "position": { "x": 800, "y": 500 },
+      "position": {
+        "x": 800,
+        "y": 500
+      },
       "data": {
         "label": "The Bridge",
         "content": "The old bridge holds your weight. You cross safely and discover a hidden village on the other side. A new life begins.",
         "isStartNode": false,
+        "endingTypeId": "et-00100000-0000-4000-8000-000000000001",
         "flags_set": [],
         "status_set": [],
         "pathId": "p-00100000-0000-4000-8000-000000000001",
@@ -205,7 +357,16 @@
       "sourceId": "n-00200000-0000-4000-8000-000000000002",
       "targetId": "n-00300000-0000-4000-8000-000000000003",
       "label": "Head to the cave with lantern",
-      "condition": null,
+      "condition": {
+        "operator": "and",
+        "conditions": [
+          {
+            "id": "cond-00300000-0000-4000-8000-000000000003",
+            "flag": "f-00100000-0000-4000-8000-000000000001",
+            "state": true
+          }
+        ]
+      },
       "optionId": null
     },
     {
@@ -230,7 +391,16 @@
       "sourceId": "n-00300000-0000-4000-8000-000000000003",
       "targetId": "n-00600000-0000-4000-8000-000000000006",
       "label": "Stumble in the dark",
-      "condition": null,
+      "condition": {
+        "operator": "and",
+        "conditions": [
+          {
+            "id": "cond-00400000-0000-4000-8000-000000000004",
+            "flag": "f-00100000-0000-4000-8000-000000000001",
+            "state": false
+          }
+        ]
+      },
       "optionId": "opt-00200000-0000-4000-8000-000000000002"
     },
     {
@@ -238,7 +408,16 @@
       "sourceId": "n-00400000-0000-4000-8000-000000000004",
       "targetId": "n-00500000-0000-4000-8000-000000000005",
       "label": "Cross the bridge",
-      "condition": null,
+      "condition": {
+        "operator": "and",
+        "conditions": [
+          {
+            "id": "cond-00500000-0000-4000-8000-000000000005",
+            "status": "s-00100000-0000-4000-8000-000000000001",
+            "min": 30
+          }
+        ]
+      },
       "optionId": null
     },
     {
@@ -255,6 +434,11 @@
       "id": "f-00100000-0000-4000-8000-000000000001",
       "name": "has_lantern",
       "state": false
+    },
+    "f-00200000-0000-4000-8000-000000000002": {
+      "id": "f-00200000-0000-4000-8000-000000000002",
+      "name": "stumbled_in_dark",
+      "state": false
     }
   },
   "status": {
@@ -262,8 +446,8 @@
       "id": "s-00100000-0000-4000-8000-000000000001",
       "name": "courage",
       "value": 50,
-      "min": 0,
-      "max": 100
+      "minValue": 0,
+      "maxValue": 100
     }
   },
   "path": {
@@ -284,6 +468,26 @@
     "c-00200000-0000-4000-8000-000000000002": {
       "id": "c-00200000-0000-4000-8000-000000000002",
       "name": "Chapter 2 — Into the Depths"
+    }
+  },
+  "commonType": {
+    "ct-00100000-0000-4000-8000-000000000001": {
+      "id": "ct-00100000-0000-4000-8000-000000000001",
+      "name": "Exploration"
+    },
+    "ct-00200000-0000-4000-8000-000000000002": {
+      "id": "ct-00200000-0000-4000-8000-000000000002",
+      "name": "Discovery"
+    }
+  },
+  "endingType": {
+    "et-00100000-0000-4000-8000-000000000001": {
+      "id": "et-00100000-0000-4000-8000-000000000001",
+      "name": "Good Ending"
+    },
+    "et-00200000-0000-4000-8000-000000000002": {
+      "id": "et-00200000-0000-4000-8000-000000000002",
+      "name": "Bad Ending"
     }
   }
 }
