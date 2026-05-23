@@ -5,22 +5,26 @@ import { useSimulationStore, useUIStore, useNarrativeStore } from 'store';
 function CommonNode({ id, data }) {
   const nodeState = useSimulationStore(s => s.nodeStates[id]);
   const isSeen = useSimulationStore(s => s.seenNodeIds.includes(id));
+  const isEditorSeen = useNarrativeStore(s => (s.editorSeenNodeIds || []).includes(id));
   // ADDED: Phase 3 — coverage-gap dimming (unreachable but unseen nodes only; visited nodes always visible)
   const isCoverageGap = useSimulationStore(s => s.isCampaignActive && s.unreachableFromActiveNodeIds.includes(id) && !s.seenNodeIds.includes(id));
 
   const isOrphaned = useSimulationStore(s => s.orphanedNodeIds.includes(id));
   const isUnreachable = useSimulationStore(s => s.unreachableNodeIds.includes(id));
+  const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
 
   // ADDED: Phase 2 label display mode
   const labelDisplayMode = useUIStore(s => s.labelDisplayMode);
   const flagDict = useNarrativeStore(s => s.flag);
   const statusDict = useNarrativeStore(s => s.status);
+  const flagKeys = Object.keys(flagDict);
+  const statusKeys = Object.keys(statusDict);
   // FIX 9: Resolve nodeSubTypeId → display name from store
   const commonTypeDict = useNarrativeStore(s => s.commonType);
   const subTypeName = data.nodeSubTypeId ? commonTypeDict[data.nodeSubTypeId]?.name : null;
 
   // MODIFIED: Phase 3 — add coverage-gap class to className string
-  const className = `story-node common-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''}`.trim();
+  const className = `story-node common-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''}`.trim();
 
   const sideEffectsCount = (data.flags_set?.length || 0) + (data.status_set?.length || 0);
 
@@ -29,6 +33,7 @@ function CommonNode({ id, data }) {
       <Handle type="target" position={Position.Left} />
 
       <div className="story-node__type-bar common-node__type-bar">
+        {/* Seen check icon — visible in editor mode only when manually marked */}
         {/* FIX 9: Show user-defined nodeSubType name if set, fallback to COMMON */}
         <span className="story-node__type-label">
           {subTypeName ? subTypeName.toUpperCase() : 'COMMON'}
@@ -61,22 +66,36 @@ function CommonNode({ id, data }) {
           <p className="story-node__content-text">{data.content}</p>
         )}
 
-        {/* ADDED: Phase 2 verbose display */}
         {labelDisplayMode === 'verbose' && sideEffectsCount > 0 && (
           <div className="verbose-effects-box">
-            {/* EXPLORE: Feature 3 - Flag true formatting */}
-            {data.flags_set?.map(flagId => (
-              <div key={`f-${flagId}`} className="verbose-flag-true">• {`[${flagDict[flagId]?.name || 'Unknown'}] = true`}</div>
-            ))}
-            {/* EXPLORE: Feature 3 - Status number formatting */}
-            {data.status_set?.map(se => {
-              const val = se.amount ?? se.value ?? 0;
-              const valClass = val > 0 ? 'status-val--positive' : val < 0 ? 'status-val--negative' : '';
-              const formattedVal = val > 0 ? `+${val}` : val;
-              return (
-                <div key={`s-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: <span className={valClass}>{formattedVal}</span></div>
-              );
-            })}
+            {data.flags_set?.length > 0 && (
+              <div className="verbose-effects-section">
+                {[...data.flags_set]
+                  .sort((a, b) => flagKeys.indexOf(a) - flagKeys.indexOf(b))
+                  .map(flagId => (
+                  <span key={`f-${flagId}`} className="effect-chip effect-chip--flag">
+                    {flagDict[flagId]?.name || 'Unknown'}
+                  </span>
+                ))}
+              </div>
+            )}
+            {data.status_set?.length > 0 && (
+              <div className="verbose-effects-section">
+                {[...data.status_set]
+                  .sort((a, b) => statusKeys.indexOf(a.statusId) - statusKeys.indexOf(b.statusId))
+                  .map(se => {
+                  const val = se.amount ?? se.value ?? 0;
+                  const isSet = se.mode === 'set';
+                  const chipClass = isSet ? 'effect-chip--set' : val > 0 ? 'effect-chip--positive' : val < 0 ? 'effect-chip--negative' : 'effect-chip--set';
+                  const formattedVal = isSet ? `= ${val}` : val > 0 ? `+${val}` : `${val}`;
+                  return (
+                    <span key={`s-${se.statusId}`} className={`effect-chip ${chipClass}`}>
+                      {statusDict[se.statusId]?.name || 'Unknown'} {formattedVal}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

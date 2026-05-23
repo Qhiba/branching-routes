@@ -17,6 +17,10 @@ export const useNarrativeStore = create((set, get) => ({
   commonType: {},
   endingType: {},
 
+  // Persistent editor-level seen marks (survive save/load, not cleared by campaign)
+  editorSeenNodeIds: [],
+  editorSeenOptionIds: [],
+
 
 
   addNode: (position, type = 'common', label = 'Node') => {
@@ -548,6 +552,65 @@ export const useNarrativeStore = create((set, get) => ({
     meta: { ...state.meta, ...patch, updatedAt: Date.now() }
   })),
 
+  // ─── SEEN MARK MANAGEMENT ─────────────────────────────────────────────────
+
+  toggleNodeSeen: (id) => set((state) => {
+    const current = state.editorSeenNodeIds || [];
+    const next = current.includes(id)
+      ? current.filter(nid => nid !== id)
+      : [...current, id];
+    return { editorSeenNodeIds: next, meta: { ...state.meta, updatedAt: Date.now() } };
+  }),
+
+  toggleOptionSeen: (nodeId, optionId) => set((state) => {
+    const current = state.editorSeenOptionIds || [];
+    const key = `${nodeId}::${optionId}`;
+    const already = current.includes(key);
+    return {
+      editorSeenOptionIds: already
+        ? current.filter(k => k !== key)
+        : [...current, key],
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  clearAllSeen: () => set((state) => ({
+    editorSeenNodeIds: [],
+    editorSeenOptionIds: [],
+    meta: { ...state.meta, updatedAt: Date.now() }
+  })),
+
+  // Merges campaign-derived seen marks into the persistent editor seen lists (union, no duplicates)
+  applySeenFromCampaign: (nodeIds, optionKeys) => set((state) => ({
+    editorSeenNodeIds: [...new Set([...(state.editorSeenNodeIds || []), ...nodeIds])],
+    editorSeenOptionIds: [...new Set([...(state.editorSeenOptionIds || []), ...optionKeys])],
+    meta: { ...state.meta, updatedAt: Date.now() }
+  })),
+
+  reorderDictionaryKeys: (dictName, sourceId, targetId) => set((state) => {
+    const dict = state[dictName];
+    if (!dict || !dict[sourceId] || !dict[targetId] || sourceId === targetId) return state;
+
+    const entries = Object.entries(dict);
+    const sourceIndex = entries.findIndex(([k]) => k === sourceId);
+    const targetIndex = entries.findIndex(([k]) => k === targetId);
+    
+    if (sourceIndex === -1 || targetIndex === -1) return state;
+
+    const [removed] = entries.splice(sourceIndex, 1);
+    entries.splice(targetIndex, 0, removed);
+
+    const reorderedDict = {};
+    for (const [k, v] of entries) {
+      reorderedDict[k] = v;
+    }
+
+    return {
+      [dictName]: reorderedDict,
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
   loadGraph: (graphData) => {
     // INVARIANT: LBA-02
     // INVARIANT: HS-04
@@ -570,7 +633,9 @@ export const useNarrativeStore = create((set, get) => ({
       path: graphData.path || {},
       chapter: graphData.chapter || {},
       commonType: graphData.commonType || {},
-      endingType: graphData.endingType || {}
+      endingType: graphData.endingType || {},
+      editorSeenNodeIds: graphData.editorSeenNodeIds || [],
+      editorSeenOptionIds: graphData.editorSeenOptionIds || []
     });
 
     // INVARIANT: BI-16
@@ -590,7 +655,9 @@ export const useNarrativeStore = create((set, get) => ({
       path: {},
       chapter: {},
       commonType: {},
-      endingType: {}
+      endingType: {},
+      editorSeenNodeIds: [],
+      editorSeenOptionIds: []
     });
 
     // INVARIANT: BI-16
@@ -612,8 +679,9 @@ export const useNarrativeStore = create((set, get) => ({
       meta: {
         ...state.meta,
         createdAt: formatTs(state.meta.createdAt),
-        updatedAt: formatTs(state.meta.updatedAt)
-
+        updatedAt: formatTs(state.meta.updatedAt),
+        commonNodeTypes: Object.keys(state.commonType),
+        endingTypes: Object.keys(state.endingType)
       },
 
       common: state.common,
@@ -625,7 +693,9 @@ export const useNarrativeStore = create((set, get) => ({
       path: state.path,
       chapter: state.chapter,
       commonType: state.commonType,
-      endingType: state.endingType
+      endingType: state.endingType,
+      editorSeenNodeIds: state.editorSeenNodeIds,
+      editorSeenOptionIds: state.editorSeenOptionIds
     };
   }
 }));

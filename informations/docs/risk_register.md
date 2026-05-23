@@ -7,7 +7,7 @@
 | RISK-01 | Real-Time Simulation Causes React Flow Re-Render Storms | Medium | High | See details below | OPEN |
 | RISK-02 | Flag Name Collisions Break Condition Evaluation | High | High | See details below | OPEN |
 | RISK-03 | File System Access API Browser Compatibility Breaks Save/Open | High | Medium | See details below | RESOLVED |
-| RISK-04 | Graph Becomes Visually Unreadable at Medium Scale | Medium | Medium | See details below | OPEN |
+| RISK-04 | Graph Becomes Visually Unreadable at Medium Scale | Medium | Medium | See details below | MITIGATED |
 | RISK-05 | Simulation "Live Checker" UX is Ambiguous Without a Clear Mode Indicator | Medium | Medium | See details below | OPEN |
 | RISK-06 | Simulation state CSS overrides conflict with new accent borders | Medium | Medium | See details below | MITIGATED |
 | RISK-07 | Option count indicator in ChoiceNode requires store access | Medium | Low | See details below | MITIGATED |
@@ -64,9 +64,10 @@
 | RISK-RT-02 | Undoing past the start node bounds | Medium | High | `undoLastNode()` pop check bounding | RESOLVED |
 | RISK-RT-03 | Stale coverage metrics | Medium | Low | Status strips read atomic primitives directly | RESOLVED |
 | RISK-RT-04 | Dead-end algorithm performance on large graphs | Low | Medium | Read-only linear scans offloaded | RESOLVED |
-| RISK-RT-05 | K-shortest Path combinatorics blowup | High | High | Fixed `cappedLimit` mapped inside UI boundary | RESOLVED |
+| RISK-RT-05 | K-shortest Path combinatorics blowup | High | High | User-controlled route limit; searchAll checkbox with warning and Cancel abort; 10,000-state BFS ceiling | RESOLVED |
 | RISK-UI-01 | SandboxPanel retirement scope ambiguity | Low | Medium | Retained `SandboxPanel` UI under Sandbox tab; full retirement deferred as a future feature decision | ACKNOWLEDGED |
 | RISK-UI-02 | JS bundle size exceeds Vite 500 kB advisory | Low | Low | Pre-existing; unrelated to UI integration; deferred | ACKNOWLEDGED |
+| RISK-IMP-01 | New schema field omitted from import sanitization whitelist causes silent data loss | High | High | AR-27 paired-invariant rule; `editorSeenNodeIds`/`editorSeenOptionIds` fix | RESOLVED |
 
 ---
 
@@ -133,6 +134,8 @@
 **Mitigation Strategy:** Phase 3 must implement React Flow's built-in `Background` grid and ensure edges use the `smoothstep` or `bezier` edge type (not straight lines) by default. A Dagre-based auto-layout action ("Tidy Layout" button) should be included in Phase 5 as a first-class feature, not a nice-to-have, since it is the minimum defence against spaghetti at scale.
 
 **Early detection:** During Phase 5, manually build a 15-node graph with at least 3 flag conditions. If edges visually overlap and there is no way to untangle them, the risk has materialised.
+
+**Status:** MITIGATED — Smooth-step edge routing (`getSmoothStepPath`) and the Dagre "Tidy Layout" action address the base-case spaghetti. The `bendX` edge bend control (2026-05-10) allows designers to manually reposition the vertical segment of any long edge by dragging a grip handle, giving precise per-edge routing control without requiring a full re-layout.
 
 ---
 
@@ -818,11 +821,11 @@
 
 ## RISK-RT-05 — K-shortest Path Combinatorics Blowup
 
-**Description:** BFS tracking arrays scaling combinatorially. Finding paths limits compute cycles un-gracefully.
+**Description:** BFS tracking arrays scaling combinatorially. Finding paths limits compute cycles un-gracefully. The original mitigation used a hard internal cap (`HARD_CAP = 50`). This cap was removed after it caused visible under-reporting (merge display collapsed routes, making the cap count look wrong).
 **Likelihood:** High
 **Impact:** High
-**Mitigation Strategy:** Bound with explicit limit (cap max trace at 50 nodes deep).
-**Status:** RESOLVED — RouteFinderDialog bounds limits out explicitly mapping caps cleanly out to algorithms in `routeTracer`.
+**Mitigation Strategy:** The internal hard cap was removed. `computeShortestPaths` now uses the caller-supplied `limit` directly. `RouteTracingPanel` exposes this limit as a user-controlled numeric input (default 50). A `searchAll` checkbox allows uncapped BFS (`Number.MAX_SAFE_INTEGER`) with a visible warning that it may take a long time. A Cancel button (`cancelledRef.current = true`) allows the user to abort the deferred computation before results are written. The BFS itself is bounded by a hard `MAX_STATE_VISITS = 10,000` internal state-visit ceiling that prevents infinite loops while still allowing very large route counts when the user requests them.
+**Status:** RESOLVED — `routeTracer.js` `computeShortestPaths` bounded by `MAX_STATE_VISITS = 10_000`; `RouteTracingPanel` user-controlled limit with `searchAll` toggle and Cancel abort (`cancelledRef` pattern).
 
 ---
 
@@ -844,3 +847,34 @@
 **Mitigation Strategy:** Deferred. Not addressable within a UI integration push. Requires code-splitting analysis (lazy-load heavy dependencies, dynamic imports for modals).
 **Status:** ACKNOWLEDGED — Pre-existing. Not resolved in this push.
 
+---
+
+## RISK-IMP-01 — New Schema Field Omitted From Import Sanitization Whitelist Causes Silent Data Loss
+
+**Description:** `fileSystem.importProject()` rebuilds imported data through an explicit `sanitizedData` whitelist object. Any field added to the data model that is not also added to this whitelist is silently dropped on import — the export succeeds, the import appears to succeed, but the field is reset to its store default. There is no error or warning.
+
+**What could go wrong:** A designer exports a project, imports it back in a new session, and finds that a subset of their data (e.g., editor-seen marks, or a future new field) has been silently erased. The root cause is invisible at the UI layer.
+
+**Likelihood:** High — Every data model addition requires two coordinated edits (store + whitelist); the second edit is easy to miss because the whitelist is in a different file from the feature implementation.
+
+**Impact:** High — Silent data loss on round-trip with no indication to the user.
+
+**Mitigation Strategy:** AR-27 formalises the paired-invariant: any new persisted field added to `narrativeStore.exportGraph()` output must be added to the `sanitizedData` whitelist in the same commit. The bug that prompted this rule (`editorSeenNodeIds`/`editorSeenOptionIds` dropped on import) was fixed in `fileSystem.js` `importProject()`.
+
+**Status:** RESOLVED — `fileSystem.js` `importProject()` now includes `editorSeenNodeIds` and `editorSeenOptionIds` in `sanitizedData`. AR-27 formalises the pattern to prevent recurrence.
+
+---
+
+## RISK-DND-01 — Drag-and-Drop Coordinate Offset due to CSS Transform
+
+**Description:** When a user drags an item using `@hello-pangea/dnd`, the dragged item appears visually offset from the mouse cursor.
+
+**What could go wrong:** A severe UX degradation making reordering nearly unusable, as the dragged element jumps away from the pointer.
+
+**Likelihood:** High — if a parent container uses `transform: translateX` for sliding entrance animations, this bug reliably manifests because `transform` alters the containing block coordinates used by the DnD portal.
+
+**Impact:** High — broken interaction model for lists.
+
+**Mitigation Strategy:** Removed `transform` from `.left-sidebar` and `.right-sidebar` entrance animations, substituting with margin-based animations. AR-29 formalizes this CSS restriction.
+
+**Status:** RESOLVED — Sidebars updated to avoid `transform`. Offset bug eliminated.

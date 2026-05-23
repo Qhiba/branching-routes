@@ -86,9 +86,9 @@ function applyFlagsSet(flagsSet, currentFlagValues) {
 function applyStatusSet(statusSet, currentFlagValues) {
   if (!statusSet) return currentFlagValues;
   const nextVals = { ...currentFlagValues };
-  statusSet.forEach(({ statusId, amount }) => {
+  statusSet.forEach(({ statusId, amount, mode }) => {
     if (typeof nextVals[statusId] === 'number') {
-      nextVals[statusId] += amount;
+      nextVals[statusId] = mode === 'set' ? amount : nextVals[statusId] + amount;
     }
   });
   return nextVals;
@@ -176,14 +176,35 @@ export const useSimulationStore = create((set, get) => ({
   setAutosaveCampaign: (value) => set({ autosaveCampaign: value }),
 
   // ADDED: Phase 4 — Shortest-route pathfinding actions
-  computeRoutesFromStart: (startNodeId, targetNodeId, priorities = [], limit = 5) => {
+  // initialFlagState: when provided (freeze waypoint), skips the default seeding logic.
+  // Scaffold: waypoints array in RouteTracingPanel passes only the active waypoint's
+  // flagStateAfter here; multi-waypoint support will chain calls or extend this signature.
+  computeRoutesFromStart: (startNodeId, targetNodeId, priorities = [], limit = 50, initialFlagState = null) => {
     const state = get();
     const graphState = useNarrativeStore.getState();
+
+    let seedFlagValues;
+    if (initialFlagState !== null) {
+      seedFlagValues = initialFlagState;
+    } else if (state.isCampaignActive) {
+      seedFlagValues = state.currentFlagValues;
+    } else {
+      // In edit mode currentFlagValues is {}, so seed from narrative defaults so that
+      // flag=false conditions and status range conditions evaluate correctly.
+      seedFlagValues = {};
+      if (graphState.flag) {
+        Object.values(graphState.flag).forEach(f => { seedFlagValues[f.id] = f.state; });
+      }
+      if (graphState.status) {
+        Object.values(graphState.status).forEach(s => { seedFlagValues[s.id] = s.value; });
+      }
+    }
+
     const result = computeShortestPaths(
       startNodeId,
       targetNodeId,
       graphState,
-      state.currentFlagValues,
+      seedFlagValues,
       priorities,
       limit
     );
@@ -194,6 +215,11 @@ export const useSimulationStore = create((set, get) => ({
       isShortestRouteStale: false
     });
   },
+
+  setRouteResults: (results) => set({
+    shortestRouteResults: results,
+    isShortestRouteStale: false
+  }),
 
   // ADDED: Phase 4 — Clear route results
   clearRouteResults: () => set({
@@ -264,11 +290,13 @@ export const useSimulationStore = create((set, get) => ({
     const option = (choiceNode.data.options || []).find(o => o.id === optionId);
     if (!option) throw new Error('Option not found on active choice node');
 
-    // ADDED: Phase 1 — capture pre-option-effect flag state for traversal record
-    const preOptionFlagSnapshot = { ...state.currentFlagValues };
+    // If another option was already selected, reset to the pre-option baseline before
+    // applying the new option's effects — prevents accumulated side effects on re-select.
+    const baseline = state.selectedOptionId ? state.preAdvanceFlagSnapshot : state.currentFlagValues;
+    const preOptionFlagSnapshot = { ...baseline };
 
     // Merge option side effects
-    let nextFlagValues = { ...state.currentFlagValues };
+    let nextFlagValues = { ...baseline };
     nextFlagValues = applyFlagsSet(option.flags_set, nextFlagValues);
     nextFlagValues = applyStatusSet(option.status_set, nextFlagValues);
 
@@ -552,16 +580,21 @@ export const useSimulationStore = create((set, get) => ({
     const graphState = useNarrativeStore.getState();
 
     const restoredSeenNodeIds = state.seenNodeIds.slice(0, -1);
+    // Restore the option that was selected when this traversal happened so that
+    // choice nodes become interactive again (computeReachable filters all edges
+    // from a choice node when selectedOptionId is null).
+    const restoredOptionId = record.optionId ?? null;
     const { reachableEdgeIds, reachableNodeIds } = computeReachable(
       record.fromNodeId,
       graphState,
-      record.flagSnapshot
+      record.flagSnapshot,
+      restoredOptionId
     );
     const nodeStates = computeNodeStates(
       record.fromNodeId,
       graphState,
       reachableNodeIds,
-      null,
+      restoredOptionId,
       restoredSeenNodeIds
     );
 
@@ -591,8 +624,8 @@ export const useSimulationStore = create((set, get) => ({
       reachableEdgeIds,
       reachableNodeIds,
       nodeStates: { ...persistedLocked, ...nodeStates },
-      selectedOptionId: null,
-      preAdvanceFlagSnapshot: null,
+      selectedOptionId: restoredOptionId,
+      preAdvanceFlagSnapshot: restoredOptionId ? { ...record.flagSnapshot } : null,
       // ADDED: Phase 3 — restore forward-reachability analysis
       unreachableFromActiveNodeIds: restoredUnreachableFromActiveNodeIds,
       // ADDED: Phase 4 — mark route results stale after undo

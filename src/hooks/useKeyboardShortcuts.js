@@ -91,6 +91,19 @@ export default function useKeyboardShortcuts() {
         window.dispatchEvent(new CustomEvent('canvas-open-name-modal', { detail: { entityType: 'chapter' } }));
         return;
       }
+
+      // M — Toggle seen mark on selected node(s)
+      if (key === 'm') {
+        const uiState = useUIStore.getState();
+        const toggleNodeSeen = useNarrativeStore.getState().toggleNodeSeen;
+
+        if (uiState.selectedNodeIds.length > 0) {
+          uiState.selectedNodeIds.forEach(id => toggleNodeSeen(id));
+        } else if (uiState.selectedNodeId) {
+          toggleNodeSeen(uiState.selectedNodeId);
+        }
+        return;
+      }
       
       if (e.key === 'Delete') {
         const uiState = useUIStore.getState();
@@ -111,7 +124,25 @@ export default function useKeyboardShortcuts() {
       }
     };
 
+    const handleAltKeyDown = (e) => {
+      if (e.key === 'Alt') document.body.classList.add('alt-pressed');
+    };
+    const handleAltKeyUp = (e) => {
+      if (e.key === 'Alt') document.body.classList.remove('alt-pressed');
+    };
+    const handleAltBlur = () => document.body.classList.remove('alt-pressed');
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleAltKeyDown);
+    window.addEventListener('keyup', handleAltKeyUp);
+    window.addEventListener('blur', handleAltBlur);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleAltKeyDown);
+      window.removeEventListener('keyup', handleAltKeyUp);
+      window.removeEventListener('blur', handleAltBlur);
+      document.body.classList.remove('alt-pressed');
+    };
   }, [isCampaignActive]);
 }

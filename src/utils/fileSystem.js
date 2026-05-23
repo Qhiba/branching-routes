@@ -419,7 +419,9 @@ export async function importProject() {
     flag: typeof data.flag === 'object' && data.flag !== null ? data.flag : {},
     status: typeof data.status === 'object' && data.status !== null ? data.status : {},
     path: typeof data.path === 'object' && data.path !== null ? data.path : {},
-    chapter: typeof data.chapter === 'object' && data.chapter !== null ? data.chapter : {}
+    chapter: typeof data.chapter === 'object' && data.chapter !== null ? data.chapter : {},
+    editorSeenNodeIds: Array.isArray(data.editorSeenNodeIds) ? data.editorSeenNodeIds : [],
+    editorSeenOptionIds: Array.isArray(data.editorSeenOptionIds) ? data.editorSeenOptionIds : []
   };
 
   const sanitizeNodes = (sourceCol, targetCol, type) => {

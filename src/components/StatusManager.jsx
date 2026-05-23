@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNarrativeStore } from 'store';
-import { Search, Plus, Trash2, Pencil, Activity } from 'lucide-react';
+import { Search, Plus, Trash2, Pencil, Activity, GripVertical } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import NameModal from './NameModal';
 import './EntityList.css';
 
@@ -22,12 +23,23 @@ export default function StatusManager() {
   const common = useNarrativeStore(state => state.common);
   const choice = useNarrativeStore(state => state.choice);
   const ending = useNarrativeStore(state => state.ending);
+  const reorderDictionaryKeys = useNarrativeStore(state => state.reorderDictionaryKeys);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [editItem, setEditItem] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
 
   const filteredStatuses = statuses.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const isDragDisabled = searchQuery.trim().length > 0;
+
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const sourceId = filteredStatuses[result.source.index].id;
+    const targetId = filteredStatuses[result.destination.index].id;
+    if (sourceId !== targetId) {
+      reorderDictionaryKeys('status', sourceId, targetId);
+    }
+  };
 
   const handleDelete = (e, id) => {
     e.stopPropagation();
@@ -56,12 +68,25 @@ export default function StatusManager() {
         </button>
       </div>
 
-      <div className="entity-list-content custom-scrollbar">
-        {filteredStatuses.map(statusObj => (
-          <div key={statusObj.id} className="entity-list-item-wrapper">
-            <div className="entity-list-item">
-              <div className="entity-list-item-left">
-                <Activity size={14} className="entity-icon--rose" />
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="statuses-list" isDropDisabled={isDragDisabled}>
+          {(provided) => (
+            <div className="entity-list-content custom-scrollbar" {...provided.droppableProps} ref={provided.innerRef}>
+              {filteredStatuses.map((statusObj, index) => (
+                <Draggable key={statusObj.id} draggableId={statusObj.id} index={index} isDragDisabled={isDragDisabled}>
+                  {(provided, snapshot) => (
+                    <div 
+                      className={`entity-list-item-wrapper ${snapshot.isDragging ? 'is-dragging' : ''}`}
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      style={provided.draggableProps.style}
+                    >
+                      <div className="entity-list-item">
+                        <div className="entity-list-item-left">
+                          <div {...provided.dragHandleProps} className="entity-drag-handle" style={{ display: 'flex', alignItems: 'center', cursor: isDragDisabled ? 'default' : 'grab', marginRight: '8px', opacity: isDragDisabled ? 0.3 : 0.6 }}>
+                            <GripVertical size={14} />
+                          </div>
+                          <Activity size={14} className="entity-icon--rose" />
                 <div className="entity-list-item-col">
                   <span className="entity-list-item-name">{statusObj.name}</span>
                   <span className="entity-list-item-sub">
@@ -106,9 +131,15 @@ export default function StatusManager() {
                 </div>
               </div>
             )}
-          </div>
+            </div>
+          )}
+          </Draggable>
         ))}
+        {provided.placeholder}
       </div>
+          )}
+        </Droppable>
+      </DragDropContext>
 
       {editItem && <NameModal entityType="status" initialData={editItem === 'new' ? null : editItem} onClose={() => setEditItem(null)} />}
     </div>

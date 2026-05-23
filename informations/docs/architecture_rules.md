@@ -63,9 +63,9 @@ All condition logic (AND/OR flag evaluation for edges) must live in `src/utils/c
 
 ## AR-08 — Simulation Isolation
 
-Simulation state (active node, traversed edges, current flag values mid-campaign, sandbox overrides, node state enum, seen set) must live exclusively in `simulationStore` and must never pollute `narrativeStore`. Entering and exiting a campaign must reset `simulationStore` to a clean initial state. Sandbox overrides write only to `simulationStore.currentFlagValues` — never to `narrativeStore.flag` or `narrativeStore.status`.
+Simulation state (active node, traversed edges, current flag values mid-campaign, sandbox overrides, node state enum, campaign-only seen set) must live exclusively in `simulationStore` and must never pollute `narrativeStore`. Entering and exiting a campaign must reset `simulationStore` to a clean initial state. Sandbox overrides write only to `simulationStore.currentFlagValues` — never to `narrativeStore.flag` or `narrativeStore.status`. **Exception:** Editor-level seen marks (`editorSeenNodeIds`, `editorSeenOptionIds`) are author-curated annotations that must persist across sessions and are therefore owned by `narrativeStore`. These marks are orthogonal to the campaign-only `seenNodeIds` in `simulationStore`, which tracks traversal history during active campaigns only.
 
-**Rationale:** Isolation guarantees that running a campaign never modifies the designer's graph data. The graph is always in its "authored" state regardless of campaign activity.
+**Rationale:** Isolation guarantees that running a campaign never modifies the designer's graph data. The graph is always in its "authored" state regardless of campaign activity. Editor-level seen marks are an authoring-mode annotation tool, not a simulation artefact, so they belong with the canonical graph data.
 
 ---
 
@@ -215,3 +215,37 @@ All controls that initiate, progress, or terminate a campaign simulation must be
 Complex analytic or tracing tools meant for use outside of campaign playback (edit mode) must be implemented fundamentally as `simulationStore` actions rather than raw computation isolated within UI event handlers. If these tools reuse campaign-simulation logic (e.g. evaluating gates, verifying sequences), they should safely bypass the active campaign guard dynamically where applicable, pulling root parameters straight from the `narrativeStore` or targeting nodes explicitly.
 
 **Rationale:** The RouteFinderDialog implementation deliberately elected to bypass the `isCampaignActive` requirement so sequential evaluation could occur against structurally isolated nodes during authoring. Relocating these algorithmic responsibilities inside `simulationStore` via `computeRoutesFromStart()` protected the `narrativeStore` (AR-04) while cementing `simulationStore` as the authoritative computation environment for both live playback *and* passive offline analysis.
+
+---
+
+## AR-27 — Import Sanitization Whitelist Must Include All Persisted Schema Fields
+
+The `importProject()` function in `fileSystem.js` rebuilds the imported data through an explicit `sanitizedData` whitelist object. Every field that is part of the current `schemaVersion: 4` data model and must survive a save→export→import round-trip **must be listed by name** in `sanitizedData`. Any field omitted from the whitelist is silently dropped regardless of whether it exists in the source file.
+
+When adding a new persisted field to `narrativeStore` (i.e., a field that appears in `exportGraph()` output), the same commit must also add that field to the `sanitizedData` whitelist in `fileSystem.importProject()`. These two locations are a paired invariant — divergence causes silent data loss on import with no error or warning.
+
+**Rationale:** The `editorSeenNodeIds`/`editorSeenOptionIds` bug demonstrated this class of error: the fields were correctly added to `narrativeStore` and `exportGraph()` output, but the `sanitizedData` whitelist was not updated. Files exported after the feature shipped imported cleanly on the surface but had those fields silently reset to `[]`, discarding all editor-level seen marks. The paired-invariant rule eliminates this failure mode by making the whitelist a named checklist item for any data model addition.
+
+---
+
+## AR-28 — State Sorting & Persistence via Insertion Order
+
+When an entity list requires manual reordering (e.g., drag-and-drop), the data model must rely on JSON key insertion order within the dictionary, rather than introducing explicit `sortIndex` fields. The `narrativeStore` provides a `reorderDictionaryKeys` helper to manage this. 
+
+**Rationale:** This maintains a flat, pure dictionary structure, avoiding the complexity of syncing explicit order properties across the store, which simplifies components that just map over `Object.values(dict)`. Modern JS engines guarantee object key insertion order for non-numeric keys, which our UUIDs satisfy.
+
+---
+
+## AR-29 — CSS `transform` Strict Restriction on Draggable Containers
+
+Components that serve as containers or portals for drag-and-drop interactions (e.g., `LeftSidebar`, `RightSidebar`) must avoid using CSS `transform` (such as `transform: translateX`) for animations or layout.
+
+**Rationale:** The CSS `transform` property establishes a new local coordinate system (a new stacking context and containing block). This breaks the calculation of `position: fixed` elements that `react-beautiful-dnd` (or similar libraries) rely on during drag interactions, resulting in severe visual offsets between the cursor and the dragged item. Animations should use margin or other layout-safe properties instead.
+
+---
+
+## AR-30 — Global CSS Classes for High-Frequency Interaction Toggles
+
+When implementing high-frequency keyboard interaction modifiers (e.g., holding `Alt` to enable a drag interaction globally across the canvas), use global event listeners (like `useKeyboardShortcuts.js`) that toggle a class on `document.body` (e.g., `document.body.classList.toggle('alt-pressed')`). Apply interaction state changes purely through CSS selectors (e.g., `.alt-pressed .my-component { pointer-events: all; }`).
+
+**Rationale:** Wiring high-frequency interactions (like key down/up events for modifiers) through React state (`useState` or Zustand) causes immediate and widespread component re-renders across the entire graph. By delegating the state purely to the DOM and CSS, the application maintains 60fps performance during complex interactions.

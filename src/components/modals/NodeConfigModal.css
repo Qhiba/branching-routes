@@ -1,5 +1,115 @@
 /* src/components/modals/NodeConfigModal.css */
 
+/* =========================================
+   FLAG DROPDOWN
+   ========================================= */
+.br-flag-dropdown {
+    position: relative;
+}
+
+.br-flag-dropdown__trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 6px 10px;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.br-flag-dropdown__trigger:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    color: var(--color-text-primary);
+}
+
+.br-flag-dropdown__trigger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.br-flag-dropdown__icon {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+}
+
+.br-flag-dropdown__chevron {
+    width: 12px;
+    height: 12px;
+    margin-left: auto;
+    transition: transform var(--transition-fast);
+}
+
+.br-flag-dropdown__chevron--open {
+    transform: rotate(180deg);
+}
+
+.br-flag-dropdown__panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.br-flag-dropdown__search {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    background: var(--color-bg-base);
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    outline: none;
+}
+
+.br-flag-dropdown__options {
+    max-height: 160px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.br-flag-dropdown__option {
+    padding: 6px 10px;
+    text-align: left;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.br-flag-dropdown__option:hover {
+    background: var(--color-bg-hover);
+    color: var(--color-text-primary);
+}
+
+.br-flag-dropdown__empty {
+    padding: 8px 10px;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+.br-flag-dropdown__divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: 8px 0;
+}
+
 .br-node-config-modal__backdrop {
     position: fixed;
     inset: 0;
@@ -76,6 +186,12 @@
     gap: 12px;
 }
 
+.br-node-config-modal__header__right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .br-node-config-modal__type-badge {
     padding: 2px 8px;
     border-radius: 4px;
@@ -126,6 +242,37 @@
 .br-node-config-modal__close-btn:hover {
     background-color: var(--color-bg-hover);
     color: var(--color-text-primary);
+}
+
+/* Mark-as-Seen toggle button (modal header + option card) */
+.br-node-config-modal__seen-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.br-node-config-modal__seen-btn:hover {
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-secondary);
+}
+
+.br-node-config-modal__seen-btn--active {
+    background-color: rgba(var(--color-node-seen-rgb, 74, 222, 128), 0.15);
+    border-color: var(--color-node-seen);
+    color: var(--color-node-seen);
+}
+
+.br-node-config-modal__seen-btn--active:hover {
+    background-color: rgba(var(--color-node-seen-rgb, 74, 222, 128), 0.25);
 }
 
 /* Body */
@@ -379,7 +526,7 @@
 }
 
 .br-node-config-modal__status-amount {
-    width: 70px;
+    width: 60px;
     flex-shrink: 0;
     height: 32px;
     background-color: var(--color-bg-deep);
@@ -396,6 +543,49 @@
 
 .br-node-config-modal__status-amount:focus {
     border-color: var(--color-primary);
+}
+
+/* ADD / SET mode toggle pill */
+.br-node-config-modal__mode-toggle {
+    display: flex;
+    flex-shrink: 0;
+    height: 32px;
+    background-color: var(--color-bg-modal);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.br-node-config-modal__mode-btn {
+    height: 100%;
+    padding: 0 7px;
+    border: none;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background: transparent;
+    color: var(--color-text-muted);
+}
+
+/* ADD active — indigo accent (matches primary / campaign color) */
+.br-node-config-modal__mode-btn--active-add {
+    background-color: rgba(var(--color-campaign-indigo-rgb), 0.2);
+    color: var(--color-primary);
+}
+
+/* SET active — amber accent (visually distinct, conveys "override") */
+.br-node-config-modal__mode-btn--active-set {
+    background-color: rgba(var(--color-amber-500-rgb), 0.15);
+    color: var(--color-amber-500);
+}
+
+.br-node-config-modal__mode-btn:not(.br-node-config-modal__mode-btn--active-add):not(.br-node-config-modal__mode-btn--active-set):hover {
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg-hover);
 }
 
 .br-node-config-modal__remove-btn {
@@ -772,6 +962,19 @@
     color: var(--color-text-secondary);
 }
 
+/* Right side of card header (seen toggle + delete) */
+.br-node-config-modal__card__header-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* Option-card seen btn — icon-only, no label text */
+.br-node-config-modal__card__header-right .br-node-config-modal__seen-btn {
+    padding: 3px 6px;
+}
+
 /* Status clause separator */
 .br-node-config-modal__clause-sep {
     color: var(--color-text-secondary);
@@ -853,14 +1056,39 @@
     box-shadow: var(--shadow-md);
 }
 
+/* Fixed-position variant — escapes overflow-clipping ancestors (modal scroll columns).
+   Actual top/left/width/maxHeight/bottom are set via inline style by getBoundingClientRect() + flip logic. */
+.br-node-config-modal__searchable-select__dropdown--fixed {
+    position: fixed;
+    top: unset;
+    left: unset;
+    right: unset;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 4px;
+    box-shadow: var(--shadow-md);
+    /* flex column so options list fills JS-computed maxHeight without overflowing */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .br-node-config-modal__searchable-select__search {
     width: 100%;
     margin-bottom: 4px;
 }
 
 .br-node-config-modal__searchable-select__options {
+    flex: 1;
+    min-height: 0;
     max-height: 150px;
     overflow-y: auto;
+}
+
+/* When inside the fixed-position dropdown, let the JS maxHeight govern instead */
+.br-node-config-modal__searchable-select__dropdown--fixed .br-node-config-modal__searchable-select__options {
+    max-height: none;
 }
 
 .br-node-config-modal__searchable-select__option {

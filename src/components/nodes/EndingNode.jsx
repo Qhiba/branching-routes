@@ -5,23 +5,26 @@ import { useSimulationStore, useNarrativeStore } from 'store';
 function EndingNode({ id, data }) {
   const nodeState = useSimulationStore(s => s.nodeStates[id]);
   const isSeen = useSimulationStore(s => s.seenNodeIds.includes(id));
+  const isEditorSeen = useNarrativeStore(s => (s.editorSeenNodeIds || []).includes(id));
   // ADDED: Phase 3 — coverage-gap dimming (unreachable but unseen nodes only; visited nodes always visible)
   const isCoverageGap = useSimulationStore(s => s.isCampaignActive && s.unreachableFromActiveNodeIds.includes(id) && !s.seenNodeIds.includes(id));
 
   const isOrphaned = useSimulationStore(s => s.orphanedNodeIds.includes(id));
   const isUnreachable = useSimulationStore(s => s.unreachableNodeIds.includes(id));
+  const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
   // FIX 9: Resolve nodeSubTypeId → display name from store
   const endingTypeDict = useNarrativeStore(s => s.endingType);
   const subTypeName = data.nodeSubTypeId ? endingTypeDict[data.nodeSubTypeId]?.name : null;
 
   // MODIFIED: Phase 3 — add coverage-gap class to className string
-  const className = `story-node ending-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''}`.trim();
+  const className = `story-node ending-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''}`.trim();
 
   return (
     <div className={className}>
       <Handle type="target" position={Position.Left} />
 
       <div className="story-node__type-bar ending-node__type-bar">
+        {/* Seen check icon — visible in editor mode only when manually marked */}
         {/* FIX 9: Show user-defined nodeSubType name if set, fallback to ENDING */}
         <span className="story-node__type-label">
           {subTypeName ? subTypeName.toUpperCase() : 'ENDING'}

@@ -40,6 +40,14 @@ export const useUIStore = create((set, get) => ({
   // ADDED: Phase 4 — set selected route index for display
   setSelectedRouteIndex: (n) => set({ selectedRouteIndex: n }),
 
+  // ADDED: Freeze overlay — edge IDs that belong to the frozen prefix (rendered green on canvas)
+  frozenWaypointEdgeIds: [],
+  setFrozenWaypointEdgeIds: (ids) => set({ frozenWaypointEdgeIds: ids }),
+
+  // Additional edge IDs to include in the route overlay for merged route groups
+  mergedGroupEdgeIds: [],
+  setMergedGroupEdgeIds: (ids) => set({ mergedGroupEdgeIds: ids }),
+
   setChoiceDisplayMode: (mode) => set({ choiceDisplayMode: mode }), // PROTECTED: Integrations unchanged
   selectNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }), // PROTECTED: Primary single-select semantics
   selectEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNarrativeStore } from 'store';
-import { Search, Plus, Trash2, Pencil, FolderTree, BookOpen } from 'lucide-react';
+import { Search, Plus, Trash2, Pencil, FolderTree, BookOpen, GripVertical } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import NameModal from './NameModal';
 import './EntityList.css';
 
@@ -25,11 +26,24 @@ export default function PathChapterManager({ filterType }) {
         isEndingType ? state.deleteEndingType :
           state.deletePath
   );
+  
+  const reorderDictionaryKeys = useNarrativeStore(state => state.reorderDictionaryKeys);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [editItem, setEditItem] = useState(null);
 
   const filteredItems = items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const isDragDisabled = searchQuery.trim().length > 0;
+
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const sourceId = filteredItems[result.source.index].id;
+    const targetId = filteredItems[result.destination.index].id;
+    if (sourceId !== targetId) {
+      const dictName = isChapter ? 'chapter' : isCommonType ? 'commonType' : isEndingType ? 'endingType' : 'path';
+      reorderDictionaryKeys(dictName, sourceId, targetId);
+    }
+  };
 
   const handleRename = (e, item) => {
     e.stopPropagation();
@@ -64,12 +78,25 @@ export default function PathChapterManager({ filterType }) {
         </button>
       </div>
 
-      <div className="entity-list-content custom-scrollbar">
-        {filteredItems.map(item => (
-          <div key={item.id} className="entity-list-item-wrapper">
-            <div className="entity-list-item">
-              <div className="entity-list-item-left">
-                <Icon size={14} className={`entity-icon--${isCommonType ? 'emerald' : isEndingType ? 'amber' : isChapter ? 'indigo' : 'cyan'}`} />
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId={`manager-list-${filterType}`} isDropDisabled={isDragDisabled}>
+          {(provided) => (
+            <div className="entity-list-content custom-scrollbar" {...provided.droppableProps} ref={provided.innerRef}>
+              {filteredItems.map((item, index) => (
+                <Draggable key={item.id} draggableId={item.id} index={index} isDragDisabled={isDragDisabled}>
+                  {(provided, snapshot) => (
+                    <div 
+                      className={`entity-list-item-wrapper ${snapshot.isDragging ? 'is-dragging' : ''}`}
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      style={provided.draggableProps.style}
+                    >
+                      <div className="entity-list-item">
+                        <div className="entity-list-item-left">
+                          <div {...provided.dragHandleProps} className="entity-drag-handle" style={{ display: 'flex', alignItems: 'center', cursor: isDragDisabled ? 'default' : 'grab', marginRight: '8px', opacity: isDragDisabled ? 0.3 : 0.6 }}>
+                            <GripVertical size={14} />
+                          </div>
+                          <Icon size={14} className={`entity-icon--${isCommonType ? 'emerald' : isEndingType ? 'amber' : isChapter ? 'indigo' : 'cyan'}`} />
                 <span className="entity-list-item-name">{item.name}</span>
               </div>
               <div className="entity-list-item-actions">
@@ -82,8 +109,14 @@ export default function PathChapterManager({ filterType }) {
               </div>
             </div>
           </div>
+          )}
+          </Draggable>
         ))}
+        {provided.placeholder}
       </div>
+          )}
+        </Droppable>
+      </DragDropContext>
 
       {editItem && <NameModal entityType={filterType} initialData={editItem === 'new' ? null : editItem} onClose={() => setEditItem(null)} />}
     </div>

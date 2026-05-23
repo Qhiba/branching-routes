@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNarrativeStore } from 'store';
 import { X } from 'lucide-react';
 
@@ -9,6 +9,22 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
   const [statusMin, setStatusMin] = useState(initialData?.minValue ?? undefined);
   const [statusMax, setStatusMax] = useState(initialData?.maxValue ?? undefined);
   const inputRef = useRef(null);
+
+  // Sequential batch mode (only for new flags)
+  const [seqMode, setSeqMode] = useState(false);
+  const [seqStart, setSeqStart] = useState(1);
+  const [seqEnd, setSeqEnd] = useState(3);
+  const [seqPad, setSeqPad] = useState(3);
+
+  const seqNames = useMemo(() => {
+    const base = inputValue.trim();
+    const count = seqEnd - seqStart + 1;
+    if (!base || count < 1) return [];
+    return Array.from({ length: count }, (_, i) => {
+      const num = String(seqStart + i).padStart(seqPad, '0');
+      return `${base}_${num}`;
+    });
+  }, [inputValue, seqStart, seqEnd, seqPad]);
 
   const titleMap = {
     flag: initialData ? 'Edit Flag' : 'New Flag',
@@ -66,7 +82,11 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
       // create mode
       switch (entityType) {
         case 'flag':
-          store.addFlag(trimmed, flagState);
+          if (seqMode && seqNames.length > 0) {
+            seqNames.forEach(name => { try { store.addFlag(name, flagState); } catch (_) {} });
+          } else {
+            store.addFlag(trimmed, flagState);
+          }
           break;
         case 'status':
           store.addStatus(trimmed, statusValue, statusMin, statusMax);
@@ -98,7 +118,7 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
     }
   };
 
-  const isConfirmDisabled = inputValue.trim() === '';
+  const isConfirmDisabled = inputValue.trim() === '' || (seqMode && !initialData && entityType === 'flag' && seqNames.length === 0);
 
   return (
     <div className="br-name-modal__backdrop" onClick={onClose}>
@@ -132,6 +152,73 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
                 <div className={`br-name-modal__toggle-option ${!flagState ? 'br-name-modal__toggle-option--active' : 'br-name-modal__toggle-option--inactive'}`} onClick={() => setFlagState(false)}>False</div>
               </div>
             </div>
+          )}
+
+          {entityType === 'flag' && !initialData && (
+            <>
+              <div className="br-name-modal__seq-toggle">
+                <span className="br-name-modal__label">Sequential Mode</span>
+                <button
+                  type="button"
+                  className={`br-name-modal__seq-pill ${seqMode ? 'br-name-modal__seq-pill--on' : ''}`}
+                  onClick={() => setSeqMode(v => !v)}
+                >
+                  {seqMode ? 'On' : 'Off'}
+                </button>
+              </div>
+
+              {seqMode && (
+                <>
+                  <div className="br-name-modal__row">
+                    <div className="br-name-modal__field">
+                      <label className="br-name-modal__label">Start at</label>
+                      <input
+                        type="number"
+                        className="br-name-modal__input br-name-modal__input--mono"
+                        min={0}
+                        value={seqStart}
+                        onChange={e => setSeqStart(Number(e.target.value))}
+                        onKeyDown={handleKeyDown}
+                      />
+                    </div>
+                    <div className="br-name-modal__field">
+                      <label className="br-name-modal__label">Ends at</label>
+                      <input
+                        type="number"
+                        className="br-name-modal__input br-name-modal__input--mono"
+                        min={seqStart}
+                        value={seqEnd}
+                        onChange={e => setSeqEnd(Math.max(seqStart, Number(e.target.value)))}
+                        onKeyDown={handleKeyDown}
+                      />
+                    </div>
+                    <div className="br-name-modal__field">
+                      <label className="br-name-modal__label">Padding</label>
+                      <input
+                        type="number"
+                        className="br-name-modal__input br-name-modal__input--mono"
+                        min={1}
+                        max={6}
+                        value={seqPad}
+                        onChange={e => setSeqPad(Math.max(1, Math.min(6, Number(e.target.value))))}
+                        onKeyDown={handleKeyDown}
+                      />
+                    </div>
+                  </div>
+
+                  {seqNames.length > 0 && (
+                    <div className="br-name-modal__field">
+                      <label className="br-name-modal__label">Preview — {seqNames.length} flag{seqNames.length > 1 ? 's' : ''}</label>
+                      <div className="br-name-modal__seq-preview">
+                        {seqNames.map(n => (
+                          <span key={n} className="br-name-modal__seq-chip">{n}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
           )}
 
           {entityType === 'status' && (

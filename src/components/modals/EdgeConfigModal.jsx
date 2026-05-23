@@ -1,35 +1,71 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Check, Link2, GitBranch, Trash2, Plus } from 'lucide-react';
 import { useNarrativeStore } from 'store';
-import '../modals/NodeConfigModal.css'; /* Reuse ncm-* token styles */
+import '../modals/NodeConfigModal.css'; /* Reuse br-node-config-modal__* token styles */
 import './EdgeConfigModal.css';
 
 // ADDED: Phase 6 — Edge configuration modal (mirrors NodeConfigModal design language)
 
-// EXPLORE: Custom SearchableSelect
+// EXPLORE: Custom SearchableSelect — dropdown uses position:fixed to escape overflow-clipping ancestors
 function SearchableSelect({ value, options, onChange, placeholder, className }) {
     const [open, setOpen] = useState(false);
+    const [dropdownStyle, setDropdownStyle] = useState({});
     const [query, setQuery] = useState('');
+    const triggerRef = useRef(null);
     const selected = options.find(o => o.id === value);
+
+    const handleOpen = (e) => {
+        e.stopPropagation();
+        if (!open && triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            const DROPDOWN_HEIGHT = 220;
+            const spaceBelow = window.innerHeight - rect.bottom - 8;
+            const spaceAbove = rect.top - 8;
+            const openUpward = spaceBelow < DROPDOWN_HEIGHT && spaceAbove > spaceBelow;
+            const maxHeight = Math.min(DROPDOWN_HEIGHT, openUpward ? spaceAbove : spaceBelow);
+
+            setDropdownStyle(
+                openUpward
+                    ? {
+                        position: 'fixed',
+                        bottom: window.innerHeight - rect.top + 4,
+                        left: rect.left,
+                        width: rect.width,
+                        maxHeight,
+                        zIndex: 9999,
+                    }
+                    : {
+                        position: 'fixed',
+                        top: rect.bottom + 4,
+                        left: rect.left,
+                        width: rect.width,
+                        maxHeight,
+                        zIndex: 9999,
+                    }
+            );
+        }
+        setOpen(prev => !prev);
+    };
+
     return (
-        <div className={`ncm-searchable-select ${className || ''}`}>
-            <div className="ncm-searchable-select__trigger" onClick={(e) => { e.stopPropagation(); setOpen(!open); }}>
-                <span className="ncm-searchable-select__value">{selected ? selected.name : <span className="ncm-searchable-select__placeholder">{placeholder}</span>}</span>
-                <span className="ncm-searchable-select__caret">▾</span>
+        <div className={`br-node-config-modal__searchable-select ${className || ''}`}>
+            <div ref={triggerRef} className="br-node-config-modal__searchable-select__trigger" onClick={handleOpen}>
+                <span className="br-node-config-modal__searchable-select__value">{selected ? selected.name : <span className="br-node-config-modal__searchable-select__placeholder">{placeholder}</span>}</span>
+                <span className="br-node-config-modal__searchable-select__caret">▾</span>
             </div>
             {open && (
-                <div className="ncm-searchable-select__dropdown" onClick={e => e.stopPropagation()}>
-                    <input type="text" autoFocus placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} className="ncm-input ncm-searchable-select__search" />
-                    <div className="ncm-searchable-select__options">
+                <div className="br-node-config-modal__searchable-select__dropdown br-node-config-modal__searchable-select__dropdown--fixed" style={dropdownStyle} onClick={e => e.stopPropagation()}>
+                    <input type="text" autoFocus placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} className="br-node-config-modal__input br-node-config-modal__searchable-select__search" />
+                    <div className="br-node-config-modal__searchable-select__options">
                         {options.filter(o => o.name.toLowerCase().includes(query.toLowerCase())).map(o => (
-                            <div key={o.id} className="ncm-searchable-select__option" onClick={() => { onChange(o.id); setOpen(false); setQuery(''); }}>
+                            <div key={o.id} className="br-node-config-modal__searchable-select__option" onClick={() => { onChange(o.id); setOpen(false); setQuery(''); }}>
                                 {o.name}
                             </div>
                         ))}
                     </div>
                 </div>
             )}
-            {open && <div className="ncm-searchable-select__backdrop" onClick={(e) => { e.stopPropagation(); setOpen(false); }} />}
+            {open && <div className="br-node-config-modal__searchable-select__backdrop" onClick={(e) => { e.stopPropagation(); setOpen(false); }} />}
         </div>
     );
 }
@@ -115,29 +151,29 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
     };
 
     return (
-        <div className="ncm-backdrop" onClick={onClose}>
-            <div className="ncm-container ncm-container--narrow ecm-container" onClick={e => e.stopPropagation()}>
+        <div className="br-node-config-modal__backdrop" onClick={onClose}>
+            <div className="br-node-config-modal__container br-node-config-modal__container--narrow ecm-container" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
-                <div className="ncm-header">
-                    <div className="ncm-header__left">
-                        <span className="ncm-type-badge ecm-type-badge">EDGE</span>
-                        <h3 className="ncm-header__title">Configure Edge</h3>
+                <div className="br-node-config-modal__header">
+                    <div className="br-node-config-modal__header__left">
+                        <span className="br-node-config-modal__type-badge ecm-type-badge">EDGE</span>
+                        <h3 className="br-node-config-modal__header__title">Configure Edge</h3>
                     </div>
-                    <button className="ncm-close-btn" onClick={onClose}>
-                        <X className="ncm-icon-lg" />
+                    <button className="br-node-config-modal__close-btn" onClick={onClose}>
+                        <X className="br-node-config-modal__icon-lg" />
                     </button>
                 </div>
 
                 {/* Body — single column */}
-                <div className="ncm-body">
-                    <div className="ncm-col ncm-col--left-only">
+                <div className="br-node-config-modal__body">
+                    <div className="br-node-config-modal__col br-node-config-modal__col--left-only">
 
                         {/* Connection info */}
                         <div>
-                            <div className="ncm-section-title">
-                                <Link2 className="ncm-section-title__icon" />
-                                <h4 className="ncm-section-title__text">Connection</h4>
+                            <div className="br-node-config-modal__section-title">
+                                <Link2 className="br-node-config-modal__section-title__icon" />
+                                <h4 className="br-node-config-modal__section-title__text">Connection</h4>
                             </div>
                             <div className="ecm-connection-row">
                                 <div className="ecm-node-chip ecm-node-chip--source">
@@ -161,14 +197,14 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
 
                         {/* Edge label */}
                         <div>
-                            <div className="ncm-section-title">
-                                <GitBranch className="ncm-section-title__icon" />
-                                <h4 className="ncm-section-title__text">Edge Label</h4>
+                            <div className="br-node-config-modal__section-title">
+                                <GitBranch className="br-node-config-modal__section-title__icon" />
+                                <h4 className="br-node-config-modal__section-title__text">Edge Label</h4>
                             </div>
-                            <div className="ncm-field">
-                                <label className="ncm-label">Label (narrative / choice text)</label>
+                            <div className="br-node-config-modal__field">
+                                <label className="br-node-config-modal__label">Label (narrative / choice text)</label>
                                 <input
-                                    className="ncm-input"
+                                    className="br-node-config-modal__input"
                                     type="text"
                                     value={edge.label || ''}
                                     onChange={e => updateEdge(edge.id, { label: e.target.value })}
@@ -179,26 +215,26 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
 
                         {/* Condition builder */}
                         <div>
-                            <div className="ncm-condition-box">
-                                <div className="ncm-condition-header">
-                                    <span className="ncm-condition-label">Traversal Condition</span>
-                                    <div className="ncm-flex-row">
+                            <div className="br-node-config-modal__condition-box">
+                                <div className="br-node-config-modal__condition-header">
+                                    <span className="br-node-config-modal__condition-label">Traversal Condition</span>
+                                    <div className="br-node-config-modal__flex-row">
                                         {edge.condition && (
-                                            <div className="ncm-operator-toggle">
+                                            <div className="br-node-config-modal__operator-toggle">
                                                 <button
-                                                    className={`ncm-operator-btn ${edge.condition.operator === 'and' ? 'ncm-operator-btn--active' : 'ncm-operator-btn--inactive'}`}
+                                                    className={`br-node-config-modal__operator-btn ${edge.condition.operator === 'and' ? 'br-node-config-modal__operator-btn--active' : 'br-node-config-modal__operator-btn--inactive'}`}
                                                     onClick={() => setOperator('and')}
                                                 >AND</button>
                                                 <button
-                                                    className={`ncm-operator-btn ${edge.condition.operator === 'or' ? 'ncm-operator-btn--active' : 'ncm-operator-btn--inactive'}`}
+                                                    className={`br-node-config-modal__operator-btn ${edge.condition.operator === 'or' ? 'br-node-config-modal__operator-btn--active' : 'br-node-config-modal__operator-btn--inactive'}`}
                                                     onClick={() => setOperator('or')}
                                                 >OR</button>
                                             </div>
                                         )}
-                                        <button className="ncm-add-btn ncm-add-btn--sm" onClick={toggleCondition}>
+                                        <button className="br-node-config-modal__add-btn br-node-config-modal__add-btn--sm" onClick={toggleCondition}>
                                             {edge.condition
-                                                ? <><X className="ncm-icon-xs" /> Remove</>
-                                                : <><Plus className="ncm-icon-xs" /> Add Condition</>}
+                                                ? <><X className="br-node-config-modal__icon-xs" /> Remove</>
+                                                : <><Plus className="br-node-config-modal__icon-xs" /> Add Condition</>}
                                         </button>
                                     </div>
                                 </div>
@@ -206,67 +242,67 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                                 {edge.condition && (
                                     <div>
                                         {flags.length === 0 && statuses.length === 0 && (
-                                            <div className="ncm-hint">
+                                            <div className="br-node-config-modal__hint">
                                                 No flags or statuses defined yet — add them in the left sidebar.
                                             </div>
                                         )}
                                         {edge.condition.conditions.map((clause, idx) => {
                                             if ('flag' in clause) {
                                                 return (
-                                                    <div key={idx} className="ncm-clause-row">
-                                                        <span className="ncm-clause-type ncm-clause-type--flag">FLAG</span>
+                                                    <div key={idx} className="br-node-config-modal__clause-row">
+                                                        <span className="br-node-config-modal__clause-type br-node-config-modal__clause-type--flag">FLAG</span>
                                                         <SearchableSelect
-                                                            className="ncm-clause-select"
+                                                            className="br-node-config-modal__clause-select"
                                                             value={clause.flag || ''}
                                                             onChange={val => updateClause(idx, { flag: val })}
                                                             options={flags}
                                                             placeholder="Select flag..."
                                                         />
                                                         <button
-                                                            className={`ncm-clause-value ${clause.state ? 'ncm-clause-value--true' : 'ncm-clause-value--false'}`}
+                                                            className={`br-node-config-modal__clause-value ${clause.state ? 'br-node-config-modal__clause-value--true' : 'br-node-config-modal__clause-value--false'}`}
                                                             onClick={() => updateClause(idx, { state: !clause.state })}
                                                         >
                                                             {clause.state ? 'TRUE' : 'FALSE'}
                                                         </button>
-                                                        <button className="ncm-remove-btn" onClick={() => removeClause(idx)}>
-                                                            <X className="ncm-icon-sm" />
+                                                        <button className="br-node-config-modal__remove-btn" onClick={() => removeClause(idx)}>
+                                                            <X className="br-node-config-modal__icon-sm" />
                                                         </button>
                                                     </div>
                                                 );
                                             } else if ('status' in clause) {
                                                 return (
-                                                    <div key={idx} className="ncm-clause-row">
-                                                        <span className="ncm-clause-type ncm-clause-type--status">STAT</span>
+                                                    <div key={idx} className="br-node-config-modal__clause-row">
+                                                        <span className="br-node-config-modal__clause-type br-node-config-modal__clause-type--status">STAT</span>
                                                         <SearchableSelect
-                                                            className="ncm-clause-select"
+                                                            className="br-node-config-modal__clause-select"
                                                             value={clause.status || ''}
                                                             onChange={val => updateClause(idx, { status: val })}
                                                             options={statuses}
                                                             placeholder="Select status..."
                                                         />
                                                         <input
-                                                            type="number" className="ncm-clause-number" placeholder="Min"
+                                                            type="number" className="br-node-config-modal__clause-number" placeholder="Min"
                                                             value={clause.min !== undefined ? clause.min : ''}
                                                             onChange={e => updateClause(idx, { min: e.target.value === '' ? undefined : Number(e.target.value) })}
                                                         />
-                                                        <span className="ncm-clause-sep">≤</span>
+                                                        <span className="br-node-config-modal__clause-sep">≤</span>
                                                         <input
-                                                            type="number" className="ncm-clause-number" placeholder="Max"
+                                                            type="number" className="br-node-config-modal__clause-number" placeholder="Max"
                                                             value={clause.max !== undefined ? clause.max : ''}
                                                             onChange={e => updateClause(idx, { max: e.target.value === '' ? undefined : Number(e.target.value) })}
                                                         />
-                                                        <button className="ncm-remove-btn" onClick={() => removeClause(idx)}>
-                                                            <X className="ncm-icon-sm" />
+                                                        <button className="br-node-config-modal__remove-btn" onClick={() => removeClause(idx)}>
+                                                            <X className="br-node-config-modal__icon-sm" />
                                                         </button>
                                                     </div>
                                                 );
                                             }
                                             return null;
                                         })}
-                                        <div className="ncm-add-clause-row">
-                                            <button className="ncm-add-btn" onClick={addFlagClause}>+ Flag Clause</button>
+                                        <div className="br-node-config-modal__add-clause-row">
+                                            <button className="br-node-config-modal__add-btn" onClick={addFlagClause}>+ Flag Clause</button>
                                             {statuses.length > 0 && (
-                                                <button className="ncm-add-btn" onClick={addStatusClause}>+ Status Clause</button>
+                                                <button className="br-node-config-modal__add-btn" onClick={addStatusClause}>+ Status Clause</button>
                                             )}
                                         </div>
                                     </div>
@@ -277,7 +313,7 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                         {/* Danger zone */}
                         <div className="ecm-danger-zone">
                             <button className="ecm-delete-btn" onClick={handleDelete}>
-                                <Trash2 className="ncm-icon-base" />
+                                <Trash2 className="br-node-config-modal__icon-base" />
                                 Delete Edge
                             </button>
                         </div>
@@ -286,13 +322,13 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                 </div>
 
                 {/* Footer */}
-                <div className="ncm-footer">
-                    <button className="ncm-btn-cancel" onClick={onClose}>Cancel</button>
-                    <button className="ncm-btn-save" onClick={onClose}>
-                        <Check className="ncm-icon-base" /> Done
+                <div className="br-node-config-modal__footer">
+                    <button className="br-node-config-modal__btn-cancel" onClick={onClose}>Cancel</button>
+                    <button className="br-node-config-modal__btn-save" onClick={onClose}>
+                        <Check className="br-node-config-modal__icon-base" /> Done
                     </button>
                 </div>
             </div>
-        </div >
+        </div>
     );
 }

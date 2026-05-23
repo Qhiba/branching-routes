@@ -6,7 +6,7 @@
     /* moved slightly up */
     left: 50%;
     transform: translateX(-50%);
-    z-index: var(--z-palette);
+    z-index: var(--z-context-menu);
     border-radius: 9999px;
     /* full rounded */
     display: flex;

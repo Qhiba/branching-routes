@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     X, Check, AlignLeft, Route, Zap, SlidersHorizontal,
-    ChevronUp, Plus, Trash2, ChevronRight, Star
+    ChevronUp, ChevronDown, Plus, Trash2, ChevronRight, Star, Eye
 } from 'lucide-react';
-import { useNarrativeStore } from 'store';
+import { useNarrativeStore, useSimulationStore } from 'store';
 import './NodeConfigModal.css';
 
 // CHANGED: Phase 6 — Replaced legacy NodeInspector docked panel → full-screen 2-column modal
@@ -21,19 +21,55 @@ function SectionTitle({ icon: Icon, title }) {
     );
 }
 
-// EXPLORE: Feature 1 & 2 - Searchable dropdown wrapper
+// EXPLORE: Feature 1 & 2 - Searchable dropdown wrapper — dropdown uses position:fixed to escape overflow-clipping ancestors
 function SearchableSelect({ value, options, onChange, placeholder, className }) {
     const [open, setOpen] = useState(false);
+    const [dropdownStyle, setDropdownStyle] = useState({});
     const [query, setQuery] = useState('');
+    const triggerRef = useRef(null);
     const selected = options.find(o => o.id === value);
+
+    const handleOpen = (e) => {
+        e.stopPropagation();
+        if (!open && triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            const DROPDOWN_HEIGHT = 220; // search input (~36px) + ~5 options
+            const spaceBelow = window.innerHeight - rect.bottom - 8;
+            const spaceAbove = rect.top - 8;
+            const openUpward = spaceBelow < DROPDOWN_HEIGHT && spaceAbove > spaceBelow;
+            const maxHeight = Math.min(DROPDOWN_HEIGHT, openUpward ? spaceAbove : spaceBelow);
+
+            setDropdownStyle(
+                openUpward
+                    ? {
+                        position: 'fixed',
+                        bottom: window.innerHeight - rect.top + 4,
+                        left: rect.left,
+                        width: rect.width,
+                        maxHeight,
+                        zIndex: 9999,
+                    }
+                    : {
+                        position: 'fixed',
+                        top: rect.bottom + 4,
+                        left: rect.left,
+                        width: rect.width,
+                        maxHeight,
+                        zIndex: 9999,
+                    }
+            );
+        }
+        setOpen(prev => !prev);
+    };
+
     return (
         <div className={`br-node-config-modal__searchable-select ${className || ''}`}>
-            <div className="br-node-config-modal__searchable-select__trigger" onClick={(e) => { e.stopPropagation(); setOpen(!open); }}>
+            <div ref={triggerRef} className="br-node-config-modal__searchable-select__trigger" onClick={handleOpen}>
                 <span className="br-node-config-modal__searchable-select__value">{selected ? selected.name : <span className="br-node-config-modal__searchable-select__placeholder">{placeholder}</span>}</span>
                 <span className="br-node-config-modal__searchable-select__caret">▾</span>
             </div>
             {open && (
-                <div className="br-node-config-modal__searchable-select__dropdown" onClick={e => e.stopPropagation()}>
+                <div className="br-node-config-modal__searchable-select__dropdown br-node-config-modal__searchable-select__dropdown--fixed" style={dropdownStyle} onClick={e => e.stopPropagation()}>
                     <input type="text" autoFocus placeholder="Search..." value={query} onChange={e => setQuery(e.target.value)} className="br-node-config-modal__input br-node-config-modal__searchable-select__search" />
                     <div className="br-node-config-modal__searchable-select__options">
                         {options.filter(o => o.name.toLowerCase().includes(query.toLowerCase())).map(o => (
@@ -237,14 +273,75 @@ function VariantCard({ nodeId, variant, index, flags, statuses }) {
     );
 }
 
+// -- Sub-component: Searchable flag dropdown --
+function FlagDropdown({ flags, selectedIds, onAdd }) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    const ref = useRef(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
+
+    const available = flags.filter(f =>
+        !selectedIds.includes(f.id) &&
+        f.name.toLowerCase().includes(search.toLowerCase())
+    );
+
+    return (
+        <div className="br-flag-dropdown" ref={ref}>
+            <button
+                className="br-flag-dropdown__trigger"
+                onClick={() => { setOpen(o => !o); setSearch(''); }}
+                disabled={flags.length === 0}
+            >
+                <Plus className="br-flag-dropdown__icon" />
+                Add flag…
+                <ChevronDown className={`br-flag-dropdown__chevron ${open ? 'br-flag-dropdown__chevron--open' : ''}`} />
+            </button>
+            {open && (
+                <div className="br-flag-dropdown__panel">
+                    <input
+                        className="br-flag-dropdown__search"
+                        autoFocus
+                        type="text"
+                        placeholder="Search flags…"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                    <div className="br-flag-dropdown__options">
+                        {available.length === 0
+                            ? <span className="br-flag-dropdown__empty">No flags found</span>
+                            : available.map(f => (
+                                <button
+                                    key={f.id}
+                                    className="br-flag-dropdown__option"
+                                    onClick={() => { onAdd(f.id); setOpen(false); setSearch(''); }}
+                                >
+                                    {f.name}
+                                </button>
+                            ))
+                        }
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // -- Sub-component: Option Card (Choice node) --
 // FIX 8: Card title shows option.label if filled, fallback to "Option N"
 function OptionCard({ nodeId, option, index, flags, statuses }) {
     const [expanded, setExpanded] = useState(false);
-    const [flagSearch, setFlagSearch] = useState(''); // EXPLORE: Feature 1 & 2 tag search
-    const [flagFilter, setFlagFilter] = useState('both'); // EXPLORE: ON / OFF / BOTH
     const updateOption = useNarrativeStore(s => s.updateOption);
     const deleteOption = useNarrativeStore(s => s.deleteOption);
+    const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+    const editorSeenOptionIds = useNarrativeStore(s => s.editorSeenOptionIds);
+    const toggleOptionSeen = useNarrativeStore(s => s.toggleOptionSeen);
+    const isOptionSeen = editorSeenOptionIds.includes(`${nodeId}::${option.id}`);
 
     const toggleFlagSet = (flagId) => {
         const current = option.flags_set || [];
@@ -254,7 +351,7 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
 
     const addStatusEffect = () => {
         updateOption(nodeId, option.id, {
-            status_set: [...(option.status_set || []), { statusId: statuses[0]?.id || '', amount: 0 }]
+            status_set: [...(option.status_set || []), { statusId: statuses[0]?.id || '', amount: 0, mode: 'add' }]
         });
     };
 
@@ -283,9 +380,20 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                     }
                     <span className="br-node-config-modal__card__title">{cardTitle}</span>
                 </div>
-                <button className="br-node-config-modal__remove-btn" onClick={e => { e.stopPropagation(); deleteOption(nodeId, option.id); }}>
-                    <Trash2 className="br-node-config-modal__icon-md" />
-                </button>
+                <div className="br-node-config-modal__card__header-right">
+                    {!isCampaignActive && (
+                        <button
+                            className={`br-node-config-modal__seen-btn ${isOptionSeen ? 'br-node-config-modal__seen-btn--active' : ''}`}
+                            title={isOptionSeen ? 'Mark option as unseen' : 'Mark option as seen'}
+                            onClick={e => { e.stopPropagation(); toggleOptionSeen(nodeId, option.id); }}
+                        >
+                            <Check className="br-node-config-modal__icon-xs" />
+                        </button>
+                    )}
+                    <button className="br-node-config-modal__remove-btn" onClick={e => { e.stopPropagation(); deleteOption(nodeId, option.id); }}>
+                        <Trash2 className="br-node-config-modal__icon-md" />
+                    </button>
+                </div>
             </div>
             {expanded && (
                 <div className="br-node-config-modal__card__body">
@@ -308,49 +416,29 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                     {flags.length > 0 && (
                         <div className="br-node-config-modal__field">
                             <label className="br-node-config-modal__label">On-Select: Set Flags</label>
-                            {/* EXPLORE: Search + ON/OFF/BOTH filter row */}
-                            <div className="br-node-config-modal__flex-row--gap6">
-                                <input
-                                    className="br-node-config-modal__input br-node-config-modal__flex-1"
-                                    type="text"
-                                    placeholder="Search flags..."
-                                    value={flagSearch}
-                                    onChange={e => setFlagSearch(e.target.value)}
-                                />
-                                <select
-                                    className="br-node-config-modal__select br-node-config-modal__select--narrow"
-                                    value={flagFilter}
-                                    onChange={e => setFlagFilter(e.target.value)}
-                                >
-                                    <option value="both">Both</option>
-                                    <option value="on">ON</option>
-                                    <option value="off">OFF</option>
-                                </select>
-                            </div>
-                            <div className="br-node-config-modal__flags-tags">
-                                {(option.flags_set || []).map(flagId => {
-                                    const f = flags.find(fl => fl.id === flagId);
-                                    return f ? (
-                                        <span key={flagId} className="br-node-config-modal__flag-tag">
-                                            {f.name}
-                                            <button className="br-node-config-modal__flag-tag__remove" onClick={() => toggleFlagSet(flagId)}>
-                                                <X className="br-node-config-modal__icon-xs" />
-                                            </button>
-                                        </span>
-                                    ) : null;
-                                })}
-                                {flags.filter(f => {
-                                    const isSet = (option.flags_set || []).includes(f.id);
-                                    if (isSet) return false; // already shown as tags above
-                                    if (!f.name.toLowerCase().includes(flagSearch.toLowerCase())) return false;
-                                    if (flagFilter === 'on') return false; // ON means already-set only — none in add list
-                                    return true;
-                                }).map(f => (
-                                    <button key={f.id} className="br-node-config-modal__add-btn" onClick={() => toggleFlagSet(f.id)}>
-                                        <Plus className="br-node-config-modal__icon-xs" /> {f.name}
-                                    </button>
-                                ))}
-                            </div>
+                            <FlagDropdown
+                                flags={flags}
+                                selectedIds={option.flags_set || []}
+                                onAdd={toggleFlagSet}
+                            />
+                            {(option.flags_set || []).length > 0 && (
+                                <>
+                                    <div className="br-flag-dropdown__divider" />
+                                    <div className="br-node-config-modal__flags-tags">
+                                        {(option.flags_set || []).map(flagId => {
+                                            const f = flags.find(fl => fl.id === flagId);
+                                            return f ? (
+                                                <span key={flagId} className="br-node-config-modal__flag-tag">
+                                                    {f.name}
+                                                    <button className="br-node-config-modal__flag-tag__remove" onClick={() => toggleFlagSet(flagId)}>
+                                                        <X className="br-node-config-modal__icon-xs" />
+                                                    </button>
+                                                </span>
+                                            ) : null;
+                                        })}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                     {statuses.length > 0 && (
@@ -365,10 +453,23 @@ function OptionCard({ nodeId, option, index, flags, statuses }) {
                                         options={statuses}
                                         placeholder="Select status..."
                                     />
+                                    <div className="br-node-config-modal__mode-toggle">
+                                        <button
+                                            className={`br-node-config-modal__mode-btn br-node-config-modal__mode-btn--add ${(se.mode || 'add') === 'add' ? 'br-node-config-modal__mode-btn--active-add' : ''}`}
+                                            onClick={() => updateStatusEffect(idx, { mode: 'add' })}
+                                            title="Add / subtract from current value"
+                                        >ADD</button>
+                                        <button
+                                            className={`br-node-config-modal__mode-btn br-node-config-modal__mode-btn--set ${(se.mode || 'add') === 'set' ? 'br-node-config-modal__mode-btn--active-set' : ''}`}
+                                            onClick={() => updateStatusEffect(idx, { mode: 'set' })}
+                                            title="Force status to exact value"
+                                        >SET</button>
+                                    </div>
                                     <input
                                         type="number"
                                         className="br-node-config-modal__status-amount"
                                         value={se.amount ?? 0}
+                                        placeholder={(se.mode || 'add') === 'set' ? 'Value' : 'Amount'}
                                         onChange={e => updateStatusEffect(idx, { amount: Number(e.target.value) })}
                                     />
                                     <button className="br-node-config-modal__remove-btn" onClick={() => removeStatusEffect(idx)}>
@@ -420,6 +521,9 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
     const setStartNode = useNarrativeStore(s => s.setStartNode);
     const addVariant = useNarrativeStore(s => s.addVariant);
     const addOption = useNarrativeStore(s => s.addOption);
+    const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+    const isSeen = useNarrativeStore(s => s.editorSeenNodeIds.includes(nodeId));
+    const toggleNodeSeen = useNarrativeStore(s => s.toggleNodeSeen);
 
     // Close on Escape — use handleCancel so new-node orphan is deleted on ESC
     useEffect(() => {
@@ -436,8 +540,6 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
 
     const typeBadgeClass = isChoice ? 'br-node-config-modal__type-badge--choice' : isEnding ? 'br-node-config-modal__type-badge--ending' : 'br-node-config-modal__type-badge--common';
 
-    const [nodeFlagSearch, setNodeFlagSearch] = useState(''); // EXPLORE: tags filter
-    const [nodeFlagFilter, setNodeFlagFilter] = useState('both'); // EXPLORE: ON / OFF / BOTH
 
     const patch = (field, value) => updateNode(node.id, { data: { ...data, [field]: value } });
 
@@ -448,7 +550,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
     };
 
     const addStatusEffect = () => {
-        patch('status_set', [...(data.status_set || []), { statusId: statuses[0]?.id || '', amount: 0 }]);
+        patch('status_set', [...(data.status_set || []), { statusId: statuses[0]?.id || '', amount: 0, mode: 'add' }]);
     };
 
     const updateStatusEffect = (idx, p) => {
@@ -488,9 +590,21 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                         </span>
                         <h3 className="br-node-config-modal__header__title">Configure Node</h3>
                     </div>
-                    <button className="br-node-config-modal__close-btn" onClick={onClose}>
-                        <X className="br-node-config-modal__icon-lg" />
-                    </button>
+                    <div className="br-node-config-modal__header__right">
+                        {!isCampaignActive && (
+                            <button
+                                className={`br-node-config-modal__seen-btn ${isSeen ? 'br-node-config-modal__seen-btn--active' : ''}`}
+                                title={isSeen ? 'Mark node as unseen' : 'Mark node as seen'}
+                                onClick={() => toggleNodeSeen(nodeId)}
+                            >
+                                <Eye className="br-node-config-modal__icon-base" />
+                                {isSeen ? 'Seen' : 'Mark Seen'}
+                            </button>
+                        )}
+                        <button className="br-node-config-modal__close-btn" onClick={onClose}>
+                            <X className="br-node-config-modal__icon-lg" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Body */}
@@ -597,57 +711,32 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                 <div className="br-node-config-modal__modifiers-box">
                                     <div>
                                         <label className="br-node-config-modal__label br-node-config-modal__label--block">Set Flags (True)</label>
-                                        {/* EXPLORE: Search + ON/OFF/BOTH filter row */}
-                                        <div className="br-node-config-modal__flex-row--gap6">
-                                            <input
-                                                className="br-node-config-modal__input br-node-config-modal__flex-1"
-                                                type="text"
-                                                placeholder="Search flags..."
-                                                value={nodeFlagSearch}
-                                                onChange={e => setNodeFlagSearch(e.target.value)}
+                                        {flags.length === 0
+                                            ? <span className="br-node-config-modal__hint--inline">No flags defined.</span>
+                                            : <FlagDropdown
+                                                flags={flags}
+                                                selectedIds={data.flags_set || []}
+                                                onAdd={toggleFlag}
                                             />
-                                            <select
-                                                className="br-node-config-modal__select br-node-config-modal__select--narrow"
-                                                value={nodeFlagFilter}
-                                                onChange={e => setNodeFlagFilter(e.target.value)}
-                                            >
-                                                <option value="both">Both</option>
-                                                <option value="on">ON</option>
-                                                <option value="off">OFF</option>
-                                            </select>
-                                        </div>
-                                        <div className="br-node-config-modal__flags-tags">
-                                            {(data.flags_set || []).filter(flagId => {
-                                                const f = flags.find(fl => fl.id === flagId);
-                                                if (!f) return true; // keep unknown to show remove btn
-                                                if (nodeFlagFilter === 'off') return false;
-                                                return f.name.toLowerCase().includes(nodeFlagSearch.toLowerCase());
-                                            }).map(flagId => {
-                                                const f = flags.find(fl => fl.id === flagId);
-                                                return f ? (
-                                                    <span key={flagId} className="br-node-config-modal__flag-tag">
-                                                        {f.name}
-                                                        <button className="br-node-config-modal__flag-tag__remove" onClick={() => toggleFlag(flagId)}>
-                                                            <X className="br-node-config-modal__icon-xs" />
-                                                        </button>
-                                                    </span>
-                                                ) : null;
-                                            })}
-                                            {flags.filter(f => {
-                                                const isSet = (data.flags_set || []).includes(f.id);
-                                                if (isSet) return false;
-                                                if (!f.name.toLowerCase().includes(nodeFlagSearch.toLowerCase())) return false;
-                                                if (nodeFlagFilter === 'on') return false; // ON = already-set only
-                                                return true;
-                                            }).map(f => (
-                                                <button key={f.id} className="br-node-config-modal__add-btn" onClick={() => toggleFlag(f.id)}>
-                                                    <Plus className="br-node-config-modal__icon-xs" /> {f.name}
-                                                </button>
-                                            ))}
-                                            {flags.length === 0 && (
-                                                <span className="br-node-config-modal__hint--inline">No flags defined.</span>
-                                            )}
-                                        </div>
+                                        }
+                                        {(data.flags_set || []).length > 0 && (
+                                            <>
+                                                <div className="br-flag-dropdown__divider" />
+                                                <div className="br-node-config-modal__flags-tags">
+                                                    {(data.flags_set || []).map(flagId => {
+                                                        const f = flags.find(fl => fl.id === flagId);
+                                                        return f ? (
+                                                            <span key={flagId} className="br-node-config-modal__flag-tag">
+                                                                {f.name}
+                                                                <button className="br-node-config-modal__flag-tag__remove" onClick={() => toggleFlag(flagId)}>
+                                                                    <X className="br-node-config-modal__icon-xs" />
+                                                                </button>
+                                                            </span>
+                                                        ) : null;
+                                                    })}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
 
                                     <div className="br-node-config-modal__border-top">
@@ -661,10 +750,23 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                                                     options={statuses}
                                                     placeholder="Select status..."
                                                 />
+                                                <div className="br-node-config-modal__mode-toggle">
+                                                    <button
+                                                        className={`br-node-config-modal__mode-btn br-node-config-modal__mode-btn--add ${(se.mode || 'add') === 'add' ? 'br-node-config-modal__mode-btn--active-add' : ''}`}
+                                                        onClick={() => updateStatusEffect(idx, { mode: 'add' })}
+                                                        title="Add / subtract from current value"
+                                                    >ADD</button>
+                                                    <button
+                                                        className={`br-node-config-modal__mode-btn br-node-config-modal__mode-btn--set ${(se.mode || 'add') === 'set' ? 'br-node-config-modal__mode-btn--active-set' : ''}`}
+                                                        onClick={() => updateStatusEffect(idx, { mode: 'set' })}
+                                                        title="Force status to exact value"
+                                                    >SET</button>
+                                                </div>
                                                 <input
                                                     type="number"
                                                     className="br-node-config-modal__status-amount"
                                                     value={se.amount ?? 0}
+                                                    placeholder={(se.mode || 'add') === 'set' ? 'Value' : 'Amount'}
                                                     onChange={e => updateStatusEffect(idx, { amount: Number(e.target.value) })}
                                                 />
                                                 <button className="br-node-config-modal__remove-btn" onClick={() => removeStatusEffect(idx)}>

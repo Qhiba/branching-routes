@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNarrativeStore } from 'store';
-import { Search, Plus, Trash2, Pencil, Flag } from 'lucide-react';
+import { Search, Plus, Trash2, Pencil, Flag, GripVertical } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import NameModal from './NameModal';
 import './EntityList.css';
 
@@ -13,6 +14,26 @@ function getNodeLabel(ref, common, choice, ending) {
   return node ? { label: node.data?.label || nodeId, nodeId } : null;
 }
 
+function isFlagUsed(id, common, choice, ending, edges) {
+  for (const e of edges) {
+    if (e.condition && e.condition.conditions && e.condition.conditions.some(c => c.flag === id)) return true;
+  }
+  const allNodes = [...Object.values(common), ...Object.values(choice), ...Object.values(ending)];
+  for (const n of allNodes) {
+    if (n.data && n.data.flags_set && n.data.flags_set.includes(id)) return true;
+    if (n.data && Array.isArray(n.data.variants)) {
+      if (n.data.variants.some(v => v.requires && Array.isArray(v.requires.conditions) && v.requires.conditions.some(c => c.flag === id))) return true;
+    }
+    if (n.data && Array.isArray(n.data.options)) {
+      if (n.data.options.some(opt => 
+        (opt.requires && Array.isArray(opt.requires.conditions) && opt.requires.conditions.some(c => c.flag === id)) || 
+        (Array.isArray(opt.flags_set) && opt.flags_set.includes(id))
+      )) return true;
+    }
+  }
+  return false;
+}
+
 // CHANGED: Replaced legacy inline UI with full EntityListView design
 // PRESERVED: All CRUD operations and deletion blockers perfectly mirror original logic onto useNarrativeStore
 export default function FlagManager() {
@@ -22,12 +43,24 @@ export default function FlagManager() {
   const common = useNarrativeStore(state => state.common);
   const choice = useNarrativeStore(state => state.choice);
   const ending = useNarrativeStore(state => state.ending);
+  const edges = useNarrativeStore(state => state.edges);
+  const reorderDictionaryKeys = useNarrativeStore(state => state.reorderDictionaryKeys);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [editItem, setEditItem] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
 
   const filteredFlags = flags.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const isDragDisabled = searchQuery.trim().length > 0;
+
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const sourceId = filteredFlags[result.source.index].id;
+    const targetId = filteredFlags[result.destination.index].id;
+    if (sourceId !== targetId) {
+      reorderDictionaryKeys('flag', sourceId, targetId);
+    }
+  };
 
   const handleDelete = (e, id) => {
     e.stopPropagation();
@@ -56,12 +89,27 @@ export default function FlagManager() {
         </button>
       </div>
 
-      <div className="entity-list-content custom-scrollbar">
-        {filteredFlags.map(flag => (
-          <div key={flag.id} className="entity-list-item-wrapper">
-            <div className="entity-list-item">
-              <div className="entity-list-item-left">
-                <Flag size={14} className="entity-icon--purple" />
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="flags-list" isDropDisabled={isDragDisabled}>
+          {(provided) => (
+            <div className="entity-list-content custom-scrollbar" {...provided.droppableProps} ref={provided.innerRef}>
+              {filteredFlags.map((flag, index) => {
+                const isUsed = isFlagUsed(flag.id, common, choice, ending, edges);
+                return (
+                <Draggable key={flag.id} draggableId={flag.id} index={index} isDragDisabled={isDragDisabled}>
+                  {(provided, snapshot) => (
+                    <div 
+                      className={`entity-list-item-wrapper ${snapshot.isDragging ? 'is-dragging' : ''}`}
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      style={provided.draggableProps.style}
+                    >
+                      <div className="entity-list-item">
+                        <div className="entity-list-item-left">
+                          <div {...provided.dragHandleProps} className="entity-drag-handle" style={{ display: 'flex', alignItems: 'center', cursor: isDragDisabled ? 'default' : 'grab', marginRight: '8px', opacity: isDragDisabled ? 0.3 : 0.6 }}>
+                            <GripVertical size={14} />
+                          </div>
+                          <Flag size={14} className="entity-icon--purple" fill={isUsed ? "currentColor" : "none"} />
                 <div className="entity-list-item-col">
                   <span className="entity-list-item-name">{flag.name}</span>
                   <span className="entity-list-item-sub">Default: {String(flag.state)}</span>
@@ -103,9 +151,16 @@ export default function FlagManager() {
                 </div>
               </div>
             )}
-          </div>
-        ))}
+            </div>
+          )}
+          </Draggable>
+                );
+              })}
+        {provided.placeholder}
       </div>
+          )}
+        </Droppable>
+      </DragDropContext>
 
       {editItem && <NameModal entityType="flag" initialData={editItem === 'new' ? null : editItem} onClose={() => setEditItem(null)} />}
     </div>

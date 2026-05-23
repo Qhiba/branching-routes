@@ -120,6 +120,7 @@ function GraphCanvasInner() {
     addNode,
     addEdge,
     updateNode,
+    updateEdge,
     deleteNode,
   } = useNarrativeStore();
 
@@ -273,8 +274,7 @@ function GraphCanvasInner() {
       const state = useNarrativeStore.getState();
       const node = state.common[nodeId] || state.choice[nodeId] || state.ending[nodeId];
       if (!node) return;
-      // 125 / 75 match the Dagre layout node half-dimensions used in TopBar.jsx
-      setCenter(node.position.x + 125, node.position.y + 75, { zoom: 1.2, duration: 400 });
+      setCenter(node.position.x + 120, node.position.y + 80, { zoom: 1.2, duration: 400 });
     };
     window.addEventListener('canvas-navigate-to-node', handleNavigate);
     return () => window.removeEventListener('canvas-navigate-to-node', handleNavigate);
@@ -325,8 +325,8 @@ function GraphCanvasInner() {
   // ADDED: Phase 3 — Compute cluster bounding boxes (chapter and path regions)
   const clusterBoxes = useMemo(() => {
     const PADDING = 24;
-    const NODE_W = 250;
-    const NODE_H = 150;
+    const NODE_W = 240;
+    const NODE_H = 160;
 
     const computeBoxes = (entityKey) => {
       const groups = {};
@@ -413,6 +413,7 @@ function GraphCanvasInner() {
       sourceHandle: edge.optionId || null,
       type: 'conditionalEdge',
       selected: edge.id === selectedEdgeId,
+      reconnectable: common[edge.sourceId] ? true : 'target',
       markerEnd: {
         type: MarkerType.ArrowClosed,
         color: '#b1b6be',
@@ -420,10 +421,13 @@ function GraphCanvasInner() {
       data: {
         label: edge.label,
         condition: edge.condition,
-        optionId: edge.optionId
+        optionId: edge.optionId,
+        bendX: edge.bendX,
+        labelOffsetX: edge.labelOffsetX,
+        labelOffsetY: edge.labelOffsetY,
       }
     }));
-  }, [storeEdges, selectedEdgeId]);
+  }, [storeEdges, selectedEdgeId, common]);
 
   // CHANGED: Phase 6 fix — double-click on node opens edit modal
   const onNodeDoubleClick = useCallback((event, node) => {
@@ -462,6 +466,14 @@ function GraphCanvasInner() {
     event.stopPropagation();
     selectEdge(edge.id);
   }, [selectEdge]);
+
+  const onReconnect = useCallback((oldEdge, newConnection) => {
+    if (isCampaignActive) return;
+    const patch = {};
+    if (newConnection.target !== oldEdge.target) patch.targetId = newConnection.target;
+    if (newConnection.source !== oldEdge.source) patch.sourceId = newConnection.source;
+    if (Object.keys(patch).length > 0) updateEdge(oldEdge.id, patch);
+  }, [isCampaignActive, updateEdge]);
 
   // PROTECTED: onConnect edge-stamping logic
   const onConnect = useCallback((params) => {
@@ -593,6 +605,7 @@ function GraphCanvasInner() {
         onEdgeClick={onEdgeClick}
         onEdgeDoubleClick={onEdgeDoubleClick}
         onConnect={onConnect}
+        onReconnect={onReconnect}
         onPaneClick={onPaneClick}
         onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
@@ -601,12 +614,13 @@ function GraphCanvasInner() {
         onNodeContextMenu={onNodeContextMenu} // ADDED: Phase 3
         onEdgeContextMenu={onEdgeContextMenu} // ADDED: Phase 3
         onMoveStart={closeContextMenu} // ADDED: Phase 3 dismiss
-        defaultEdgeOptions={{ type: 'conditionalEdge' }}
+        defaultEdgeOptions={{ type: 'conditionalEdge', reconnectable: 'target' }}
         connectionLineType={ConnectionLineType.SmoothStep}
         snapToGrid={snapToGrid}
         snapGrid={[16, 16]}
         proOptions={{ hideAttribution: true }}
         zoomOnDoubleClick={false}
+        minZoom={0.1}
         fitView
       >
         <Background variant="dots" gap={16} />

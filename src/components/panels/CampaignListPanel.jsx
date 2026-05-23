@@ -1,8 +1,8 @@
 // CHANGED: Ported logic from CampaignSelector to CampaignListPanel
 // PRESERVED: Campaign lifecycle methods exactly matched to useCampaignStore
 import React, { useState } from 'react';
-import { useCampaignStore, useSimulationStore } from 'store';
-import { Play, Plus, Pencil, Trash2 } from 'lucide-react';
+import { useCampaignStore, useSimulationStore, useNarrativeStore } from 'store';
+import { Play, Plus, Pencil, Trash2, EyeOff } from 'lucide-react';
 import NameModal from '../NameModal';
 import './RightPanels.css';
 
@@ -16,6 +16,9 @@ export default function CampaignListPanel() {
     const deleteCampaign = useCampaignStore(s => s.deleteCampaign);
     const updateCampaign = useCampaignStore(s => s.updateCampaign);
     const setActiveCampaign = useCampaignStore(s => s.setActiveCampaign);
+
+    const clearAllSeen = useNarrativeStore(s => s.clearAllSeen);
+    const seenCount = useNarrativeStore(s => s.editorSeenNodeIds.length + s.editorSeenOptionIds.length);
 
     const campaigns = Object.values(campaignsMap);
     const [newCampName, setNewCampName] = useState('');
@@ -59,6 +62,18 @@ export default function CampaignListPanel() {
             </div>
 
             <div className="campaign-panel__hr" />
+
+            {/* Clear All Seen marks */}
+            {seenCount > 0 && !isCampaignActive && (
+                <button
+                    className="campaign-panel__clear-seen-btn"
+                    onClick={clearAllSeen}
+                    title="Remove all seen marks from nodes and options"
+                >
+                    <EyeOff size={12} />
+                    Clear All Seen ({seenCount})
+                </button>
+            )}
 
             <div className="campaign-panel__list custom-scrollbar">
                 <span className="campaign-panel__section-label">Available Campaigns</span>

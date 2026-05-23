@@ -1,16 +1,20 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useSimulationStore, useNarrativeStore, useUIStore } from 'store';
+import { evaluateCondition } from 'utils';
+import { Lock } from 'lucide-react';
 
 function ChoiceNode({ id, data }) {
   const nodeState = useSimulationStore(s => s.nodeStates[id]);
   const isSeen = useSimulationStore(s => s.seenNodeIds.includes(id));
+  const isEditorSeen = useNarrativeStore(s => (s.editorSeenNodeIds || []).includes(id));
   // ADDED: Phase 3 — coverage-gap dimming (unreachable but unseen nodes only; visited nodes always visible)
   const isCoverageGap = useSimulationStore(s => s.isCampaignActive && s.unreachableFromActiveNodeIds.includes(id) && !s.seenNodeIds.includes(id));
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
   const isActive = useSimulationStore(s => s.activeNodeId === id);
   const selectedOptionId = useSimulationStore(s => s.selectedOptionId);
   const selectOption = useSimulationStore(s => s.selectOption);
+  const currentFlagValues = useSimulationStore(s => s.currentFlagValues);
 
   const isOrphaned = useSimulationStore(s => s.orphanedNodeIds.includes(id));
   const isUnreachable = useSimulationStore(s => s.unreachableNodeIds.includes(id));
@@ -18,20 +22,24 @@ function ChoiceNode({ id, data }) {
   const outgoingEdgeCount = useNarrativeStore(s => s.edges.filter(e => e.sourceId === id).length);
 
   const choiceDisplayMode = useUIStore(s => s.choiceDisplayMode);
+  const editorSeenOptionIds = useNarrativeStore(s => s.editorSeenOptionIds || []);
 
   // ADDED: Phase 2 label display variables
   const labelDisplayMode = useUIStore(s => s.labelDisplayMode);
   const flagDict = useNarrativeStore(s => s.flag);
   const statusDict = useNarrativeStore(s => s.status);
+  const flagKeys = Object.keys(flagDict);
+  const statusKeys = Object.keys(statusDict);
 
   // MODIFIED: Phase 3 — add coverage-gap class to className string
-  const className = `story-node choice-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''}`.trim();
+  const className = `story-node choice-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''}`.trim();
 
   return (
     <div className={className}>
       <Handle type="target" position={Position.Left} className="choice-node__handle choice-node__handle--target" />
 
       <div className="story-node__type-bar choice-node__type-bar">
+        {/* Seen check icon — visible in editor mode only when manually marked */}
         <span className="story-node__type-label">CHOICE</span>
         {isOrphaned && (
           <span className="story-node__warning-badge" title="Node is entirely disconnected">
@@ -72,61 +80,123 @@ function ChoiceNode({ id, data }) {
           <p className="story-node__content-text">{data.content}</p>
         )}
 
-        {/* ADDED: Phase 2 verbose display for node-level side effects */}
         {labelDisplayMode === 'verbose' && ((data.flags_set?.length || 0) + (data.status_set?.length || 0)) > 0 && (
           <div className="verbose-effects-box">
-            {/* EXPLORE: Feature 3 - Flag true formatting */}
-            {data.flags_set?.map(flagId => (
-              <div key={`nf-${flagId}`} className="verbose-flag-true">• {`[${flagDict[flagId]?.name || 'Unknown'}] = true`}</div>
-            ))}
-            {/* EXPLORE: Feature 3 - Status number formatting */}
-            {data.status_set?.map(se => {
-              const val = se.amount ?? se.value ?? 0;
-              const valClass = val > 0 ? 'status-val--positive' : val < 0 ? 'status-val--negative' : '';
-              const formattedVal = val > 0 ? `+${val}` : val;
-              return (
-                <div key={`ns-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: <span className={valClass}>{formattedVal}</span></div>
-              );
-            })}
+            {data.flags_set?.length > 0 && (
+              <div className="verbose-effects-section">
+                {[...data.flags_set]
+                  .sort((a, b) => flagKeys.indexOf(a) - flagKeys.indexOf(b))
+                  .map(flagId => (
+                  <span key={`nf-${flagId}`} className="effect-chip effect-chip--flag">
+                    {flagDict[flagId]?.name || 'Unknown'}
+                  </span>
+                ))}
+              </div>
+            )}
+            {data.status_set?.length > 0 && (
+              <div className="verbose-effects-section">
+                {[...data.status_set]
+                  .sort((a, b) => statusKeys.indexOf(a.statusId) - statusKeys.indexOf(b.statusId))
+                  .map(se => {
+                  const val = se.amount ?? se.value ?? 0;
+                  const isSet = se.mode === 'set';
+                  const chipClass = isSet ? 'effect-chip--set' : val > 0 ? 'effect-chip--positive' : val < 0 ? 'effect-chip--negative' : 'effect-chip--set';
+                  const formattedVal = isSet ? `= ${val}` : val > 0 ? `+${val}` : `${val}`;
+                  return (
+                    <span key={`ns-${se.statusId}`} className={`effect-chip ${chipClass}`}>
+                      {statusDict[se.statusId]?.name || 'Unknown'} {formattedVal}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
         {Array.isArray(data.options) && data.options.length > 0 && (
           <div className="choice-node__options-list">
             {data.options.map(opt => {
+              const isOptionSeen = !isCampaignActive && editorSeenOptionIds.includes(`${id}::${opt.id}`);
               const displayLabel = choiceDisplayMode === 'full' ? opt.label : (opt.label.length > 25 ? opt.label.slice(0, 22) + '...' : opt.label);
               const isSelected = isActive && selectedOptionId === opt.id;
               const isDimmed = isActive && selectedOptionId !== null && !isSelected;
+              
+              // Evaluate if option requirements are met
+              const isConditionMet = !opt.requires || evaluateCondition(opt.requires, currentFlagValues);
+              const isClickable = isCampaignActive && isActive && isConditionMet && selectedOptionId === null;
+
               let optClassName = 'choice-node__option';
               if (isCampaignActive && isActive) {
-                optClassName += ' choice-node__option--clickable';
+                if (isClickable) optClassName += ' choice-node__option--clickable';
                 if (isSelected) optClassName += ' choice-node__option--selected';
-                else if (isDimmed) optClassName += ' choice-node__option--dimmed';
+                else if (isDimmed || !isConditionMet) optClassName += ' choice-node__option--dimmed';
               }
+              if (isOptionSeen) optClassName += ' choice-node__option--seen';
 
               return (
                 <div
                   key={opt.id}
                   className={optClassName}
-                  onClick={isCampaignActive && isActive ? (e) => { e.stopPropagation(); selectOption(opt.id); } : undefined}
+                  onClick={isClickable ? (e) => { e.stopPropagation(); selectOption(opt.id); } : undefined}
                 >
                   {displayLabel || (<i>Unnamed Option</i>)}
 
-                  {/* ADDED: Phase 2 verbose display for option-level side effects */}
-                  {labelDisplayMode === 'verbose' && ((opt.flags_set?.length || 0) + (opt.status_set?.length || 0)) > 0 && (
+                  {labelDisplayMode === 'verbose' && (((opt.flags_set?.length || 0) + (opt.status_set?.length || 0) > 0) || (opt.requires?.conditions?.length || 0) > 0) && (
                     <div className="verbose-effects-box--compact">
-                      {/* EXPLORE: Feature 3 - Flag true formatting */}
-                      {opt.flags_set?.map(flagId => (
-                        <div key={`of-${flagId}`} className="verbose-flag-true">• {`[${flagDict[flagId]?.name || 'Unknown'}] = true`}</div>
-                      ))}
-                      {/* EXPLORE: Feature 3 - Status number formatting */}
-                      {opt.status_set?.map(se => {
-                        const val = se.amount ?? se.value ?? 0;
-                        const valClass = val > 0 ? 'status-val--positive' : val < 0 ? 'status-val--negative' : '';
-                        const formattedVal = val > 0 ? `+${val}` : val;
-                        return (
-                          <div key={`os-${se.statusId}`}>• {statusDict[se.statusId]?.name || 'Unknown'}: <span className={valClass}>{formattedVal}</span></div>
-                        );
-                      })}
+                      {opt.requires?.conditions?.length > 0 && (
+                        <div className="verbose-effects-section">
+                          {opt.requires.conditions.map((c, i) => {
+                            if ('flag' in c) {
+                              const chipClass = c.state ? 'effect-chip--flag' : 'effect-chip--negative';
+                              return (
+                                <span key={`req-f-${i}`} className={`effect-chip effect-chip--compact ${chipClass}`}>
+                                  <Lock size={9} style={{ marginRight: '3px', marginTop: '-1px' }} />
+                                  {flagDict[c.flag]?.name || 'Unknown'} {c.state ? 'TRUE' : 'FALSE'}
+                                </span>
+                              );
+                            } else if ('status' in c) {
+                              let range = '';
+                              if (c.min !== undefined && c.max !== undefined) range = `${c.min}..${c.max}`;
+                              else if (c.min !== undefined) range = `≥${c.min}`;
+                              else if (c.max !== undefined) range = `≤${c.max}`;
+                              return (
+                                <span key={`req-s-${i}`} className="effect-chip effect-chip--compact effect-chip--status">
+                                  <Lock size={9} style={{ marginRight: '3px', marginTop: '-1px' }} />
+                                  {statusDict[c.status]?.name || 'Unknown'} {range}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
+                      )}
+                      {opt.flags_set?.length > 0 && (
+                        <div className="verbose-effects-section">
+                          {[...opt.flags_set]
+                            .sort((a, b) => flagKeys.indexOf(a) - flagKeys.indexOf(b))
+                            .map(flagId => (
+                            <span key={`of-${flagId}`} className="effect-chip effect-chip--flag effect-chip--compact">
+                              {flagDict[flagId]?.name || 'Unknown'}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {opt.status_set?.length > 0 && (
+                        <div className="verbose-effects-section">
+                          {[...opt.status_set]
+                            .sort((a, b) => statusKeys.indexOf(a.statusId) - statusKeys.indexOf(b.statusId))
+                            .map(se => {
+                            const val = se.amount ?? se.value ?? 0;
+                            const isSet = se.mode === 'set';
+                            const chipClass = isSet ? 'effect-chip--set' : val > 0 ? 'effect-chip--positive' : val < 0 ? 'effect-chip--negative' : 'effect-chip--set';
+                            const formattedVal = isSet ? `= ${val}` : val > 0 ? `+${val}` : `${val}`;
+                            return (
+                              <span key={`os-${se.statusId}`} className={`effect-chip effect-chip--compact ${chipClass}`}>
+                                {statusDict[se.statusId]?.name || 'Unknown'} {formattedVal}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
 

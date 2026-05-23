@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
     GitCommit, GitPullRequest, BoxSelect,
-    ChevronDown, Play, Undo, RotateCcw, X, Save, Upload
+    ChevronDown, Play, Undo, RotateCcw, X, Save, Upload, Eye
 } from 'lucide-react';
 // FIX 2: Added useUIStore for overlay toggle
 // FIX 3: Added snapshotCampaign, autosaveCampaign, setAutosaveCampaign for save/load controls
-import { useSimulationStore, useCampaignStore, useUIStore } from 'store';
+import { useSimulationStore, useCampaignStore, useUIStore, useNarrativeStore } from 'store';
 import './FloatingMiddleBar.css';
 
 export default function FloatingMiddleBar() {
@@ -22,6 +22,13 @@ export default function FloatingMiddleBar() {
     const showTraversalOverlay = useUIStore(s => s.showTraversalOverlay);
     const toggleTraversalOverlay = useUIStore(s => s.toggleTraversalOverlay);
 
+    // Save Seen selectors
+    const applySeenFromCampaign = useNarrativeStore(s => s.applySeenFromCampaign);
+    const edges = useNarrativeStore(s => s.edges);
+    const activeNodeId = useSimulationStore(s => s.activeNodeId);
+    const seenNodeIds = useSimulationStore(s => s.seenNodeIds);
+    const traversedEdgeIds = useSimulationStore(s => s.traversedEdgeIds);
+
     const campaignsMap = useCampaignStore(s => s.campaigns);
     const activeCampaignId = useCampaignStore(s => s.activeCampaignId);
     const setActiveCampaign = useCampaignStore(s => s.setActiveCampaign);
@@ -33,6 +40,7 @@ export default function FloatingMiddleBar() {
     const [selectedId, setSelectedId] = useState(firstCampaignId);
     // FIX 3: save flash state for visual feedback
     const [saveFlash, setSaveFlash] = useState(false);
+    const [seenFlash, setSeenFlash] = useState(false);
 
     // FIX 3: derived — does the active campaign have a saved snapshot to load?
     const activeCampaign = activeCampaignId ? campaignsMap[activeCampaignId] : null;
@@ -50,6 +58,21 @@ export default function FloatingMiddleBar() {
         snapshotCampaign();
         setSaveFlash(true);
         setTimeout(() => setSaveFlash(false), 1500);
+    };
+
+    const handleSaveSeen = () => {
+        // Include the node the player is currently on (not yet in seenNodeIds)
+        const allSeenNodeIds = activeNodeId
+            ? [...new Set([...seenNodeIds, activeNodeId])]
+            : [...seenNodeIds];
+        // Derive option keys from traversed edges that carry an optionId
+        const optionKeys = traversedEdgeIds
+            .map(edgeId => edges.find(e => e.id === edgeId))
+            .filter(e => e?.optionId)
+            .map(e => `${e.sourceId}::${e.optionId}`);
+        applySeenFromCampaign(allSeenNodeIds, optionKeys);
+        setSeenFlash(true);
+        setTimeout(() => setSeenFlash(false), 1500);
     };
 
     // FIX 3: load last save handler
@@ -125,6 +148,16 @@ export default function FloatingMiddleBar() {
                     />
                     Auto
                 </label>
+
+                <div className="br-floating-bar__divider-indigo"></div>
+
+                <button
+                    className="br-floating-bar__btn-action"
+                    onClick={handleSaveSeen}
+                    title="Merge nodes and options visited in this session into the canvas seen marks"
+                >
+                    <Eye className="w-3.5 h-3.5" /> {seenFlash ? '✓' : 'Save Seen'}
+                </button>
 
                 <div className="br-floating-bar__divider-indigo"></div>
 

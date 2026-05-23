@@ -2,7 +2,8 @@
 // PRESERVED: Hooked into existing narrativeStore and triggers legacy canvas events
 import React, { useState } from 'react';
 import { useNarrativeStore } from 'store';
-import { Search, Pencil, Trash2, Plus } from 'lucide-react';
+import { Search, Pencil, Trash2, Plus, GripVertical } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import './RightPanels.css';
 
 export default function NodesPanel() {
@@ -15,6 +16,7 @@ export default function NodesPanel() {
     const commonTypes = useNarrativeStore(state => state.commonType);
     const endingTypes = useNarrativeStore(state => state.endingType);
     const deleteNode = useNarrativeStore(state => state.deleteNode);
+    const reorderDictionaryKeys = useNarrativeStore(state => state.reorderDictionaryKeys);
 
     const [activeTab, setActiveTab] = useState('common');
     const [searchQuery, setSearchQuery] = useState('');
@@ -34,6 +36,17 @@ export default function NodesPanel() {
         }
         return match;
     });
+
+    const isDragDisabled = searchQuery.trim().length > 0 || filterChapter !== '' || filterPath !== '' || filterTypeNode !== '';
+
+    const onDragEnd = (result) => {
+        if (!result.destination) return;
+        const sourceId = nodes[result.source.index].id;
+        const targetId = nodes[result.destination.index].id;
+        if (sourceId !== targetId) {
+            reorderDictionaryKeys(activeTab, sourceId, targetId);
+        }
+    };
 
     const handleFocus = (nodeId) => {
         window.dispatchEvent(new CustomEvent('canvas-focus-node', { detail: { nodeId } }));
@@ -94,14 +107,28 @@ export default function NodesPanel() {
                 </div>
             </div>
 
-            <div className="nodes-panel__list custom-scrollbar">
-                {nodes.map(node => {
-                    const label = node.data?.label || node.id;
-                    const data = node.data || {};
-                    return (
-                        <div key={node.id} className={`nodes-panel__item nodes-panel__item--${activeTab}`} onClick={() => handleFocus(node.id)}>
-                            <div className="nodes-panel__item-info">
-                                <span className="nodes-panel__item-name">{label}</span>
+            <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId={`nodes-panel-${activeTab}`} isDropDisabled={isDragDisabled}>
+                    {(provided) => (
+                        <div className="nodes-panel__list custom-scrollbar" {...provided.droppableProps} ref={provided.innerRef}>
+                            {nodes.map((node, index) => {
+                                const label = node.data?.label || node.id;
+                                const data = node.data || {};
+                                return (
+                                    <Draggable key={node.id} draggableId={node.id} index={index} isDragDisabled={isDragDisabled}>
+                                        {(provided, snapshot) => (
+                                            <div 
+                                                className={`nodes-panel__item nodes-panel__item--${activeTab} ${snapshot.isDragging ? 'is-dragging' : ''}`}
+                                                onClick={() => handleFocus(node.id)}
+                                                ref={provided.innerRef}
+                                                {...provided.draggableProps}
+                                                style={provided.draggableProps.style}
+                                            >
+                                                <div {...provided.dragHandleProps} className="entity-drag-handle" style={{ display: 'flex', alignItems: 'center', cursor: isDragDisabled ? 'default' : 'grab', marginRight: '8px', opacity: isDragDisabled ? 0.3 : 0.6, height: '100%' }}>
+                                                    <GripVertical size={14} />
+                                                </div>
+                                                <div className="nodes-panel__item-info">
+                                                    <span className="nodes-panel__item-name">{label}</span>
                                 {data.content && (
                                     <span className="nodes-panel__item-content">
                                         {data.content}
@@ -130,15 +157,21 @@ export default function NodesPanel() {
                                     <Trash2 size={12} />
                                 </button>
                             </div>
+                                            </div>
+                                        )}
+                                    </Draggable>
+                                );
+                            })}
+                            {provided.placeholder}
+                            {nodes.length === 0 && (
+                                <div className="nodes-panel__empty">
+                                    No {activeTab} nodes found.
+                                </div>
+                            )}
                         </div>
-                    );
-                })}
-                {nodes.length === 0 && (
-                    <div className="nodes-panel__empty">
-                        No {activeTab} nodes found.
-                    </div>
-                )}
-            </div>
+                    )}
+                </Droppable>
+            </DragDropContext>
 
             <button className="nodes-panel__add-full-btn" onClick={handleCreateNode}>
                 <Plus size={16} /> Add {activeTab} Node
