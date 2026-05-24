@@ -158,6 +158,7 @@ export default function RouteTracingPanel() {
     const [priorities, setPriorities] = useState([]);
     const [pathCap, setPathCap] = useState(50);
     const [searchAll, setSearchAll] = useState(false);
+    const [searchDepth, setSearchDepth] = useState(-1);
     const [isTracing, setIsTracing] = useState(false);
     const cancelledRef = useRef(false);
 
@@ -243,7 +244,7 @@ export default function RouteTracingPanel() {
             if (cancelledRef.current) { setIsTracing(false); return; }
             setSelectedRouteIndex(0);
             const limit = searchAll ? Number.MAX_SAFE_INTEGER : (parseInt(pathCap) || 50);
-            computeRoutesFromStart(startNode.id, selectedNodeId, priorities, limit);
+            computeRoutesFromStart(startNode.id, selectedNodeId, priorities, limit, null, searchDepth);
             if (!showShortestRouteOverlay) toggleShortestRouteOverlay();
             setIsTracing(false);
         }, 400);
@@ -383,7 +384,7 @@ export default function RouteTracingPanel() {
         const wp = waypoints[0];
         if (!wp || !selectedNodeId) return;
         const limit = searchAll ? Number.MAX_SAFE_INTEGER : (parseInt(pathCap) || 50);
-        computeRoutesFromStart(wp.nodeId, selectedNodeId, priorities, limit, wp.flagStateAfter);
+        computeRoutesFromStart(wp.nodeId, selectedNodeId, priorities, limit, wp.flagStateAfter, searchDepth);
         // Clear waypoint after re-routing so new results are not marked as impossible
         setWaypoints([]);
         setPreWaypointResults(null);
@@ -781,6 +782,23 @@ export default function RouteTracingPanel() {
                         }}
                     />
                 )}
+            </div>
+
+            {/* Search Depth Limit */}
+            <div className="trace-panel__section">
+                <label className="trace-panel__label">
+                    Search Depth Limit <span className="trace-panel__label-sub">(-1 for unlimited)</span>
+                </label>
+                <input
+                    type="number"
+                    className="trace-panel__select trace-panel__pathcap-input"
+                    value={searchDepth}
+                    onChange={(e) => {
+                        let val = parseInt(e.target.value);
+                        if (isNaN(val)) val = -1;
+                        setSearchDepth(val);
+                    }}
+                />
             </div>
 
             <div className="trace-panel__run-row">

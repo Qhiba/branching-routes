@@ -324,6 +324,37 @@ select:focus {
 }
 
 /* =========================================
+   WARP PORTAL NODES (Entrance / Exit)
+   ========================================= */
+.warp-entrance-node {
+  border-color: var(--color-purple-500);
+  border-width: 2px;
+  border-left-width: 4px;
+  border-radius: 0 !important;
+  box-shadow: 0 0 0 1px var(--color-purple-500), var(--shadow-md);
+}
+
+.warp-entrance-node .story-node__type-bar {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  background: var(--color-purple-500);
+}
+
+.warp-exit-node {
+  border-color: var(--color-purple-500);
+  border-width: 2px;
+  border-right-width: 4px;
+  border-radius: 0 !important;
+  box-shadow: 0 0 0 1px var(--color-purple-500), var(--shadow-md);
+}
+
+.warp-exit-node .story-node__type-bar {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  background: var(--color-purple-500);
+}
+
+/* =========================================
    CHOICE NODE
    ========================================= */
 .choice-node {

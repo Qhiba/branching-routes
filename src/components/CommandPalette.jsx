@@ -54,7 +54,7 @@ export default function CommandPalette() {
       items.push({
         id: node.id,
         label: node.data.label || 'Unnamed',
-        type: 'Common Node',
+        type: node.type === 'warp_entrance' ? 'Warp Entrance' : node.type === 'warp_exit' ? 'Warp Exit' : 'Common Node',
         chapterName,
         pathName
       });
@@ -141,6 +141,8 @@ export default function CommandPalette() {
     { label: 'Create Common Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'common' } },
     { label: 'Create Choice Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'choice' } },
     { label: 'Create Ending Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'ending' } },
+    { label: 'Create Warp Entrance Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'warp_entrance' } },
+    { label: 'Create Warp Exit Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'warp_exit' } },
     { label: 'Create Flag', type: 'action', eventType: 'canvas-open-name-modal', detail: { entityType: 'flag' } },
     { label: 'Create Status', type: 'action', eventType: 'canvas-open-name-modal', detail: { entityType: 'status' } },
     { label: 'Create Path', type: 'action', eventType: 'canvas-open-name-modal', detail: { entityType: 'path' } },

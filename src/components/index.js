@@ -3,6 +3,8 @@ export { default as GraphCanvas } from './GraphCanvas';
 export { default as CommonNode } from './nodes/CommonNode';
 export { default as ChoiceNode } from './nodes/ChoiceNode';
 export { default as EndingNode } from './nodes/EndingNode';
+export { default as WarpEntranceNode } from './nodes/WarpEntranceNode';
+export { default as WarpExitNode } from './nodes/WarpExitNode';
 export { default as ConditionalEdge } from './edges/ConditionalEdge';
 export { default as TopBar } from './TopBar';
 // REMOVED (Phase 8): Sidebar — wrapper only, superseded by RightSidebar hosting SandboxPanel directly
@@ -16,6 +18,7 @@ export { default as SandboxPanel } from './SandboxPanel';
 // REMOVED (Phase 8): CampaignSelector — superseded by CampaignListPanel
 export { default as NameModal } from './NameModal';
 export { default as NodeConfigModal } from './modals/NodeConfigModal';
+export { default as WarpConfigModal } from './modals/WarpConfigModal';
 export { default as ContextMenu } from './ContextMenu';
 export { default as Toast } from './Toast';
 export { default as CommandPalette } from './CommandPalette';

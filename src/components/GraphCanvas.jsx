@@ -17,12 +17,15 @@ import useKeyboardShortcuts from 'hooks/useKeyboardShortcuts'; // ADDED: Phase 1
 import NameModal from 'components/NameModal'; // ADDED: Phase 2 NameModal import
 // CHANGED: NodeInspector docked panel → NodeConfigModal full-screen modal (Phase 6)
 import NodeConfigModal from 'components/modals/NodeConfigModal';
+import WarpConfigModal from 'components/modals/WarpConfigModal';
 import EdgeConfigModal from 'components/modals/EdgeConfigModal'; // ADDED: Phase 6
 import ContextMenu from 'components/ContextMenu'; // ADDED: Phase 3 ContextMenu import
 
 import CommonNode from './nodes/CommonNode';
 import ChoiceNode from './nodes/ChoiceNode';
 import EndingNode from './nodes/EndingNode';
+import WarpEntranceNode from './nodes/WarpEntranceNode';
+import WarpExitNode from './nodes/WarpExitNode';
 import ConditionalEdge from './edges/ConditionalEdge';
 
 // ADDED: Phase 3 — Cluster color palette (stable, module-level constant)
@@ -122,6 +125,7 @@ function GraphCanvasInner() {
     updateNode,
     updateEdge,
     deleteNode,
+    pasteNode,
   } = useNarrativeStore();
 
   const {
@@ -132,10 +136,11 @@ function GraphCanvasInner() {
     selectedEdgeId,
     selectedNodeIds, // ADDED: Phase 1
     setSelectedNodeIds, // ADDED: Phase 1
-    snapToGrid
+    snapToGrid,
+    followActiveNode
   } = useUIStore();
 
-  const { isCampaignActive, advance, reachableNodeIds, reachableEdgeIds, runPassiveAnalysis } = useSimulationStore();
+  const { isCampaignActive, activeNodeId, advance, reachableNodeIds, reachableEdgeIds, runPassiveAnalysis } = useSimulationStore();
 
   // PROTECTED: runPassiveAnalysis trigger useEffect
   useEffect(() => {
@@ -211,6 +216,25 @@ function GraphCanvasInner() {
     return () => window.removeEventListener('canvas-add-node', handleAddNode);
   }, [addNode, getMouseFlowPosition, screenToFlowPosition]);
 
+  // Listen for node pasting (Phase 8 Change #4)
+  useEffect(() => {
+    const handlePasteNode = (e) => {
+      if (useSimulationStore.getState().isCampaignActive) return;
+      const copiedNode = useUIStore.getState().copiedNode;
+      if (!copiedNode) return;
+      
+      let pos;
+      if (e.detail && e.detail.screenX !== undefined && e.detail.screenY !== undefined) {
+        pos = screenToFlowPosition({ x: e.detail.screenX, y: e.detail.screenY });
+      } else {
+        pos = getMouseFlowPosition();
+      }
+      pasteNode(copiedNode, pos);
+    };
+    window.addEventListener('canvas-paste-node', handlePasteNode);
+    return () => window.removeEventListener('canvas-paste-node', handlePasteNode);
+  }, [pasteNode, getMouseFlowPosition, screenToFlowPosition]);
+
   // FIX: listen for node creation modal — creates node immediately, then shows inspector modal
   useEffect(() => {
     const handleOpenNodeModal = (e) => {
@@ -280,6 +304,16 @@ function GraphCanvasInner() {
     return () => window.removeEventListener('canvas-navigate-to-node', handleNavigate);
   }, [setCenter]);
 
+  // ADDED: Phase 8 Change #6 — Follow Active Node in campaign mode
+  useEffect(() => {
+    if (isCampaignActive && followActiveNode && activeNodeId) {
+      const node = common[activeNodeId] || choice[activeNodeId] || ending[activeNodeId];
+      if (node) {
+        setCenter(node.position.x + 120, node.position.y + 80, { zoom: 1.2, duration: 400 });
+      }
+    }
+  }, [activeNodeId, isCampaignActive, followActiveNode, common, choice, ending, setCenter]);
+
   // ADDED: Phase 2 listen for naming modal opens
   useEffect(() => {
     const handleOpenModal = (e) => {
@@ -293,7 +327,9 @@ function GraphCanvasInner() {
   const nodeTypes = useMemo(() => ({
     commonNode: CommonNode,
     choiceNode: ChoiceNode,
-    endingNode: EndingNode
+    endingNode: EndingNode,
+    warpEntranceNode: WarpEntranceNode,
+    warpExitNode: WarpExitNode
   }), []);
 
   const edgeTypes = useMemo(() => ({ conditionalEdge: ConditionalEdge }), []);
@@ -308,7 +344,12 @@ function GraphCanvasInner() {
   const derivedNodes = useMemo(() => {
     // FIX: Sort all nodes by createdAt so later-created nodes appear on top (higher zIndex)
     const sorted = [
-      ...Object.values(common).map(node => ({ ...node, _type: 'commonNode' })),
+      ...Object.values(common).map(node => {
+        let _type = 'commonNode';
+        if (node.type === 'warp_entrance') _type = 'warpEntranceNode';
+        else if (node.type === 'warp_exit') _type = 'warpExitNode';
+        return { ...node, _type };
+      }),
       ...Object.values(choice).map(node => ({ ...node, _type: 'choiceNode' })),
       ...Object.values(ending).map(node => ({ ...node, _type: 'endingNode' })),
     ].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
@@ -550,7 +591,7 @@ function GraphCanvasInner() {
         />
       )}
 
-      {/* CHANGED: Phase 6 — Node creation modal now uses NodeConfigModal (was NodeInspector) */}
+      {/* CHANGED: Phase 6 — Node creation modal now uses NodeConfigModal or WarpConfigModal */}
       {/* FIX (self-review): onCancel wired to cancelNodeModal — deletes orphan if user cancels */}
       {pendingNodeModal !== null && (() => {
         const cancelNodeModal = () => {
@@ -558,6 +599,19 @@ function GraphCanvasInner() {
           clearSelection();
           setPendingNodeModal(null);
         };
+        const node = common[pendingNodeModal] || choice[pendingNodeModal] || ending[pendingNodeModal];
+        const isWarp = node?.type === 'warp_entrance' || node?.type === 'warp_exit';
+
+        if (isWarp) {
+          return (
+            <WarpConfigModal
+              nodeId={pendingNodeModal}
+              onClose={() => setPendingNodeModal(null)}
+              onCancel={cancelNodeModal}
+            />
+          );
+        }
+
         return (
           <NodeConfigModal
             nodeId={pendingNodeModal}
@@ -567,13 +621,27 @@ function GraphCanvasInner() {
         );
       })()}
 
-      {/* CHANGED: Phase 6 — Node edit modal now uses NodeConfigModal (was NodeInspector) */}
-      {editingNodeModal !== null && (
-        <NodeConfigModal
-          nodeId={editingNodeModal}
-          onClose={() => setEditingNodeModal(null)}
-        />
-      )}
+      {/* CHANGED: Phase 6 — Node edit modal now uses NodeConfigModal or WarpConfigModal */}
+      {editingNodeModal !== null && (() => {
+        const node = common[editingNodeModal] || choice[editingNodeModal] || ending[editingNodeModal];
+        const isWarp = node?.type === 'warp_entrance' || node?.type === 'warp_exit';
+
+        if (isWarp) {
+          return (
+            <WarpConfigModal
+              nodeId={editingNodeModal}
+              onClose={() => setEditingNodeModal(null)}
+            />
+          );
+        }
+
+        return (
+          <NodeConfigModal
+            nodeId={editingNodeModal}
+            onClose={() => setEditingNodeModal(null)}
+          />
+        );
+      })()}
 
       {/* ADDED: Phase 6 — Edge config modal */}
       {editingEdgeModal !== null && (

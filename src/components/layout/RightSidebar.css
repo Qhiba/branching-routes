@@ -15,6 +15,13 @@
     flex-shrink: 0;
     height: 100%;
     z-index: var(--z-context-menu);
+    overflow-y: auto;
+    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+}
+
+.br-right-sidebar__rail::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 
 .br-right-sidebar__panel {

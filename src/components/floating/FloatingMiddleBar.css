@@ -306,6 +306,14 @@
     color: var(--color-amber-500);
 }
 
+.br-floating-bar__node-btn--warp-entrance {
+    color: var(--color-purple-500);
+}
+
+.br-floating-bar__node-btn--warp-exit {
+    color: var(--color-purple-500);
+}
+
 /* Play icon fill */
 .br-floating-bar__play-icon {
     width: 10px;

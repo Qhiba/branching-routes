@@ -10,7 +10,7 @@ import './RightSidebar.css';
 
 // CHANGED: Phase 7 — subscribes to isCampaignActive to apply campaign-mode dim class
 export default function RightSidebar() {
-    const [activePanel, setActivePanel] = useState('Nodes');
+    const [activePanel, setActivePanel] = useState(null);
     // PRESERVED: per-slice selector per AR-23; AR-08 isolation — reads only isCampaignActive
     const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
 

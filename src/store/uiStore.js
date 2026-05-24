@@ -71,5 +71,31 @@ export const useUIStore = create((set, get) => ({
     if (type === 'edge' && state.selectedEdgeId === id) set({ selectedEdgeId: null });
   },
 
-  resetSelection: () => set({ selectedNodeId: null, selectedEdgeId: null, selectedNodeIds: [] }) // MODIFIED: keep consistent with clearSelection
+  resetSelection: () => set({ selectedNodeId: null, selectedEdgeId: null, selectedNodeIds: [] }), // MODIFIED: keep consistent with clearSelection
+
+  // Batch sequential flags configuration (Phase 8 Change #3)
+  seqStart: Number(localStorage.getItem('br_seqStart') ?? 1),
+  seqEnd: Number(localStorage.getItem('br_seqEnd') ?? 3),
+  seqPad: Number(localStorage.getItem('br_seqPad') ?? 3),
+
+  setSeqStart: (start) => {
+    localStorage.setItem('br_seqStart', start);
+    set({ seqStart: start });
+  },
+  setSeqEnd: (end) => {
+    localStorage.setItem('br_seqEnd', end);
+    set({ seqEnd: end });
+  },
+  setSeqPad: (pad) => {
+    localStorage.setItem('br_seqPad', pad);
+    set({ seqPad: pad });
+  },
+
+  // Copy/paste node configuration (Phase 8 Change #4)
+  copiedNode: null,
+  setCopiedNode: (node) => set({ copiedNode: node }),
+
+  // Follow Active Node toggle (Phase 8 Change #6)
+  followActiveNode: false,
+  setFollowActiveNode: (val) => set({ followActiveNode: val })
 }));

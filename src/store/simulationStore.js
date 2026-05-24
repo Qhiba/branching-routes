@@ -120,6 +120,18 @@ function computePassiveAnalysis(graphState) {
     const queue = [startNode.id];
     while (queue.length > 0) {
       const current = queue.shift();
+
+      // Follow warp portals
+      const currentNode = common[current];
+      if (currentNode && currentNode.type === 'warp_entrance') {
+        const channel = currentNode.data?.portalChannel;
+        const matchingExit = channel ? Object.values(common).find(n => n.type === 'warp_exit' && n.data?.portalChannel === channel) : null;
+        if (matchingExit && !visited.has(matchingExit.id)) {
+          visited.add(matchingExit.id);
+          queue.push(matchingExit.id);
+        }
+      }
+
       edges.filter(e => e.sourceId === current).forEach(e => {
         if (!visited.has(e.targetId)) {
           visited.add(e.targetId);
@@ -179,7 +191,7 @@ export const useSimulationStore = create((set, get) => ({
   // initialFlagState: when provided (freeze waypoint), skips the default seeding logic.
   // Scaffold: waypoints array in RouteTracingPanel passes only the active waypoint's
   // flagStateAfter here; multi-waypoint support will chain calls or extend this signature.
-  computeRoutesFromStart: (startNodeId, targetNodeId, priorities = [], limit = 50, initialFlagState = null) => {
+  computeRoutesFromStart: (startNodeId, targetNodeId, priorities = [], limit = 50, initialFlagState = null, maxDepth = -1) => {
     const state = get();
     const graphState = useNarrativeStore.getState();
 
@@ -206,7 +218,8 @@ export const useSimulationStore = create((set, get) => ({
       graphState,
       seedFlagValues,
       priorities,
-      limit
+      limit,
+      maxDepth
     );
 
     set({
@@ -431,34 +444,54 @@ export const useSimulationStore = create((set, get) => ({
       optionId: edge.optionId ?? null,
       fromNodeId: state.activeNodeId,
       toNodeId: edge.targetId,
-      flagSnapshot: state.preAdvanceFlagSnapshot ?? { ...state.currentFlagValues }
+      flagSnapshot: state.preAdvanceFlagSnapshot ?? { ...state.currentFlagValues },
+      seenNodeIdsSnapshot: [...state.seenNodeIds],
+      visitedNodeIdsSnapshot: [...state.visitedNodeIds]
     };
 
-    const isEnding = edge.targetId in (graphState.ending || {});
     let destNode = (graphState.common || {})[edge.targetId] || (graphState.choice || {})[edge.targetId] || (graphState.ending || {})[edge.targetId];
     if (!destNode) throw new Error('Destination node not found');
 
     let nextFlagValues = { ...state.currentFlagValues };
-
-
 
     if (destNode.data) {
       nextFlagValues = applyFlagsSet(destNode.data.flags_set, nextFlagValues);
       nextFlagValues = applyStatusSet(destNode.data.status_set, nextFlagValues);
     }
 
+    let finalDestNode = destNode;
+    let nextSeenNodeIds = [...state.seenNodeIds, state.activeNodeId];
+    let nextVisitedNodeIds = [...state.visitedNodeIds, state.activeNodeId];
+
+    if (destNode.type === 'warp_entrance') {
+      const channel = destNode.data?.portalChannel;
+      const matchingExit = channel ? Object.values(graphState.common).find(n => n.type === 'warp_exit' && n.data?.portalChannel === channel) : null;
+      if (matchingExit) {
+        // Record warp entrance node as seen & visited during traversal
+        nextSeenNodeIds = [...nextSeenNodeIds, destNode.id];
+        nextVisitedNodeIds = [...nextVisitedNodeIds, destNode.id];
+        finalDestNode = matchingExit;
+        if (finalDestNode.data) {
+          nextFlagValues = applyFlagsSet(finalDestNode.data.flags_set, nextFlagValues);
+          nextFlagValues = applyStatusSet(finalDestNode.data.status_set, nextFlagValues);
+        }
+      }
+    }
+
+    const isEnding = finalDestNode.id in (graphState.ending || {});
+
     // Carry forward any locked/branch_locked states from the previous computation.
     // Nodes ruled out by a past choice should stay visually locked for the session.
     // New computation takes priority via spread order.
     const persistedLocked = {};
     Object.entries(state.nodeStates).forEach(([nodeId, nodeState]) => {
-      if ((nodeState === 'locked' || nodeState === 'branch_locked') && nodeId !== edge.targetId) {
+      if ((nodeState === 'locked' || nodeState === 'branch_locked') && nodeId !== finalDestNode.id) {
         persistedLocked[nodeId] = nodeState;
       }
     });
 
     // ADDED: Phase 3 — compute forward-reachable nodes for coverage-gap dimming
-    const forwardReachable = computeForwardReachable(edge.targetId, graphState);
+    const forwardReachable = computeForwardReachable(finalDestNode.id, graphState);
     const allNodeIds = [
       ...Object.keys(graphState.common || {}),
       ...Object.keys(graphState.choice || {}),
@@ -467,11 +500,10 @@ export const useSimulationStore = create((set, get) => ({
     const nextUnreachableFromActiveNodeIds = allNodeIds.filter(id => !forwardReachable.has(id));
 
     if (isEnding) {
-      const nextSeenNodeIds = [...state.seenNodeIds, state.activeNodeId];
-      const newNodeStates = computeNodeStates(destNode.id, graphState, [], null, nextSeenNodeIds);
+      const newNodeStates = computeNodeStates(finalDestNode.id, graphState, [], null, nextSeenNodeIds);
       set({
-        activeNodeId: destNode.id,
-        visitedNodeIds: [...state.visitedNodeIds, state.activeNodeId],
+        activeNodeId: finalDestNode.id,
+        visitedNodeIds: nextVisitedNodeIds,
         seenNodeIds: nextSeenNodeIds,
         traversedEdgeIds: [...state.traversedEdgeIds, edgeId],
         currentFlagValues: nextFlagValues,
@@ -486,12 +518,11 @@ export const useSimulationStore = create((set, get) => ({
         unreachableFromActiveNodeIds: nextUnreachableFromActiveNodeIds
       });
     } else {
-      const nextSeenNodeIds = [...state.seenNodeIds, state.activeNodeId];
-      const { reachableEdgeIds, reachableNodeIds } = computeReachable(destNode.id, graphState, nextFlagValues);
-      const newNodeStates = computeNodeStates(destNode.id, graphState, reachableNodeIds, null, nextSeenNodeIds);
+      const { reachableEdgeIds, reachableNodeIds } = computeReachable(finalDestNode.id, graphState, nextFlagValues);
+      const newNodeStates = computeNodeStates(finalDestNode.id, graphState, reachableNodeIds, null, nextSeenNodeIds);
       set({
-        activeNodeId: destNode.id,
-        visitedNodeIds: [...state.visitedNodeIds, state.activeNodeId],
+        activeNodeId: finalDestNode.id,
+        visitedNodeIds: nextVisitedNodeIds,
         seenNodeIds: nextSeenNodeIds,
         traversedEdgeIds: [...state.traversedEdgeIds, edgeId],
         currentFlagValues: nextFlagValues,
@@ -579,7 +610,8 @@ export const useSimulationStore = create((set, get) => ({
     const record = state.traversalRecords[state.traversalRecords.length - 1];
     const graphState = useNarrativeStore.getState();
 
-    const restoredSeenNodeIds = state.seenNodeIds.slice(0, -1);
+    const restoredSeenNodeIds = record.seenNodeIdsSnapshot ?? state.seenNodeIds.slice(0, -1);
+    const restoredVisitedNodeIds = record.visitedNodeIdsSnapshot ?? state.visitedNodeIds.slice(0, -1);
     // Restore the option that was selected when this traversal happened so that
     // choice nodes become interactive again (computeReachable filters all edges
     // from a choice node when selectedOptionId is null).
@@ -617,6 +649,7 @@ export const useSimulationStore = create((set, get) => ({
 
     set({
       activeNodeId: record.fromNodeId,
+      visitedNodeIds: restoredVisitedNodeIds,
       currentFlagValues: { ...record.flagSnapshot },
       seenNodeIds: restoredSeenNodeIds,
       traversedEdgeIds: state.traversedEdgeIds.slice(0, -1),

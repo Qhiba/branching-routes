@@ -220,6 +220,12 @@
     border-color: rgba(var(--color-amber-500-rgb), 0.2);
 }
 
+.br-node-config-modal__type-badge--warp {
+    color: var(--color-purple-300);
+    background-color: rgba(var(--color-purple-500-rgb), 0.1);
+    border-color: rgba(var(--color-purple-500-rgb), 0.2);
+}
+
 .br-node-config-modal__header__title {
     font-size: 14px;
     font-weight: 700;

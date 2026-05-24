@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNarrativeStore } from 'store';
+import { useNarrativeStore, useUIStore } from 'store';
 import { X } from 'lucide-react';
 
 export default function NameModal({ entityType, initialData, onClose, onConfirm }) {
@@ -12,9 +12,12 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
 
   // Sequential batch mode (only for new flags)
   const [seqMode, setSeqMode] = useState(false);
-  const [seqStart, setSeqStart] = useState(1);
-  const [seqEnd, setSeqEnd] = useState(3);
-  const [seqPad, setSeqPad] = useState(3);
+  const seqStart = useUIStore(s => s.seqStart);
+  const seqEnd = useUIStore(s => s.seqEnd);
+  const seqPad = useUIStore(s => s.seqPad);
+  const setSeqStart = useUIStore(s => s.setSeqStart);
+  const setSeqEnd = useUIStore(s => s.setSeqEnd);
+  const setSeqPad = useUIStore(s => s.setSeqPad);
 
   const seqNames = useMemo(() => {
     const base = inputValue.trim();

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSimulationStore, useUIStore, useNarrativeStore } from 'store';
+import { useSimulationStore, useUIStore, useNarrativeStore, useToastStore } from 'store';
 
 // ADDED: Phase 1 stub hook for keyboard shortcuts
 // MODIFIED: Phase 2 dispatch mappings implemented
@@ -24,9 +24,51 @@ export default function useKeyboardShortcuts() {
         return;
       }
 
+      // Ctrl+C / Ctrl+V node copy-paste (Phase 8 Change #4)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+        if (!isCampaignActive) {
+          const uiState = useUIStore.getState();
+          const selectedId = uiState.selectedNodeId || (uiState.selectedNodeIds.length > 0 ? uiState.selectedNodeIds[0] : null);
+          if (selectedId) {
+            e.preventDefault();
+            const state = useNarrativeStore.getState();
+            const node = state.common[selectedId] || state.choice[selectedId] || state.ending[selectedId];
+            if (node) {
+              uiState.setCopiedNode(node);
+              useToastStore.getState().addToast(`Copied node: ${node.data?.label || 'Node'}`, 'success');
+            }
+          }
+        }
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+        if (!isCampaignActive) {
+          const uiState = useUIStore.getState();
+          if (uiState.copiedNode) {
+            e.preventDefault();
+            window.dispatchEvent(new CustomEvent('canvas-paste-node', { detail: {} }));
+          }
+        }
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'w') {
+        if (!isCampaignActive) {
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'warp_exit' } }));
+        }
+        return;
+      }
+
       // PROTECTED: ESC clears selection (legacy behavior preserved)
       if (e.key === 'Escape') {
         useUIStore.getState().clearSelection();
+        return;
+      }
+
+      // Guard: do not trigger single-key shortcuts if Ctrl, Meta, or Alt is held
+      if (e.ctrlKey || e.metaKey || e.altKey) {
         return;
       }
       
@@ -59,9 +101,8 @@ export default function useKeyboardShortcuts() {
       // Guard: Authoring shortcuts disabled in campaign mode
       if (isCampaignActive) return;
 
-      // MODIFIED: Phase 2 dispatch mappings
       const key = e.key.toLowerCase();
-      
+
       if (key === 'n') {
         window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'common' } }));
         return;
@@ -72,6 +113,10 @@ export default function useKeyboardShortcuts() {
       }
       if (key === 'e') {
         window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'ending' } }));
+        return;
+      }
+      if (key === 'w') {
+        window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'warp_entrance' } }));
         return;
       }
       

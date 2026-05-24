@@ -537,8 +537,11 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
     const isEnding = nodeType === 'ending';
     const isChoice = nodeType === 'choice';
     const isCommon = nodeType === 'common';
-
-    const typeBadgeClass = isChoice ? 'br-node-config-modal__type-badge--choice' : isEnding ? 'br-node-config-modal__type-badge--ending' : 'br-node-config-modal__type-badge--common';
+    const typeBadgeClass = isChoice 
+        ? 'br-node-config-modal__type-badge--choice' 
+        : isEnding 
+            ? 'br-node-config-modal__type-badge--ending' 
+            : 'br-node-config-modal__type-badge--common';
 
 
     const patch = (field, value) => updateNode(node.id, { data: { ...data, [field]: value } });

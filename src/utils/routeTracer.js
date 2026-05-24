@@ -24,7 +24,7 @@ export function detectDeadEnds(graphState) {
 
 // ADDED: Phase 3 — Forward-reachability BFS (structural, condition-agnostic)
 export function computeForwardReachable(startNodeId, graphState) {
-  const { edges = [] } = graphState;
+  const { edges = [], common = {} } = graphState;
   const visited = new Set();
   const queue = [startNodeId];
   const MAX_NODES = 500;
@@ -34,6 +34,16 @@ export function computeForwardReachable(startNodeId, graphState) {
     if (visited.has(currentId)) continue;
 
     visited.add(currentId);
+
+    // Warp portal teleportation
+    const currentNode = common[currentId];
+    if (currentNode && currentNode.type === 'warp_entrance') {
+      const channel = currentNode.data?.portalChannel;
+      const matchingExit = channel ? Object.values(common).find(n => n.type === 'warp_exit' && n.data?.portalChannel === channel) : null;
+      if (matchingExit && !visited.has(matchingExit.id)) {
+        queue.push(matchingExit.id);
+      }
+    }
 
     // Find all forward edges from this node
     const outgoingEdges = edges.filter(e => e.sourceId === currentId);
@@ -47,23 +57,33 @@ export function computeForwardReachable(startNodeId, graphState) {
   return visited;
 }
 
+function hashState(flagState) {
+  if (!flagState) return '';
+  const sortedKeys = Object.keys(flagState).sort();
+  return sortedKeys.map(k => `${k}:${flagState[k]}`).join(',');
+}
+
 // ADDED: Phase 4 — k-shortest-paths with gate evaluation via Yen-like bounded BFS
-export function computeShortestPaths(startNodeId, targetNodeId, graphState, currentFlagValues, priorities = [], limit = 50) {
-  const { edges = [] } = graphState;
+export function computeShortestPaths(startNodeId, targetNodeId, graphState, currentFlagValues, priorities = [], limit = 50, maxDepth = -1) {
+  const { edges = [], common = {}, choice = {}, ending = {} } = graphState;
   const MAX_STATE_VISITS = 10_000;
   const actualLimit = limit;
+  const parsedMaxDepth = parseInt(maxDepth);
+  const depthLimit = isNaN(parsedMaxDepth) ? -1 : parsedMaxDepth;
 
   const paths = [];
   let stateVisitCount = 0;
   let exhausted = false;
 
   // State-space BFS: each entry is (nodeId, flagState) pair
-  // Queue: { nodeId, flagState: {...}, pathEdgeIds: [], visitedGraphNodes: Set<nodeId> }
+  // Queue: { nodeId, flagState: {...}, pathEdgeIds: [], visitedGraphNodes: Set<stateKey> }
+  const initialHash = hashState(currentFlagValues);
+  const initialKey = `${startNodeId}::${initialHash}`;
   const queue = [{
     nodeId: startNodeId,
     flagState: { ...currentFlagValues },
     pathEdgeIds: [],
-    visitedGraphNodes: new Set([startNodeId])
+    visitedGraphNodes: new Set([initialKey])
   }];
 
   while (queue.length > 0 && stateVisitCount < MAX_STATE_VISITS) {
@@ -80,16 +100,52 @@ export function computeShortestPaths(startNodeId, targetNodeId, graphState, curr
       continue;
     }
 
+    // Check search depth limit
+    if (depthLimit !== -1 && current.pathEdgeIds.length >= depthLimit) {
+      continue;
+    }
+
+    // Warp portal teleportation
+    const currentNode = common[current.nodeId];
+    if (currentNode && currentNode.type === 'warp_entrance') {
+      const channel = currentNode.data?.portalChannel;
+      const matchingExit = channel ? Object.values(common).find(n => n.type === 'warp_exit' && n.data?.portalChannel === channel) : null;
+      if (matchingExit) {
+        let nextFlagState = { ...current.flagState };
+        // Apply exit node effects (if any)
+        if (matchingExit.data?.flags_set) {
+          matchingExit.data.flags_set.forEach(flagId => { nextFlagState[flagId] = true; });
+        }
+        if (matchingExit.data?.status_set) {
+          matchingExit.data.status_set.forEach(({ statusId, amount, mode }) => {
+            if (typeof nextFlagState[statusId] === 'number') {
+              nextFlagState[statusId] = mode === 'set' ? amount : nextFlagState[statusId] + amount;
+            }
+          });
+        }
+
+        const exitStateHash = hashState(nextFlagState);
+        const exitStateKey = `${matchingExit.id}::${exitStateHash}`;
+
+        if (!current.visitedGraphNodes.has(exitStateKey)) {
+          const nextVisited = new Set(current.visitedGraphNodes);
+          nextVisited.add(exitStateKey);
+          queue.push({
+            nodeId: matchingExit.id,
+            flagState: nextFlagState,
+            pathEdgeIds: current.pathEdgeIds, // Portal jump is a virtual edge, pathEdgeIds does not change
+            visitedGraphNodes: nextVisited
+          });
+          continue; // Teleport complete, don't expand normal outgoing edges from entrance
+        }
+      }
+    }
+
     // Expand outgoing edges from current node
     const outgoingEdges = edges.filter(e => e.sourceId === current.nodeId);
     outgoingEdges.forEach(edge => {
-      // Skip if would create a cycle (node already visited in this path)
-      if (current.visitedGraphNodes.has(edge.targetId)) return;
-
       // Evaluate edge gate condition
       if (!evaluateCondition(edge.condition, current.flagState)) return;
-
-      const { common = {}, choice = {}, ending = {} } = graphState;
 
       // If edge originates from a choice option, check option requires and apply option
       // side effects first — mirrors simulationStore.selectOption() execution order
@@ -129,9 +185,14 @@ export function computeShortestPaths(startNodeId, targetNodeId, graphState, curr
         });
       }
 
+      // State-aware cycle guard check
+      const nextStateHash = hashState(nextFlagState);
+      const nextStateKey = `${edge.targetId}::${nextStateHash}`;
+      if (current.visitedGraphNodes.has(nextStateKey)) return;
+
       // Add to queue
       const nextVisited = new Set(current.visitedGraphNodes);
-      nextVisited.add(edge.targetId);
+      nextVisited.add(nextStateKey);
       queue.push({
         nodeId: edge.targetId,
         flagState: nextFlagState,

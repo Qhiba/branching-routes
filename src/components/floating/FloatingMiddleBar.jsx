@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     GitCommit, GitPullRequest, BoxSelect,
-    ChevronDown, Play, Undo, RotateCcw, X, Save, Upload, Eye
+    ChevronDown, Play, Undo, RotateCcw, X, Save, Upload, Eye,
+    LogIn, LogOut
 } from 'lucide-react';
 // FIX 2: Added useUIStore for overlay toggle
 // FIX 3: Added snapshotCampaign, autosaveCampaign, setAutosaveCampaign for save/load controls
@@ -21,6 +22,8 @@ export default function FloatingMiddleBar() {
     // FIX 2: overlay toggle selectors
     const showTraversalOverlay = useUIStore(s => s.showTraversalOverlay);
     const toggleTraversalOverlay = useUIStore(s => s.toggleTraversalOverlay);
+    const followActiveNode = useUIStore(s => s.followActiveNode);
+    const setFollowActiveNode = useUIStore(s => s.setFollowActiveNode);
 
     // Save Seen selectors
     const applySeenFromCampaign = useNarrativeStore(s => s.applySeenFromCampaign);
@@ -113,6 +116,10 @@ export default function FloatingMiddleBar() {
                     Overlay: {showTraversalOverlay ? 'ON' : 'OFF'}
                 </button>
 
+                <button className="br-floating-bar__btn-action" onClick={() => setFollowActiveNode(!followActiveNode)}>
+                    Follow: {followActiveNode ? 'ON' : 'OFF'}
+                </button>
+
                 <div className="br-floating-bar__divider-indigo"></div>
 
                 <button className="br-floating-bar__btn-action" onClick={undoLastNode}>
@@ -192,6 +199,20 @@ export default function FloatingMiddleBar() {
                     title="Ending Node"
                 >
                     <BoxSelect className="w-4 h-4" />
+                </button>
+                <button
+                    onClick={() => handleCreateNode('warp_entrance')}
+                    className="br-floating-bar__node-btn br-floating-bar__node-btn--warp-entrance"
+                    title="Warp Entrance"
+                >
+                    <LogIn className="w-4 h-4" />
+                </button>
+                <button
+                    onClick={() => handleCreateNode('warp_exit')}
+                    className="br-floating-bar__node-btn br-floating-bar__node-btn--warp-exit"
+                    title="Warp Exit"
+                >
+                    <LogOut className="w-4 h-4" />
                 </button>
             </div>
 

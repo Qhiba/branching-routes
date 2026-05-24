@@ -24,18 +24,21 @@ A visual graph-based editor for branching narrative games with live simulation, 
 ```
 branching-routes/
 ├── index.html              # Entry point HTML shell
-├── vite.config.js          # Build config with src/ path aliases (components, store, utils, styles, hooks); Vitest configuration (globals, node environment)
+├── vite.config.js          # Build config with src/ path aliases (components, store, utils, styles, hooks)
 ├── package.json            # Dependencies and scripts
 │
 ├── public/                 # Static assets served as-is
-│   └── favicon.svg
+│   ├── favicon.svg
+│   └── icons.svg           # SVG icon sprites mapping
 │
 ├── src/
 │   ├── main.jsx            # React bootstrap — async boot: restores graph and campaigns from IndexedDB, wires debounced auto-save subscriptions for both stores, then renders <App />
 │   ├── App.jsx             # Root layout: TopBar + LeftSidebar + Canvas (with FloatingMiddleBar overlay) + RightSidebar; mount points for <Toast /> and <CommandPalette /> fixed overlays
 │   ├── App.css             # Grid layout styles for the three regions
+│   ├── index.css           # Unused template style file
 │   │
 │   ├── styles/
+│   │   ├── buttons.css     # Shared interactive button style classes
 │   │   ├── tokens.css      # Design system CSS custom properties (colours, spacing, typography); explicit z-index scale (--z-cluster, --z-context-menu, --z-modal, --z-palette, --z-toast); cluster palette color tokens; indigo accent scale; shadow and animation keyframe tokens; node type color tokens (--color-node-common, --color-node-choice, --color-node-ending)
 │   │   ├── utilities.css   # Shared UI-v2 primitive classes (pill, nameplate, floating-bar, modal-shell, segmented-control); imported by global.css
 │   │   └── global.css      # CSS reset, base styles, component styles, simulation mode overrides; Toast overlay; CommandPalette overlay; cluster overlay SVG regions; node type box-shadow glows; hover-only React Flow handles; frozen-prefix edge overlay
@@ -90,17 +93,18 @@ branching-routes/
 │       ├── modals/
 │       │   ├── NodeConfigModal.jsx     # Full-screen 2-column node editor (Common/Choice) or narrow single-column (Ending); label, chapter/path, node subtype, start-node button, on-enter modifiers, variants/options with condition builder; seen toggles for nodes and options (from narrativeStore); atomic creation flow (cancel deletes uncommitted node)
 │       │   ├── NodeConfigModal.css
+│       │   ├── WarpConfigModal.jsx     # Narrow single-column configuration modal for warp entrance/exit node connections (portalChannel selector, delete button)
 │       │   ├── EdgeConfigModal.jsx     # Full-screen edge editor; label, AND/OR condition builder with flag and status clauses; edge deletion
 │       │   └── EdgeConfigModal.css
 │       ├── nodes/
 │       │   ├── CommonNode.jsx          # Custom React Flow node; type bar displays user-defined subtype name when assigned; green border glow and corner badge (story-node--seen) from narrativeStore.editorSeenNodeIds in edit mode; verbose label mode renders side-effect names inline
 │       │   ├── ChoiceNode.jsx          # Custom React Flow node for player choices with per-option source handles; green border glow and corner badge (story-node--seen) and green option text from narrativeStore seen marks in edit mode; verbose label display mode renders side-effect names inline; options with unmet requirements show a lock pill and are dimmed/click-gated in campaign mode
-│       │   └── EndingNode.jsx          # Custom React Flow node for terminal states (no source handle); green border glow and corner badge (story-node--seen) from narrativeStore.editorSeenNodeIds in edit mode
+│       │   ├── EndingNode.jsx          # Custom React Flow node for terminal states (no source handle); green border glow and corner badge (story-node--seen) from narrativeStore.editorSeenNodeIds in edit mode
+│       │   ├── WarpEntranceNode.jsx    # Custom React Flow node for warp entrance (left target handle, purple type bar, square shape)
+│       │   └── WarpExitNode.jsx        # Custom React Flow node for warp exit (right source handle, purple type bar, square shape)
 │       ├── edges/
 │       │   └── ConditionalEdge.jsx     # Custom React Flow edge with condition badges and draggable labels (labelOffsetX/Y via Alt-to-drag); verbose label display mode resolves flag/status names in condition clauses; frozen-prefix overlay (green dashed, conditional-edge--frozen-overlay) driven by uiStore.frozenWaypointEdgeIds; merged route highlight overlay driven by uiStore.mergedGroupEdgeIds; edge bend control via data.bendX ratio → getSmoothStepPath centerX with draggable grip handle in editor mode
 │       └── index.js                    # Barrel re-export for all components
-│
-├── tests/                  # Vitest test suite; routeTracer.test.js tests route-tracing utilities against test.json example fixture
 │
 └── informations/           # Project documentation and run artifacts
     ├── project_overview.md          ← this file

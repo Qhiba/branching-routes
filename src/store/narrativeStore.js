@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { generateId } from 'utils';
 import { useUIStore } from './uiStore.js';
+import { useToastStore } from './toastStore.js';
 
 // INVARIANT: HS-08 (Do not import simulationStore to avoid circular dependence)
 
@@ -27,17 +28,26 @@ export const useNarrativeStore = create((set, get) => ({
     const id = generateId('n');
     set((state) => {
       const isEmpty = Object.keys(state.common).length === 0 && Object.keys(state.choice).length === 0 && Object.keys(state.ending).length === 0;
+      let defaultLabel = label;
+      if (label === 'Node') {
+        if (type === 'choice') defaultLabel = 'Choice Node';
+        else if (type === 'ending') defaultLabel = 'Ending Node';
+        else if (type === 'warp_entrance') defaultLabel = 'Warp Entrance';
+        else if (type === 'warp_exit') defaultLabel = 'Warp Exit';
+        else defaultLabel = 'Common Node';
+      }
       const newNode = {
         id,
         type,
         position,
         createdAt: Date.now(), // FIX: used for z-ordering in GraphCanvas derivedNodes
         data: {
-          label,
+          label: defaultLabel,
           content: '',
           isStartNode: isEmpty,
           flags_set: [],
-          status_set: []
+          status_set: [],
+          portalChannel: ''
         }
       };
       const target = type === 'ending' ? 'ending' : type === 'choice' ? 'choice' : 'common';
@@ -610,6 +620,51 @@ export const useNarrativeStore = create((set, get) => ({
       meta: { ...state.meta, updatedAt: Date.now() }
     };
   }),
+
+  pasteNode: (copiedNode, position) => {
+    if (!copiedNode) return;
+    const newId = generateId('n');
+    const pastedNode = JSON.parse(JSON.stringify(copiedNode));
+    
+    pastedNode.id = newId;
+    pastedNode.position = position;
+    pastedNode.createdAt = Date.now();
+    
+    if (pastedNode.data) {
+      pastedNode.data.isStartNode = false;
+      const originalLabel = pastedNode.data.label || 'Node';
+      pastedNode.data.label = originalLabel.endsWith(' (Copy)') ? originalLabel : `${originalLabel} (Copy)`;
+
+      // Regenerate nested option IDs for choice nodes to preserve referential integrity
+      if (pastedNode.type === 'choice' && Array.isArray(pastedNode.data.options)) {
+        pastedNode.data.options = pastedNode.data.options.map(opt => ({
+          ...opt,
+          id: generateId('opt')
+        }));
+      }
+
+      // Regenerate nested variant IDs for common nodes to preserve referential integrity
+      if (pastedNode.type === 'common' && Array.isArray(pastedNode.data.variants)) {
+        pastedNode.data.variants = pastedNode.data.variants.map(v => ({
+          ...v,
+          id: generateId('v')
+        }));
+      }
+    }
+
+    const target = pastedNode.type === 'ending' ? 'ending' : pastedNode.type === 'choice' ? 'choice' : 'common';
+    
+    set((state) => ({
+      [target]: { ...state[target], [newId]: pastedNode },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    }));
+
+    // Select the newly pasted node
+    useUIStore.getState().selectNode(newId);
+
+    // Toast notification
+    useToastStore.getState().addToast(`Pasted node: ${pastedNode.data.label}`, 'success');
+  },
 
   loadGraph: (graphData) => {
     // INVARIANT: LBA-02

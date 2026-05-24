@@ -175,6 +175,32 @@
           }
         ]
       }
+    },
+    "n-portal-entrance": {
+      "id": "n-portal-entrance",
+      "type": "warp_entrance",
+      "position": {
+        "x": 600,
+        "y": 200
+      },
+      "data": {
+        "label": "Warp Entrance to Lake",
+        "content": "Step into the glowing gateway to teleport to the underground lake.",
+        "portalChannel": "channel-underground-lake"
+      }
+    },
+    "n-portal-exit": {
+      "id": "n-portal-exit",
+      "type": "warp_exit",
+      "position": {
+        "x": 900,
+        "y": 200
+      },
+      "data": {
+        "label": "Warp Exit at Lake",
+        "content": "You emerge from the glowing portal near the edge of the lake.",
+        "portalChannel": "channel-underground-lake"
+      }
     }
   },
   "choice": {

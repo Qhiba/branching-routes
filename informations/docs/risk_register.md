@@ -68,6 +68,7 @@
 | RISK-UI-01 | SandboxPanel retirement scope ambiguity | Low | Medium | Retained `SandboxPanel` UI under Sandbox tab; full retirement deferred as a future feature decision | ACKNOWLEDGED |
 | RISK-UI-02 | JS bundle size exceeds Vite 500 kB advisory | Low | Low | Pre-existing; unrelated to UI integration; deferred | ACKNOWLEDGED |
 | RISK-IMP-01 | New schema field omitted from import sanitization whitelist causes silent data loss | High | High | AR-27 paired-invariant rule; `editorSeenNodeIds`/`editorSeenOptionIds` fix | RESOLVED |
+| RISK-IMP-02 | Custom node subtypes commonType/endingType silently dropped on import | High | High | Add fields to sanitizedData whitelist in importProject() | OPEN |
 
 ---
 
@@ -878,3 +879,48 @@
 **Mitigation Strategy:** Removed `transform` from `.left-sidebar` and `.right-sidebar` entrance animations, substituting with margin-based animations. AR-29 formalizes this CSS restriction.
 
 **Status:** RESOLVED — Sidebars updated to avoid `transform`. Offset bug eliminated.
+
+---
+
+## RISK-IMP-02 — Custom Node Subtypes Silently Dropped on Import due to Whitelist Omission
+
+**Description:** Custom node subtypes (`commonType` and `endingType` collections) are correctly persisted in `exportGraph()` output, but they are completely omitted from the `sanitizedData` whitelist object in `fileSystem.js` `importProject()`. Any field not explicitly whitelisted is silently dropped on import.
+
+**What could go wrong:** Designers define custom node subtypes (e.g. "Quest", "Dialogue", "Combat") and export their project. Upon re-importing the JSON/ZIP project, all custom subtypes are silently erased, leaving the node subtype definitions empty.
+
+**Likelihood:** High — Subtypes are an active part of the schema version 4 data model and are exported, but currently stripped on every import.
+
+**Impact:** High — Silent data loss of custom subtypes on round-trip with no warning.
+
+**Mitigation Strategy:** Update `importProject()` in `fileSystem.js` to whitelist `commonType` and `endingType` fields in the `sanitizedData` object, mapping them from `data.commonType` and `data.endingType`.
+
+**Status:** OPEN — Awaiting code implementation in `fileSystem.js`.
+
+---
+
+## RISK-RT-06 — Infinite Warp Portal Loops Without State Updates In Route Pathfinder
+
+**Description:** If a designer creates a cycle composed entirely of warp portals and edges with no flags or status point modifications, the route tracer might expand paths infinitely, freezing the browser.
+
+**Likelihood:** High — Loop-based portal structures are easily designed.
+
+**Impact:** High — Browser tab lockup or out-of-memory crash.
+
+**Mitigation Strategy:** The route pathfinder in `routeTracer.js` implements a state-aware cycle guard hashing active flags and status values using a sorted `stateHash`. Visited nodes are tracked as `nodeId::stateHash`. This allows looping back through nodes only if narrative flags or status points change. Additionally, the pathfinder BFS queue expansion is bounded by a hard ceiling of `MAX_STATE_VISITS = 10_000` state visits.
+
+**Status:** RESOLVED — Hashing state guard and `MAX_STATE_VISITS` ceiling successfully prevent infinite cycles while permitting legitimate variable-driven loops.
+
+---
+
+## RISK-RT-07 — Stale Active Node Centering When Viewport Following Toggle is Enabled
+
+**Description:** In campaign mode, if the viewport centering logic runs concurrently with manual canvas dragging or zooming, it could cause visual jitter or fight with user input.
+
+**Likelihood:** Medium.
+
+**Impact:** Medium — UX jitter and coordinate fights.
+
+**Mitigation Strategy:** Viewport following is completely user-configurable via the "Follow: ON/OFF" toggle in the floating campaigns toolbar. When disabled, the canvas respects manual panning and zoom fully. When enabled, it centers on the active node coordinates only when `activeNodeId` changes (step transition), not on high-frequency drag events.
+
+**Status:** RESOLVED — User toggle control and reactive transition gating prevent manual panning conflicts.
+

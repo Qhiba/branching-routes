@@ -1,11 +1,13 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
-import { useNarrativeStore, useUIStore } from 'store';
+import { useNarrativeStore, useUIStore, useToastStore } from 'store';
 
 // ADDED: Phase 3 ContextMenu component
 export default function ContextMenu({ x, y, type, targetId, onClose }) {
   const menuRef = useRef(null);
   const [style, setStyle] = useState({ left: x, top: y, visibility: 'hidden' });
   const selectedNodeIds = useUIStore(s => s.selectedNodeIds);
+  const copiedNode = useUIStore(s => s.copiedNode);
+  const setCopiedNode = useUIStore(s => s.setCopiedNode);
 
   // PROTECTED: Viewport edge flip logic (mitigates RISK-CMK-05)
   useLayoutEffect(() => {
@@ -64,6 +66,26 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
             })}>
               Add Ending Node
             </button>
+            <button className="context-menu__item" onClick={handleAction(() => {
+              window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'warp_entrance', screenX: x, screenY: y } }));
+            })}>
+              Add Warp Entrance
+            </button>
+            <button className="context-menu__item" onClick={handleAction(() => {
+              window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'warp_exit', screenX: x, screenY: y } }));
+            })}>
+              Add Warp Exit
+            </button>
+            {copiedNode && (
+              <>
+                <div className="context-menu__divider" />
+                <button className="context-menu__item" onClick={handleAction(() => {
+                  window.dispatchEvent(new CustomEvent('canvas-paste-node', { detail: { screenX: x, screenY: y } }));
+                })}>
+                  Paste Node
+                </button>
+              </>
+            )}
           </>
         );
       case 'node':
@@ -78,6 +100,15 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
               navStore.setStartNode && navStore.setStartNode(targetId);
             })}>
               Set as Start Node
+            </button>
+            <button className="context-menu__item" onClick={handleAction(() => {
+              const node = navStore.common[targetId] || navStore.choice[targetId] || navStore.ending[targetId];
+              if (node) {
+                setCopiedNode(node);
+                useToastStore.getState().addToast(`Copied node: ${node.data?.label || 'Node'}`, 'success');
+              }
+            })}>
+              Copy Node
             </button>
             <div className="context-menu__divider" />
             <button className="context-menu__item context-menu__item--danger" onClick={handleAction(() => {

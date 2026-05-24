@@ -24,7 +24,24 @@ export default function NodesPanel() {
     const [filterPath, setFilterPath] = useState('');
     const [filterTypeNode, setFilterTypeNode] = useState('');
 
-    const nodesDict = activeTab === 'common' ? common : activeTab === 'choice' ? choice : ending;
+    let nodesDict = {};
+    if (activeTab === 'common') {
+        Object.keys(common || {}).forEach(k => {
+            if (common[k].type !== 'warp_entrance' && common[k].type !== 'warp_exit') {
+                nodesDict[k] = common[k];
+            }
+        });
+    } else if (activeTab === 'choice') {
+        nodesDict = choice;
+    } else if (activeTab === 'ending') {
+        nodesDict = ending;
+    } else if (activeTab === 'warp') {
+        Object.keys(common || {}).forEach(k => {
+            if (common[k].type === 'warp_entrance' || common[k].type === 'warp_exit') {
+                nodesDict[k] = common[k];
+            }
+        });
+    }
 
     const nodes = Object.values(nodesDict || {}).filter(n => {
         let match = (n.data?.label || n.id).toLowerCase().includes(searchQuery.toLowerCase());
@@ -37,9 +54,10 @@ export default function NodesPanel() {
         return match;
     });
 
-    const isDragDisabled = searchQuery.trim().length > 0 || filterChapter !== '' || filterPath !== '' || filterTypeNode !== '';
+    const isDragDisabled = activeTab === 'warp' || searchQuery.trim().length > 0 || filterChapter !== '' || filterPath !== '' || filterTypeNode !== '';
 
     const onDragEnd = (result) => {
+        if (activeTab === 'warp') return;
         if (!result.destination) return;
         const sourceId = nodes[result.source.index].id;
         const targetId = nodes[result.destination.index].id;
@@ -62,13 +80,17 @@ export default function NodesPanel() {
     };
 
     const handleCreateNode = () => {
-        window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: activeTab } }));
+        if (activeTab === 'warp') {
+            window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'warp_entrance' } }));
+        } else {
+            window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: activeTab } }));
+        }
     };
 
     return (
         <div className="nodes-panel">
             <div className="nodes-panel__tabs">
-                {['common', 'choice', 'ending'].map(tab => (
+                {['common', 'choice', 'ending', 'warp'].map(tab => (
                     <button
                         key={tab}
                         onClick={() => { setActiveTab(tab); setFilterChapter(''); setFilterPath(''); setFilterTypeNode(''); }}
@@ -148,6 +170,12 @@ export default function NodesPanel() {
                                         <span>{(data.options || []).length} Options</span>
                                     </div>
                                 )}
+                                {activeTab === 'warp' && (
+                                    <div className="nodes-panel__item-stats">
+                                        <span>Type: {node.type === 'warp_entrance' ? 'Entrance' : 'Exit'}</span> •
+                                        <span>Channel: {data.portalChannel || '(not set)'}</span>
+                                    </div>
+                                )}
                             </div>
                             <div className="nodes-panel__item-actions">
                                 <button onClick={(e) => { e.stopPropagation(); handleEdit(node.id); }} className="panel-action-btn" title="Edit">
@@ -174,7 +202,7 @@ export default function NodesPanel() {
             </DragDropContext>
 
             <button className="nodes-panel__add-full-btn" onClick={handleCreateNode}>
-                <Plus size={16} /> Add {activeTab} Node
+                <Plus size={16} /> Add {activeTab === 'warp' ? 'Warp' : activeTab} Node
             </button>
         </div>
     );
