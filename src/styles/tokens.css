@@ -55,6 +55,8 @@
   /* royal blue */
   --color-node-ending: #c25a18;
   /* burnt amber */
+  --color-node-hub: #14b8a6;
+  /* electric teal / cyan router */
   --color-primary: #7393f8;
   /* general theme interaction color */
   --color-primary-hover: #5b7be5;
@@ -96,8 +98,8 @@
   --space-7: 32px;
   --space-8: 48px;
 
-  /* Typography */
-  --font-family-base: 'Inter', system-ui, sans-serif;
+  /* Typography (AR-10 Offline-Only System Font Stack) */
+  --font-family-base: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-size-xs: 11px;
   --font-size-sm: 13px;
   --font-size-md: 15px;
@@ -200,6 +202,11 @@
   --color-border-subtle-rgb: 30, 41, 59;
   --color-bg-sidebar-rgb: 7, 10, 17;
   --color-text-muted-rgb: 99, 107, 140;
+
+  /* ADDED: Tag & Pink Color Variables */
+  --color-pink-500: #ec4899;
+  --color-pink-500-rgb: 236, 72, 153;
+  --color-pink-400: #f472b6;
 }
 
 /* ADDED: Phase 0 — Animation keyframes */

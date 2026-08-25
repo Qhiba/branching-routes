@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import NameplateTab from './NameplateTab';
 // CHANGED (Phase 8): Removed legacy Sidebar wrapper; render SandboxPanel directly in Sandbox tab
 import SandboxPanel from '../SandboxPanel';
+import FiltersPanel from '../panels/FiltersPanel';
 import NodesPanel from '../panels/NodesPanel';
 import RouteTracingPanel from '../panels/RouteTracingPanel';
 import CampaignListPanel from '../panels/CampaignListPanel';
@@ -22,6 +23,7 @@ export default function RightSidebar() {
 
     // CHANGED (Phase 8): 'Legacy Panel' tab renamed to 'Sandbox' — it now exclusively hosts SandboxPanel
     const mockTabs = [
+        { id: 'Filters', label: 'Filters' },
         { id: 'Nodes', label: 'Nodes' },
         { id: 'RouteTracing', label: 'Route Tracing' },
         { id: 'CampaignList', label: 'Campaign List' },
@@ -33,6 +35,7 @@ export default function RightSidebar() {
         <div className={`br-right-sidebar${isCampaignActive ? ' br-right-sidebar--campaign-mode' : ''}`}>
             <div className={`br-right-sidebar__panel ${activePanel ? 'br-right-sidebar__panel--open' : ''}`}>
                 <div className="br-right-sidebar__panel-content br-right-sidebar__panel-content--flex">
+                    {activePanel === 'Filters' && <FiltersPanel />}
                     {activePanel === 'Nodes' && <NodesPanel />}
                     {activePanel === 'RouteTracing' && <RouteTracingPanel />}
                     {activePanel === 'CampaignList' && <CampaignListPanel />}

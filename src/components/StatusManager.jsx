@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNarrativeStore } from 'store';
+import { useNarrativeStore, useSimulationStore } from 'store';
 import { Search, Plus, Trash2, Pencil, Activity, GripVertical } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import NameModal from './NameModal';
@@ -50,6 +50,13 @@ export default function StatusManager() {
     }
   };
 
+  const handleForceDelete = (id) => {
+    deleteStatus(id, true);
+    setDeleteError(null);
+  };
+
+  const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+
   return (
     <div className="entity-list-view">
       <div className="entity-list-header">
@@ -63,7 +70,12 @@ export default function StatusManager() {
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
-        <button className="entity-list-add-btn" onClick={() => setEditItem('new')}>
+        <button
+          className="entity-list-add-btn"
+          onClick={() => !isCampaignActive && setEditItem('new')}
+          disabled={isCampaignActive}
+          title={isCampaignActive ? 'Cannot add entities during campaign mode' : 'Add Status'}
+        >
           <Plus size={16} />
         </button>
       </div>
@@ -128,6 +140,9 @@ export default function StatusManager() {
                 </ul>
                 <div className="entity-delete-error__footer">
                   <button onClick={() => setDeleteError(null)} className="entity-delete-error__dismiss-btn">Dismiss</button>
+                  <button onClick={() => handleForceDelete(statusObj.id)} className="entity-delete-error__force-btn" title="Cascades delete to strip references">
+                    Force Delete
+                  </button>
                 </div>
               </div>
             )}

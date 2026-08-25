@@ -7,7 +7,7 @@
 
 ## AR-01 — Naming: Files
 
-All component files use PascalCase (e.g., `NodeCard.jsx`). All store files use camelCase with a `store` suffix (e.g., `graphStore.js`). All utility files use camelCase with no suffix (e.g., `conditionEvaluator.js`).
+All component files use PascalCase (e.g., `NodeCard.jsx`). All store files use camelCase with a `store` suffix (e.g., `narrativeStore.js`). All utility files use camelCase with no suffix (e.g., `conditionEvaluator.js`).
 
 **Rationale:** Consistent naming conventions make files immediately identifiable by their role (component vs. store vs. utility) without opening them.
 
@@ -81,6 +81,8 @@ The exported JSON structure is versioned via a top-level `"schemaVersion"` field
 
 This application makes zero network requests at runtime. No fetch, axios, or WebSocket calls are permitted in application code. All persistence is via the browser's File System Access API (`showSaveFilePicker` / `showOpenFilePicker`).
 
+> **NOTE:** RESOLVED — CDN links removed from index.html, system font stack now used in tokens.css.
+
 **Rationale:** The project is scoped as a fully offline, localhost tool. Eliminating network dependencies ensures the app works without internet access and avoids all privacy/data-residency concerns.
 
 ---
@@ -112,6 +114,8 @@ Nested arrays inside `node.data` (e.g., `variants[]`, `options[]`) must be manag
 ## AR-14 — Zustand Selector Stability
 
 Zustand selectors must never return new object or array literals (e.g., `[]`, `{}`) as fallback values. Returning a new reference on every call causes Zustand to detect a state change on every render cycle, triggering infinite re-render loops. Selectors must return `undefined` or `null` for absent data; the consuming component defaults outside the hook.
+
+> **NOTE:** RESOLVED — `CommandPalette.jsx` was refactored from a whole-store destructure to per-slice selectors.
 
 **Rationale:** A `return []` inside a selector creates a new array reference on every evaluation. Zustand uses strict equality (`===`) to detect changes, so a new reference triggers a re-render, which re-evaluates the selector, which returns another new reference — producing an infinite loop that crashes the UI.
 
@@ -207,7 +211,6 @@ All controls that initiate, progress, or terminate a campaign simulation must be
 
 **Rationale:** The UI integration push relocated campaign controls from `TopBar` (Enter/Exit/Undo/Reset) and `SandboxPanel` (Save/Load/Autosave) to `FloatingMiddleBar`, giving the author a single, spatially stable control surface for all campaign lifecycle actions. `TopBar` is now purely a project-metadata and file-operations bar. Panels and sidebars dim during campaign mode and do not present any campaign controls — they are authoring tools that are visually unavailable while a campaign is active. Enforcing this separation prevents fragmented control surfaces and ensures campaign state visibility is always centred on the canvas overlay.
 
-
 ---
 
 ## AR-24 — Store-Mediated Edit-Mode Computations
@@ -220,9 +223,11 @@ Complex analytic or tracing tools meant for use outside of campaign playback (ed
 
 ## AR-27 — Import Sanitization Whitelist Must Include All Persisted Schema Fields
 
-The `importProject()` function in `fileSystem.js` rebuilds the imported data through an explicit `sanitizedData` whitelist object. Every field that is part of the current `schemaVersion: 4` data model and must survive a save→export→import round-trip **must be listed by name** in `sanitizedData`. Any field omitted from the whitelist is silently dropped regardless of whether it exists in the source file.
+The `importProject()` function in `fileSystem.js` rebuilds the imported data through an explicit `sanitizedData` whitelist object. Every field that is part of the current `schemaVersion: 4` data model and must survive a save→export→import round-trip **must be listed by name** in `sanitizedData` (Required fields: `editorSeenNodeIds`, `editorSeenOptionIds`, `path`, `chapter`, `flag`, `status`, `common`, `choice`, `ending`, `edges`, `meta`, `schemaVersion`, `tag`, `commonType`, `endingType`). Any field omitted from the whitelist is silently dropped regardless of whether it exists in the source file.
 
 When adding a new persisted field to `narrativeStore` (i.e., a field that appears in `exportGraph()` output), the same commit must also add that field to the `sanitizedData` whitelist in `fileSystem.importProject()`. These two locations are a paired invariant — divergence causes silent data loss on import with no error or warning.
+
+> **NOTE:** Structural validation was added to `importProject()` — validates data types before whitelist extraction.
 
 **Rationale:** The `editorSeenNodeIds`/`editorSeenOptionIds` bug demonstrated this class of error: the fields were correctly added to `narrativeStore` and `exportGraph()` output, but the `sanitizedData` whitelist was not updated. Files exported after the feature shipped imported cleanly on the surface but had those fields silently reset to `[]`, discarding all editor-level seen marks. The paired-invariant rule eliminates this failure mode by making the whitelist a named checklist item for any data model addition.
 
@@ -249,3 +254,43 @@ Components that serve as containers or portals for drag-and-drop interactions (e
 When implementing high-frequency keyboard interaction modifiers (e.g., holding `Alt` to enable a drag interaction globally across the canvas), use global event listeners (like `useKeyboardShortcuts.js`) that toggle a class on `document.body` (e.g., `document.body.classList.toggle('alt-pressed')`). Apply interaction state changes purely through CSS selectors (e.g., `.alt-pressed .my-component { pointer-events: all; }`).
 
 **Rationale:** Wiring high-frequency interactions (like key down/up events for modifiers) through React state (`useState` or Zustand) causes immediate and widespread component re-renders across the entire graph. By delegating the state purely to the DOM and CSS, the application maintains 60fps performance during complex interactions.
+
+---
+
+## AR-31 — Tag Entity Dictionary
+
+Tags are a flat dictionary (`tag{}`) in `narrativeStore`, following the same pattern as `flag{}`, `status{}`, `path{}`, and `chapter{}`. Each tag is `{ id, name }`. Nodes reference tags via `data.tagIds[]` (an array of tag IDs). Tag deletion performs cascading cleanup: removing the tag ID from all node `tagIds` arrays across `common{}`, `choice{}`, and `ending{}` collections. Tags participate in canvas-level filtering via `uiStore.canvasFilterTagIds` and `uiStore.canvasFilterTagsLogic`.
+
+**Rationale:** Tags provide a multi-valued categorization layer for nodes (e.g., tracking character presence, CG events) that is orthogonal to the single-valued path/chapter assignments. The dictionary-with-reference pattern mirrors the established entity management pattern used by flags, statuses, paths, and chapters.
+
+---
+
+## AR-32 — Error Boundary
+
+App must be wrapped in `ErrorBoundary` component. `ErrorBoundary` must provide emergency data export and storage reset capabilities.
+
+**Rationale:** Unhandled React exceptions unmount the application tree, causing data loss and locking users out of their project data. Providing emergency export and reset controls directly in the error fallback ensures users can recover their narrative graph even when the UI encounters fatal rendering failures.
+
+---
+
+## AR-33 — Safe Storage
+
+All `localStorage` reads/writes must use `safeStorage.js` helpers (`safeGet`, `safeSet`, `safeRemove`, `safeClear`) to handle `QuotaExceeded` and `SecurityError` in restricted environments.
+
+**Rationale:** Direct access to `localStorage` can throw unhandled exceptions in restricted environments or when storage limits are reached. The `safeStorage` helpers safely catch these exceptions and degrade gracefully, preventing runtime crashes.
+
+---
+
+## AR-34 — Web Worker Offloading
+
+CPU-intensive computations (route tracing BFS) must run in Web Workers via async wrappers, not on the main thread.
+
+**Rationale:** Performing heavy algorithmic traversals synchronously blocks the main UI thread, causing frame drops and unresponsiveness. Offloading these tasks to Web Workers keeps the UI interactive during background computations.
+
+---
+
+## AR-35 — Focus Trapping
+
+All modal components must use `useFocusTrap` hook and include `role="dialog"`, `aria-modal="true"`, `aria-labelledby` attributes.
+
+**Rationale:** Keyboard focus trapping ensures accessible navigation for screen readers and keyboard users, preventing focus from escaping to hidden or background DOM elements when a modal overlay is active. Standardized ARIA attributes ensure assistive technologies correctly identify and announce modal dialogs.

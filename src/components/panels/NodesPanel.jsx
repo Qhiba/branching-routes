@@ -1,8 +1,6 @@
-// CHANGED: Added new NodesPanel for central node filtering and listing
-// PRESERVED: Hooked into existing narrativeStore and triggers legacy canvas events
 import React, { useState } from 'react';
-import { useNarrativeStore } from 'store';
-import { Search, Pencil, Trash2, Plus, GripVertical } from 'lucide-react';
+import { useNarrativeStore, useUIStore } from 'store';
+import { Search, Pencil, Trash2, Plus, GripVertical, SlidersHorizontal, Filter } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import './RightPanels.css';
 
@@ -20,14 +18,15 @@ export default function NodesPanel() {
 
     const [activeTab, setActiveTab] = useState('common');
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterChapter, setFilterChapter] = useState('');
-    const [filterPath, setFilterPath] = useState('');
-    const [filterTypeNode, setFilterTypeNode] = useState('');
+    const [localFilterChapter, setLocalFilterChapter] = useState('');
+    const [localFilterPath, setLocalFilterPath] = useState('');
+    const [localFilterTypeNode, setLocalFilterTypeNode] = useState('');
+    const [showListFilters, setShowListFilters] = useState(false);
 
     let nodesDict = {};
     if (activeTab === 'common') {
         Object.keys(common || {}).forEach(k => {
-            if (common[k].type !== 'warp_entrance' && common[k].type !== 'warp_exit') {
+            if (common[k].type !== 'warp_entrance' && common[k].type !== 'warp_exit' && common[k].type !== 'hub') {
                 nodesDict[k] = common[k];
             }
         });
@@ -41,23 +40,29 @@ export default function NodesPanel() {
                 nodesDict[k] = common[k];
             }
         });
+    } else if (activeTab === 'hub') {
+        Object.keys(common || {}).forEach(k => {
+            if (common[k].type === 'hub') {
+                nodesDict[k] = common[k];
+            }
+        });
     }
 
     const nodes = Object.values(nodesDict || {}).filter(n => {
         let match = (n.data?.label || n.id).toLowerCase().includes(searchQuery.toLowerCase());
-        if (filterChapter) match = match && n.data?.chapterId === filterChapter;
-        if (filterPath) match = match && n.data?.pathId === filterPath;
-        if (filterTypeNode) {
-            if (activeTab === 'common') match = match && n.data?.commonTypeId === filterTypeNode;
-            if (activeTab === 'ending') match = match && n.data?.endingTypeId === filterTypeNode;
+        if (localFilterChapter) match = match && n.data?.chapterId === localFilterChapter;
+        if (localFilterPath) match = match && n.data?.pathId === localFilterPath;
+        if (localFilterTypeNode) {
+            if (activeTab === 'common') match = match && n.data?.commonTypeId === localFilterTypeNode;
+            if (activeTab === 'ending') match = match && n.data?.endingTypeId === localFilterTypeNode;
         }
         return match;
     });
 
-    const isDragDisabled = activeTab === 'warp' || searchQuery.trim().length > 0 || filterChapter !== '' || filterPath !== '' || filterTypeNode !== '';
+    const isDragDisabled = activeTab === 'warp' || activeTab === 'hub' || searchQuery.trim().length > 0 || localFilterChapter !== '' || localFilterPath !== '' || localFilterTypeNode !== '';
 
     const onDragEnd = (result) => {
-        if (activeTab === 'warp') return;
+        if (activeTab === 'warp' || activeTab === 'hub') return;
         if (!result.destination) return;
         const sourceId = nodes[result.source.index].id;
         const targetId = nodes[result.destination.index].id;
@@ -89,11 +94,22 @@ export default function NodesPanel() {
 
     return (
         <div className="nodes-panel">
+            <div className="nodes-panel__canvas-header">
+                <div className="nodes-panel__canvas-title">
+                    Nodes
+                </div>
+            </div>
+
             <div className="nodes-panel__tabs">
-                {['common', 'choice', 'ending', 'warp'].map(tab => (
+                {['common', 'choice', 'ending', 'warp', 'hub'].map(tab => (
                     <button
                         key={tab}
-                        onClick={() => { setActiveTab(tab); setFilterChapter(''); setFilterPath(''); setFilterTypeNode(''); }}
+                        onClick={() => { 
+                            setActiveTab(tab); 
+                            setLocalFilterChapter(''); 
+                            setLocalFilterPath(''); 
+                            setLocalFilterTypeNode(''); 
+                        }}
                         className={`nodes-panel__tab ${activeTab === tab ? 'nodes-panel__tab--active' : ''}`}
                     >
                         {tab}
@@ -101,32 +117,44 @@ export default function NodesPanel() {
                 ))}
             </div>
             <div className="nodes-panel__search nodes-panel__search--col">
-                <div className="nodes-panel__search-input-wrap">
-                    <Search className="nodes-panel__search-icon" size={14} />
-                    <input
-                        type="text"
-                        placeholder={`Search ${activeTab} nodes...`}
-                        className="nodes-panel__input"
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                    />
+                <div className="nodes-panel__search-row">
+                    <div className="nodes-panel__search-input-wrap">
+                        <Search className="nodes-panel__search-icon" size={14} />
+                        <input
+                            type="text"
+                            placeholder={`Search ${activeTab} nodes...`}
+                            className="nodes-panel__input"
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setShowListFilters(!showListFilters)}
+                        className={`nodes-panel__options-btn ${showListFilters ? 'nodes-panel__options-btn--active' : ''}`}
+                        title="Toggle list filters"
+                    >
+                        <Filter size={14} />
+                    </button>
                 </div>
-                <div className="nodes-panel__filters-row">
-                    {(activeTab === 'common' || activeTab === 'ending') && (
-                        <select value={filterTypeNode} onChange={e => setFilterTypeNode(e.target.value)} className="nodes-panel__input nodes-panel__filter-select">
-                            <option value="">All Types</option>
-                            {Object.values(activeTab === 'common' ? commonTypes : endingTypes).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {showListFilters && (
+                    <div className="nodes-panel__filters-row">
+                        {(activeTab === 'common' || activeTab === 'ending') && (
+                            <select value={localFilterTypeNode} onChange={e => setLocalFilterTypeNode(e.target.value)} className="nodes-panel__input nodes-panel__filter-select">
+                                <option value="">All Types</option>
+                                {Object.values(activeTab === 'common' ? commonTypes : endingTypes).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                            </select>
+                        )}
+                        <select value={localFilterChapter} onChange={e => setLocalFilterChapter(e.target.value)} className="nodes-panel__input nodes-panel__filter-select">
+                            <option value="">All Chapters</option>
+                            {Object.values(chapters).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
-                    )}
-                    <select value={filterChapter} onChange={e => setFilterChapter(e.target.value)} className="nodes-panel__input nodes-panel__filter-select">
-                        <option value="">All Chapters</option>
-                        {Object.values(chapters).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                    <select value={filterPath} onChange={e => setFilterPath(e.target.value)} className="nodes-panel__input nodes-panel__filter-select">
-                        <option value="">All Paths</option>
-                        {Object.values(paths).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                </div>
+                        <select value={localFilterPath} onChange={e => setLocalFilterPath(e.target.value)} className="nodes-panel__input nodes-panel__filter-select">
+                            <option value="">All Paths</option>
+                            {Object.values(paths).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                    </div>
+                )}
             </div>
 
             <DragDropContext onDragEnd={onDragEnd}>
@@ -174,6 +202,13 @@ export default function NodesPanel() {
                                     <div className="nodes-panel__item-stats">
                                         <span>Type: {node.type === 'warp_entrance' ? 'Entrance' : 'Exit'}</span> •
                                         <span>Channel: {data.portalChannel || '(not set)'}</span>
+                                    </div>
+                                )}
+                                {activeTab === 'hub' && (
+                                    <div className="nodes-panel__item-stats">
+                                        <span>Router Hub</span> •
+                                        <span>{(data.flags_set || []).length} Flags</span> •
+                                        <span>{(data.status_set || []).length} Status</span>
                                     </div>
                                 )}
                             </div>

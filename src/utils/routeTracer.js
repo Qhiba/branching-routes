@@ -448,3 +448,73 @@ function countPriorityMatches(pathEdgeIds, graphState, initialFlags, priorities)
 
   return matches;
 }
+
+// ADDED: Phase 8 (RISK-AUD-08 Fix) — Non-blocking Web Worker wrapper for computeShortestPaths
+let activeRouteWorker = null;
+
+export function cancelRouteWorker() {
+  if (activeRouteWorker) {
+    activeRouteWorker.terminate();
+    activeRouteWorker = null;
+  }
+}
+
+export function computeShortestPathsAsync(startNodeId, targetNodeId, graphState, seedFlagValues, priorities = [], limit = 50, maxDepth = -1) {
+  return new Promise((resolve, reject) => {
+    cancelRouteWorker();
+
+    // Check environment support for Web Worker
+    if (typeof window === 'undefined' || typeof Worker === 'undefined') {
+      try {
+        const syncResult = computeShortestPaths(startNodeId, targetNodeId, graphState, seedFlagValues, priorities, limit, maxDepth);
+        return resolve(syncResult);
+      } catch (err) {
+        return reject(err);
+      }
+    }
+
+    try {
+      const worker = new Worker(new URL('./routeTracer.worker.js', import.meta.url), { type: 'module' });
+      activeRouteWorker = worker;
+
+      const requestId = Math.random().toString(36).substring(2);
+
+      worker.onmessage = (e) => {
+        if (e.data.id === requestId) {
+          activeRouteWorker = null;
+          worker.terminate();
+          if (e.data.success) {
+            resolve(e.data.result);
+          } else {
+            reject(new Error(e.data.error));
+          }
+        }
+      };
+
+      worker.onerror = (err) => {
+        activeRouteWorker = null;
+        worker.terminate();
+        reject(err);
+      };
+
+      worker.postMessage({
+        id: requestId,
+        startNodeId,
+        targetNodeId,
+        graphState,
+        seedFlagValues,
+        priorities,
+        limit,
+        maxDepth
+      });
+    } catch (err) {
+      // Fallback execution if Web Worker creation is disallowed/unsupported
+      try {
+        const syncResult = computeShortestPaths(startNodeId, targetNodeId, graphState, seedFlagValues, priorities, limit, maxDepth);
+        resolve(syncResult);
+      } catch (syncErr) {
+        reject(syncErr);
+      }
+    }
+  });
+}

@@ -248,8 +248,25 @@ export async function importProject() {
   }
 
 
-  if (![1, 2, 3, 4].includes(data.schemaVersion)) {
+  if (![1, 2, 3, 4].includes(data?.schemaVersion)) {
     throw new Error('unsupported_schema_version');
+  }
+
+  if (!data || typeof data !== 'object' || !Array.isArray(data.edges)) {
+    throw new Error('invalid_project_structure');
+  }
+
+  if (data.schemaVersion === 1) {
+    if (!Array.isArray(data.nodes)) {
+      throw new Error('invalid_project_structure');
+    }
+  } else {
+    const hasNodeCollections = (data.common && typeof data.common === 'object') ||
+                               (data.choice && typeof data.choice === 'object') ||
+                               (data.ending && typeof data.ending === 'object');
+    if (!hasNodeCollections) {
+      throw new Error('invalid_project_structure');
+    }
   }
 
   const generateTypedCollections = (flagsArray) => {
@@ -420,6 +437,9 @@ export async function importProject() {
     status: typeof data.status === 'object' && data.status !== null ? data.status : {},
     path: typeof data.path === 'object' && data.path !== null ? data.path : {},
     chapter: typeof data.chapter === 'object' && data.chapter !== null ? data.chapter : {},
+    tag: typeof data.tag === 'object' && data.tag !== null ? data.tag : {},
+    commonType: typeof data.commonType === 'object' && data.commonType !== null ? data.commonType : {},
+    endingType: typeof data.endingType === 'object' && data.endingType !== null ? data.endingType : {},
     editorSeenNodeIds: Array.isArray(data.editorSeenNodeIds) ? data.editorSeenNodeIds : [],
     editorSeenOptionIds: Array.isArray(data.editorSeenOptionIds) ? data.editorSeenOptionIds : []
   };
@@ -428,11 +448,15 @@ export async function importProject() {
     if (!sourceCol || typeof sourceCol !== 'object') return;
     Object.entries(sourceCol).forEach(([id, node]) => {
       if (!node || typeof node !== 'object') return;
+      const nData = node.data || {};
+      if (!Array.isArray(nData.tagIds)) {
+        nData.tagIds = [];
+      }
       targetCol[id] = {
         id: node.id || id,
         type: node.type || type,
         position: node.position || { x: 0, y: 0 },
-        data: node.data || {}
+        data: nData
       };
     });
   };

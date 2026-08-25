@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Check, Link2, GitBranch, Trash2, Plus } from 'lucide-react';
 import { useNarrativeStore } from 'store';
+import useFocusTrap from '../../hooks/useFocusTrap';
 import '../modals/NodeConfigModal.css'; /* Reuse br-node-config-modal__* token styles */
 import './EdgeConfigModal.css';
 
@@ -71,6 +72,7 @@ function SearchableSelect({ value, options, onChange, placeholder, className }) 
 }
 
 export default function EdgeConfigModal({ edgeId, onClose }) {
+    const containerRef = useFocusTrap(!!edgeId);
     const edge = useNarrativeStore(s => s.edges.find(e => e.id === edgeId));
     const flags = Object.values(useNarrativeStore(s => s.flag) || {});
     const statuses = Object.values(useNarrativeStore(s => s.status) || {});
@@ -152,15 +154,22 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
 
     return (
         <div className="br-node-config-modal__backdrop" onClick={onClose}>
-            <div className="br-node-config-modal__container br-node-config-modal__container--narrow ecm-container" onClick={e => e.stopPropagation()}>
+            <div 
+                ref={containerRef} 
+                className="br-node-config-modal__container br-node-config-modal__container--narrow ecm-container" 
+                onClick={e => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="edge-config-modal-title"
+            >
 
                 {/* Header */}
                 <div className="br-node-config-modal__header">
                     <div className="br-node-config-modal__header__left">
                         <span className="br-node-config-modal__type-badge ecm-type-badge">EDGE</span>
-                        <h3 className="br-node-config-modal__header__title">Configure Edge</h3>
+                        <h3 id="edge-config-modal-title" className="br-node-config-modal__header__title">Configure Edge</h3>
                     </div>
-                    <button className="br-node-config-modal__close-btn" onClick={onClose}>
+                    <button className="br-node-config-modal__close-btn" onClick={onClose} aria-label="Close modal">
                         <X className="br-node-config-modal__icon-lg" />
                     </button>
                 </div>

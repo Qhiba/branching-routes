@@ -4,10 +4,10 @@ import { useSimulationStore, useUIStore, useNarrativeStore, useToastStore } from
 // ADDED: Phase 1 stub hook for keyboard shortcuts
 // MODIFIED: Phase 2 dispatch mappings implemented
 export default function useKeyboardShortcuts() {
-  const { isCampaignActive } = useSimulationStore();
-
   useEffect(() => {
     const handleKeyDown = (e) => {
+      const isCampaignActive = useSimulationStore.getState().isCampaignActive;
+
       // ADDED: Phase 2 — Ctrl+K palette toggle (before input guard; fires even when palette input focused)
       if (e.ctrlKey && e.key === 'k') {
         e.preventDefault(); // Firefox: suppress default browser search-bar focus
@@ -92,11 +92,7 @@ export default function useKeyboardShortcuts() {
         return;
       }
 
-      // ADDED: Phase 3 — G: cycle cluster visualization mode (view-only, allowed during campaign)
-      if (e.key.toLowerCase() === 'g') {
-        useUIStore.getState().cycleClusterMode();
-        return;
-      }
+      // REMOVED (Step 3): G keybind for cycleClusterMode - retired in favor of canvas filters
 
       // Guard: Authoring shortcuts disabled in campaign mode
       if (isCampaignActive) return;
@@ -189,5 +185,5 @@ export default function useKeyboardShortcuts() {
       window.removeEventListener('blur', handleAltBlur);
       document.body.classList.remove('alt-pressed');
     };
-  }, [isCampaignActive]);
+  }, []);
 }

@@ -58,42 +58,35 @@
       "id": "n-00200000-0000-4000-8000-000000000002",
       "type": "common",
       "position": {
-        "x": 500,
-        "y": -100
+        "x": 350,
+        "y": 150
       },
       "data": {
-        "label": "Old Campsite",
-        "content": "A ruined campsite. Among the debris you find a battered but functional lantern.",
+        "label": "Clearing Crossroads",
+        "content": "You reach a wide clearing. Ancient stone markers point in three directions.",
         "isStartNode": false,
-        "commonNodeTypeId": "ct-00100000-0000-4000-8000-000000000001",
+        "commonNodeTypeId": "ct-00200000-0000-4000-8000-000000000002",
         "flags_set": [
           "f-00100000-0000-4000-8000-000000000001"
         ],
-        "status_set": [
-          {
-            "statusId": "s-00100000-0000-4000-8000-000000000001",
-            "amount": 10
-          }
-        ],
+        "status_set": [],
         "pathId": "p-00100000-0000-4000-8000-000000000001",
-        "chapterId": "c-00100000-0000-4000-8000-000000000001",
-        "variants": [
-          {
-            "id": "v-00200000-0000-4000-8000-000000000002",
-            "label": "Already Has Lantern",
-            "text": "The campsite is familiar territory. You've been here before — the lantern on your belt proves it. Still, the debris hides something new beneath the ash.",
-            "requires": {
-              "operator": "and",
-              "conditions": [
-                {
-                  "id": "cond-00600000-0000-4000-8000-000000000006",
-                  "flag": "f-00100000-0000-4000-8000-000000000001",
-                  "state": true
-                }
-              ]
-            }
-          }
-        ]
+        "chapterId": "c-00100000-0000-4000-8000-000000000001"
+      }
+    },
+    "n-00900000-0000-4000-8000-000000000009": {
+      "id": "n-00900000-0000-4000-8000-000000000009",
+      "type": "hub",
+      "position": {
+        "x": 650,
+        "y": 150
+      },
+      "data": {
+        "label": "Convergence Hub",
+        "content": "A routing junction that funnels multiple choice branches into single downstream conditional paths.",
+        "isStartNode": false,
+        "flags_set": [],
+        "status_set": []
       }
     },
     "n-00400000-0000-4000-8000-000000000004": {
@@ -499,6 +492,7 @@
       "name": "Chapter 2 — Into the Depths"
     }
   },
+  "tag": {},
   "commonType": {
     "ct-00100000-0000-4000-8000-000000000001": {
       "id": "ct-00100000-0000-4000-8000-000000000001",

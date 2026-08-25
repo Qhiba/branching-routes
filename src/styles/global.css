@@ -391,6 +391,20 @@ select:focus {
   transition: all var(--transition-fast);
 }
 
+.choice-node__option-text {
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.choice-node__option--full .choice-node__option-text {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
 .choice-node__option--selected {
   border-color: var(--color-primary);
   background: rgba(115, 147, 248, 0.1);
@@ -473,46 +487,131 @@ select:focus {
 }
 
 /* =========================================
+   HUB / BRIDGE NODE (TRUE DIAMOND SHAPE)
+   ========================================= */
+.hub-node {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.hub-node__diamond {
+  width: 54px;
+  height: 54px;
+  background: var(--color-bg-elevated);
+  border: 2px solid var(--color-node-hub);
+  border-radius: 8px;
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 1px var(--color-node-hub), 0 0 14px rgba(20, 184, 166, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.react-flow__node:hover .hub-node__diamond {
+  box-shadow: 0 0 0 2px var(--color-node-hub), 0 0 20px rgba(20, 184, 166, 0.6);
+  transform: rotate(45deg) scale(1.05);
+}
+
+.hub-node__inner {
+  transform: rotate(-45deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--color-node-hub);
+  width: 100%;
+  height: 100%;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.hub-node__icon {
+  width: 22px;
+  height: 22px;
+  color: var(--color-node-hub);
+  filter: drop-shadow(0 0 4px rgba(20, 184, 166, 0.5));
+}
+
+.hub-node__warning-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 11px;
+  z-index: 5;
+}
+
+.hub-node__badge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--color-bg-base);
+  background: var(--color-node-hub);
+  padding: 1px 5px;
+  border-radius: 999px;
+  z-index: 5;
+  box-shadow: 0 0 6px rgba(20, 184, 166, 0.6);
+}
+
+/* =========================================
    SIMULATION STATE OVERRIDES
    (these must stay below type-specific rules)
    ========================================= */
 .story-node--active {
   border-color: var(--color-active) !important;
-  box-shadow: 0 0 0 1px var(--color-active), var(--shadow-md);
+  box-shadow: 0 0 0 2px var(--color-active), 0 0 12px rgba(251, 146, 60, 0.5) !important;
+}
+
+/* RISK-10 Fix: Vivid sky-blue active halo for Ending Nodes to prevent visual contrast clash with orange accent */
+.ending-node.story-node--active {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px #38bdf8, 0 0 18px rgba(56, 189, 248, 0.7) !important;
 }
 
 .story-node--reachable {
   border-color: var(--color-reachable) !important;
-  box-shadow: 0 0 0 1px var(--color-reachable), var(--shadow-md);
+  box-shadow: 0 0 0 1px var(--color-reachable), var(--shadow-md) !important;
   animation: pulse-border 2s ease-in-out infinite;
   cursor: pointer;
 }
 
 .story-node--locked {
   border-color: var(--color-node-locked) !important;
+  box-shadow: none !important;
   opacity: 0.5;
 }
 
 .story-node--complete {
   border-color: var(--color-node-complete) !important;
-  box-shadow: 0 0 0 1px var(--color-node-complete), var(--shadow-md);
+  box-shadow: 0 0 0 1px var(--color-node-complete), var(--shadow-md) !important;
 }
 
 .story-node--failed {
   border-color: var(--color-node-failed) !important;
-  box-shadow: 0 0 0 1px var(--color-node-failed), var(--shadow-md);
+  box-shadow: 0 0 0 1px var(--color-node-failed), var(--shadow-md) !important;
 }
 
 .story-node--branch_locked {
   border-color: var(--color-node-branch-locked) !important;
-  box-shadow: 0 0 0 1px var(--color-node-branch-locked), var(--shadow-md);
+  box-shadow: 0 0 0 1px var(--color-node-branch-locked), var(--shadow-md) !important;
   opacity: 0.6;
 }
 
 /* Seen Overlay Glyph — MODIFIED: Add green border and box-shadow for visual distinction */
 .story-node--seen {
   border-color: var(--color-node-seen) !important;
-  box-shadow: 0 0 0 1px var(--color-node-seen), var(--shadow-md);
+  box-shadow: 0 0 0 1px var(--color-node-seen), var(--shadow-md) !important;
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
 
@@ -1112,26 +1211,24 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
 }
 
 /* =========================================
-   CLUSTER OVERLAY (Phase 3)
+   CANVAS FILTER OVERLAY & DIMMING (Step 3)
    ========================================= */
-.cluster-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: var(--z-cluster);
+.story-node--filtered-out {
+  opacity: var(--opacity-coverage-gap) !important; /* 0.2 */
+  filter: grayscale(80%);
+  pointer-events: none; /* Make them click-through on canvas when filtered out */
+  transition: opacity var(--transition-normal), filter var(--transition-normal);
 }
 
-.cluster-overlay__svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
+.conditional-edge--filtered-out {
+  opacity: 0.15 !important;
+  transition: opacity var(--transition-normal);
+}
+
+.conditional-edge__label-container--filtered-out {
+  opacity: 0.15 !important;
+  pointer-events: none !important;
+  transition: opacity var(--transition-normal);
 }
 
 /* ADDED: Phase 2 — Traversal overlay edge class */
@@ -1415,3 +1512,116 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
   font-family: monospace;
   white-space: nowrap;
 }
+
+/* ==========================================================================
+   Error Boundary Fallback UI
+   ========================================================================== */
+
+.error-boundary-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 12, 16, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 20px;
+}
+
+.error-boundary-card {
+  background: var(--color-bg-surface, #161a23);
+  border: 1px solid var(--color-border, #2a3142);
+  border-radius: var(--radius-lg, 12px);
+  padding: 28px;
+  max-width: 580px;
+  width: 100%;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  color: var(--color-text-primary, #e2e8f0);
+}
+
+.error-boundary-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.error-boundary-icon {
+  font-size: 24px;
+}
+
+.error-boundary-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: #f87171;
+}
+
+.error-boundary-description {
+  font-size: 14px;
+  color: var(--color-text-secondary, #94a3b8);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.error-boundary-details {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border, #2a3142);
+  border-radius: var(--radius-md, 8px);
+  padding: 12px;
+  margin-bottom: 20px;
+  font-size: 12px;
+}
+
+.error-boundary-details summary {
+  cursor: pointer;
+  color: var(--color-primary, #7393f8);
+  font-weight: 500;
+}
+
+.error-boundary-stack {
+  margin-top: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #e2e8f0;
+}
+
+.error-boundary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.error-boundary-actions .btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+}
+
+.error-boundary-actions .btn--primary {
+  background: var(--color-primary, #7393f8);
+  color: #fff;
+}
+
+.error-boundary-actions .btn--secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border, #2a3142);
+  color: var(--color-text-primary, #e2e8f0);
+}
+
+.error-boundary-actions .btn--danger {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.error-boundary-actions .btn--danger:hover {
+  background: rgba(239, 68, 68, 0.25);
+}

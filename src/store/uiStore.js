@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { safeGet, safeSet } from '../utils/safeStorage';
 
 export const useUIStore = create((set, get) => ({
   selectedNodeId: null,
@@ -7,8 +8,10 @@ export const useUIStore = create((set, get) => ({
   snapToGrid: true,
   choiceDisplayMode: 'medium',
   labelDisplayMode: 'compact', // ADDED: Phase 2 display mode state
-  // ADDED: Phase 3 — cluster visualization mode ('off' | 'chapter' | 'path' | 'both')
-  clusterMode: 'off',
+  canvasFilterChapterId: null, // ADDED: Step 3 canvas chapter filter
+  canvasFilterPathId: null, // ADDED: Step 3 canvas path filter
+  canvasFilterTagIds: [], // ADDED: canvas tag filters
+  canvasFilterTagsLogic: 'or', // ADDED: tags filtering logic ('or' | 'and')
 
   // ADDED: Phase 1 — overlay toggle states for route tracing visualization
   showTraversalOverlay: true,
@@ -19,11 +22,7 @@ export const useUIStore = create((set, get) => ({
 
   toggleSnapToGrid: () => set(state => ({ snapToGrid: !state.snapToGrid })),
   toggleLabelDisplayMode: () => set(state => ({ labelDisplayMode: state.labelDisplayMode === 'compact' ? 'verbose' : 'compact' })), // ADDED: Phase 2 toggle
-  // ADDED: Phase 3 — cycle cluster mode through off → chapter → path → both → off
-  cycleClusterMode: () => set(state => {
-    const next = { off: 'chapter', chapter: 'path', path: 'both', both: 'off' };
-    return { clusterMode: next[state.clusterMode] };
-  }),
+  // REMOVED (Step 3): cycleClusterMode - retired in favor of canvas filters
 
   // ADDED: Phase 1 — overlay toggle actions
   toggleTraversalOverlay: () => set(state => ({ showTraversalOverlay: !state.showTraversalOverlay })),
@@ -49,10 +48,20 @@ export const useUIStore = create((set, get) => ({
   setMergedGroupEdgeIds: (ids) => set({ mergedGroupEdgeIds: ids }),
 
   setChoiceDisplayMode: (mode) => set({ choiceDisplayMode: mode }), // PROTECTED: Integrations unchanged
+  setCanvasFilterChapterId: (id) => set({ canvasFilterChapterId: id }), // ADDED: Step 3
+  setCanvasFilterPathId: (id) => set({ canvasFilterPathId: id }), // ADDED: Step 3
+  setCanvasFilterTagIds: (ids) => set({ canvasFilterTagIds: ids }), // ADDED: tags filters
+  setCanvasFilterTagsLogic: (logic) => set({ canvasFilterTagsLogic: logic }), // ADDED: tags filtering logic
   selectNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }), // PROTECTED: Primary single-select semantics
   selectEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),
   
-  // ADDED: multi-select setter with shallow compare to prevent infinite re-render loops from React Flow
+  /**
+   * PROTECTED / LOAD-BEARING (RISK-CMK-12):
+   * Sets multi-selected node IDs with an order-independent set equality check.
+   * If incoming `ids` match current `selectedNodeIds` (regardless of array order),
+   * this returns unchanged `state` reference to prevent infinite React Flow
+   * `onSelectionChange` re-render loops. DO NOT remove this equality check.
+   */
   setSelectedNodeIds: (ids) => set(state => {
     if (state.selectedNodeIds.length === ids.length) {
       const currentSet = new Set(state.selectedNodeIds);
@@ -73,21 +82,21 @@ export const useUIStore = create((set, get) => ({
 
   resetSelection: () => set({ selectedNodeId: null, selectedEdgeId: null, selectedNodeIds: [] }), // MODIFIED: keep consistent with clearSelection
 
-  // Batch sequential flags configuration (Phase 8 Change #3)
-  seqStart: Number(localStorage.getItem('br_seqStart') ?? 1),
-  seqEnd: Number(localStorage.getItem('br_seqEnd') ?? 3),
-  seqPad: Number(localStorage.getItem('br_seqPad') ?? 3),
+  // Batch sequential flags configuration (Phase 8 Change #3) — RISK-AUD-11 safeStorage protection
+  seqStart: Number(safeGet('br_seqStart', 1)),
+  seqEnd: Number(safeGet('br_seqEnd', 3)),
+  seqPad: Number(safeGet('br_seqPad', 3)),
 
   setSeqStart: (start) => {
-    localStorage.setItem('br_seqStart', start);
+    safeSet('br_seqStart', start);
     set({ seqStart: start });
   },
   setSeqEnd: (end) => {
-    localStorage.setItem('br_seqEnd', end);
+    safeSet('br_seqEnd', end);
     set({ seqEnd: end });
   },
   setSeqPad: (pad) => {
-    localStorage.setItem('br_seqPad', pad);
+    safeSet('br_seqPad', pad);
     set({ seqPad: pad });
   },
 

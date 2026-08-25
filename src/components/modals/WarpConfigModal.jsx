@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Check, Link2, GitBranch, Trash2, AlignLeft } from 'lucide-react';
 import { useNarrativeStore } from 'store';
+import useFocusTrap from '../../hooks/useFocusTrap';
 import '../modals/NodeConfigModal.css'; /* Reuse br-node-config-modal__* token styles */
 import './EdgeConfigModal.css'; /* Reuse ecm-* narrow/chip styles */
 
@@ -72,6 +73,7 @@ function SearchableSelect({ value, options, onChange, placeholder, className }) 
 
 export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
     const handleCancel = onCancel || onClose;
+    const containerRef = useFocusTrap(!!nodeId);
     const node = useNarrativeStore(s => s.common[nodeId]);
     const updateNode = useNarrativeStore(s => s.updateNode);
     const deleteNode = useNarrativeStore(s => s.deleteNode);
@@ -148,7 +150,14 @@ export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
 
     return (
         <div className="br-node-config-modal__backdrop" onClick={handleCancel}>
-            <div className="br-node-config-modal__container br-node-config-modal__container--narrow ecm-container" onClick={e => e.stopPropagation()}>
+            <div
+                ref={containerRef}
+                className="br-node-config-modal__container br-node-config-modal__container--narrow ecm-container"
+                onClick={e => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="warp-config-modal-title"
+            >
 
                 {/* Header */}
                 <div className="br-node-config-modal__header">
@@ -156,9 +165,9 @@ export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
                         <span className="br-node-config-modal__type-badge br-node-config-modal__type-badge--warp">
                             {isEntrance ? 'WARP ENTRANCE' : 'WARP EXIT'}
                         </span>
-                        <h3 className="br-node-config-modal__header__title">Configure Warp Portal</h3>
+                        <h3 id="warp-config-modal-title" className="br-node-config-modal__header__title">Configure Warp Portal</h3>
                     </div>
-                    <button className="br-node-config-modal__close-btn" onClick={onClose}>
+                    <button className="br-node-config-modal__close-btn" onClick={onClose} aria-label="Close modal">
                         <X className="br-node-config-modal__icon-lg" />
                     </button>
                 </div>
@@ -251,7 +260,12 @@ export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
                 {/* Footer */}
                 <div className="br-node-config-modal__footer">
                     <button className="br-node-config-modal__btn-cancel" onClick={onClose}>Cancel</button>
-                    <button className="br-node-config-modal__btn-save" onClick={onClose}>
+                    <button
+                        className="br-node-config-modal__btn-save"
+                        onClick={onClose}
+                        disabled={!(data.label || '').trim()}
+                        title={!(data.label || '').trim() ? 'Node label cannot be blank' : undefined}
+                    >
                         <Check className="br-node-config-modal__icon-base" /> Done
                     </button>
                 </div>

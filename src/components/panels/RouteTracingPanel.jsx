@@ -2,7 +2,7 @@
 // PRESERVED: computeRoutesFromStart and core pathfinding logic remain untouched
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useNarrativeStore, useUIStore, useSimulationStore, useCampaignStore } from 'store';
-import { simulateFlagStateAlongPath, findMergeGroups, buildRouteSnapshot } from 'utils';
+import { simulateFlagStateAlongPath, findMergeGroups, buildRouteSnapshot, cancelRouteWorker } from 'utils';
 import { X, Check, Route, Trash2, Loader2, Snowflake, ChevronDown, ChevronRight, ChevronLeft, Bookmark, Locate } from 'lucide-react';
 import './RightPanels.css';
 
@@ -252,6 +252,7 @@ export default function RouteTracingPanel() {
 
     const handleCancelTrace = () => {
         cancelledRef.current = true;
+        cancelRouteWorker();
         setIsTracing(false);
     };
 

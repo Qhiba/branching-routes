@@ -7,21 +7,30 @@ export default function CommandPalette() {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const { common, choice, ending, flag, status, path, chapter } = useNarrativeStore();
-  const { isCampaignActive } = useSimulationStore();
+  const common = useNarrativeStore(s => s.common);
+  const choice = useNarrativeStore(s => s.choice);
+  const ending = useNarrativeStore(s => s.ending);
+  const flag = useNarrativeStore(s => s.flag);
+  const status = useNarrativeStore(s => s.status);
+  const path = useNarrativeStore(s => s.path);
+  const chapter = useNarrativeStore(s => s.chapter);
+  const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
 
-  // ADDED: Phase 2 — Listen for palette-toggle DOM event
+  // ADDED: Phase 2 — Listen for palette-toggle DOM event (RISK-CPT-02 functional state update fix)
   useEffect(() => {
     const handleToggle = () => {
-      setIsOpen(prev => !prev);
-      if (isOpen) {
-        setQuery('');
-        setSelectedIndex(0);
-      }
+      setIsOpen(prev => {
+        const next = !prev;
+        if (!next) {
+          setQuery('');
+          setSelectedIndex(0);
+        }
+        return next;
+      });
     };
     window.addEventListener('palette-toggle', handleToggle);
     return () => window.removeEventListener('palette-toggle', handleToggle);
-  }, [isOpen]);
+  }, []);
 
   // ADDED: Phase 2 — ESC handler (stopPropagation to prevent global ESC clearSelection) — RISK-CP-03 mitigation
   useEffect(() => {
@@ -54,7 +63,7 @@ export default function CommandPalette() {
       items.push({
         id: node.id,
         label: node.data.label || 'Unnamed',
-        type: node.type === 'warp_entrance' ? 'Warp Entrance' : node.type === 'warp_exit' ? 'Warp Exit' : 'Common Node',
+        type: node.type === 'warp_entrance' ? 'Warp Entrance' : node.type === 'warp_exit' ? 'Warp Exit' : node.type === 'hub' ? 'Hub Node' : 'Common Node',
         chapterName,
         pathName
       });
@@ -143,6 +152,7 @@ export default function CommandPalette() {
     { label: 'Create Ending Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'ending' } },
     { label: 'Create Warp Entrance Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'warp_entrance' } },
     { label: 'Create Warp Exit Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'warp_exit' } },
+    { label: 'Create Hub Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'hub' } },
     { label: 'Create Flag', type: 'action', eventType: 'canvas-open-name-modal', detail: { entityType: 'flag' } },
     { label: 'Create Status', type: 'action', eventType: 'canvas-open-name-modal', detail: { entityType: 'status' } },
     { label: 'Create Path', type: 'action', eventType: 'canvas-open-name-modal', detail: { entityType: 'path' } },

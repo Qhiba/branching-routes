@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { useNarrativeStore } from 'store';
 import { useUIStore } from 'store';
-import { evaluateCondition, computeForwardReachable, computeShortestPaths } from 'utils';
+import { evaluateCondition, computeForwardReachable, computeShortestPaths, computeShortestPathsAsync, cancelRouteWorker } from 'utils';
 import { useCampaignStore } from './campaignStore.js';
+
+const MAX_TRAVERSAL_DEPTH = 1000;
 
 function computeReachable(activeNodeId, graphState, currentFlagValues, selectedOptionId = null) {
   const isChoice = !!(graphState.choice || {})[activeNodeId];
@@ -191,7 +193,7 @@ export const useSimulationStore = create((set, get) => ({
   // initialFlagState: when provided (freeze waypoint), skips the default seeding logic.
   // Scaffold: waypoints array in RouteTracingPanel passes only the active waypoint's
   // flagStateAfter here; multi-waypoint support will chain calls or extend this signature.
-  computeRoutesFromStart: (startNodeId, targetNodeId, priorities = [], limit = 50, initialFlagState = null, maxDepth = -1) => {
+  computeRoutesFromStart: async (startNodeId, targetNodeId, priorities = [], limit = 50, initialFlagState = null, maxDepth = -1) => {
     const state = get();
     const graphState = useNarrativeStore.getState();
 
@@ -212,21 +214,34 @@ export const useSimulationStore = create((set, get) => ({
       }
     }
 
-    const result = computeShortestPaths(
-      startNodeId,
-      targetNodeId,
-      graphState,
-      seedFlagValues,
-      priorities,
-      limit,
-      maxDepth
-    );
+    const serializableGraphState = {
+      common: graphState.common,
+      choice: graphState.choice,
+      ending: graphState.ending,
+      edges: graphState.edges,
+      flag: graphState.flag,
+      status: graphState.status
+    };
 
-    set({
-      shortestRouteResults: result.paths,
-      shortestRouteTargetNodeId: targetNodeId,
-      isShortestRouteStale: false
-    });
+    try {
+      const result = await computeShortestPathsAsync(
+        startNodeId,
+        targetNodeId,
+        serializableGraphState,
+        seedFlagValues,
+        priorities,
+        limit,
+        maxDepth
+      );
+
+      set({
+        shortestRouteResults: result.paths,
+        shortestRouteTargetNodeId: targetNodeId,
+        isShortestRouteStale: false
+      });
+    } catch (err) {
+      console.error('Async route calculation error:', err);
+    }
   },
 
   setRouteResults: (results) => set({
@@ -344,7 +359,7 @@ export const useSimulationStore = create((set, get) => ({
       throw new Error('No start node exists');
     }
 
-    const initialFlags = {};
+    let initialFlags = {};
     if (campaignPayload && campaignPayload.snapshot) {
       if (graphState.flag) {
         Object.values(graphState.flag).forEach(f => {
@@ -386,6 +401,11 @@ export const useSimulationStore = create((set, get) => ({
         resumeSeenNodeIds = Array.isArray(snapshot.seenNodeIds) ? [...snapshot.seenNodeIds] : [];
         resumeTraversedEdgeIds = Array.isArray(snapshot.traversedEdgeIds) ? [...snapshot.traversedEdgeIds] : [];
       }
+    }
+
+    if (!snapshot && startNode.data) {
+      initialFlags = applyFlagsSet(startNode.data.flags_set, initialFlags);
+      initialFlags = applyStatusSet(startNode.data.status_set, initialFlags);
     }
 
     const { reachableEdgeIds, reachableNodeIds } = computeReachable(resumeNodeId, graphState, initialFlags);
@@ -478,6 +498,32 @@ export const useSimulationStore = create((set, get) => ({
       }
     }
 
+    // Hub pass-through routing: if destination is a Hub node with 1 valid outgoing edge, pass through automatically
+    let maxHubHops = 10;
+    while (finalDestNode.type === 'hub' && maxHubHops > 0) {
+      maxHubHops--;
+      nextSeenNodeIds = [...nextSeenNodeIds, finalDestNode.id];
+      nextVisitedNodeIds = [...nextVisitedNodeIds, finalDestNode.id];
+
+      const hubReachable = computeReachable(finalDestNode.id, graphState, nextFlagValues);
+      if (hubReachable.reachableNodeIds.length === 1) {
+        const nextEdgeId = hubReachable.reachableEdgeIds[0];
+        const nextEdge = graphState.edges.find(e => e.id === nextEdgeId);
+        if (nextEdge) {
+          const nextNode = (graphState.common || {})[nextEdge.targetId] || (graphState.choice || {})[nextEdge.targetId] || (graphState.ending || {})[nextEdge.targetId];
+          if (nextNode) {
+            finalDestNode = nextNode;
+            if (finalDestNode.data) {
+              nextFlagValues = applyFlagsSet(finalDestNode.data.flags_set, nextFlagValues);
+              nextFlagValues = applyStatusSet(finalDestNode.data.status_set, nextFlagValues);
+            }
+            continue;
+          }
+        }
+      }
+      break;
+    }
+
     const isEnding = finalDestNode.id in (graphState.ending || {});
 
     // Carry forward any locked/branch_locked states from the previous computation.
@@ -511,8 +557,8 @@ export const useSimulationStore = create((set, get) => ({
         reachableNodeIds: [],
         nodeStates: { ...persistedLocked, ...newNodeStates },
         selectedOptionId: null,
-        // ADDED: Phase 1 — record traversal and clear pre-snapshot
-        traversalRecords: [...state.traversalRecords, traversalRecord],
+        // ADDED: Phase 1 — record traversal and clear pre-snapshot (capped at MAX_TRAVERSAL_DEPTH for RISK-AUD-07)
+        traversalRecords: [...state.traversalRecords, traversalRecord].slice(-MAX_TRAVERSAL_DEPTH),
         preAdvanceFlagSnapshot: null,
         // ADDED: Phase 3 — forward-reachability for coverage-gap dimming
         unreachableFromActiveNodeIds: nextUnreachableFromActiveNodeIds
@@ -530,8 +576,8 @@ export const useSimulationStore = create((set, get) => ({
         reachableNodeIds,
         nodeStates: { ...persistedLocked, ...newNodeStates },
         selectedOptionId: null,
-        // ADDED: Phase 1 — record traversal and clear pre-snapshot
-        traversalRecords: [...state.traversalRecords, traversalRecord],
+        // ADDED: Phase 1 — record traversal and clear pre-snapshot (capped at MAX_TRAVERSAL_DEPTH for RISK-AUD-07)
+        traversalRecords: [...state.traversalRecords, traversalRecord].slice(-MAX_TRAVERSAL_DEPTH),
         preAdvanceFlagSnapshot: null,
         // ADDED: Phase 3 — forward-reachability for coverage-gap dimming
         unreachableFromActiveNodeIds: nextUnreachableFromActiveNodeIds

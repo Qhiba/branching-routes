@@ -16,6 +16,7 @@ export default function LeftSidebar() {
     const mockTabs = [
         { id: 'Flags', label: 'Flags' },
         { id: 'Status', label: 'Status' },
+        { id: 'Tags', label: 'Tags' },
         { id: 'Chapter', label: 'Chapter' },
         { id: 'Paths', label: 'Paths' },
         { id: 'CommonType', label: 'Common Types' },
@@ -41,6 +42,7 @@ export default function LeftSidebar() {
                 <div className="br-left-sidebar__panel-content">
                     {activePanel === 'Flags' && <FlagManager />}
                     {activePanel === 'Status' && <StatusManager />}
+                    {activePanel === 'Tags' && <PathChapterManager filterType="tag" />}
                     {activePanel === 'Chapter' && <PathChapterManager filterType="chapter" />}
                     {activePanel === 'Paths' && <PathChapterManager filterType="path" />}
                     {activePanel === 'CommonType' && <PathChapterManager filterType="commonType" />}

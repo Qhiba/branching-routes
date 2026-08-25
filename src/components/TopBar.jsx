@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { Network, Wand2, LayoutGrid, BoxSelect, FilePlus, Upload, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Network, Wand2, LayoutGrid, BoxSelect, FilePlus, Upload, Download,
+  GitCommit, GitPullRequest, LogIn, LogOut, GitMerge, ChevronDown, Play
+} from 'lucide-react';
 import { useNarrativeStore, useUIStore, useSimulationStore, useCampaignStore } from 'store';
 import { exportProject, importProject, clearIndexedDB, clearCampaignsIndexedDB } from 'utils';
 import dagre from 'dagre';
@@ -13,22 +16,45 @@ export default function TopBar() {
   const snapToGrid = useUIStore(s => s.snapToGrid);
   const toggleSnapToGrid = useUIStore(s => s.toggleSnapToGrid);
 
-  const clusterMode = useUIStore(s => s.clusterMode);
-  const cycleClusterMode = useUIStore(s => s.cycleClusterMode);
-
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+  const enterCampaign = useSimulationStore(s => s.enterCampaign);
+  const exitCampaign = useSimulationStore(s => s.exitCampaign);
+
   const newGraph = useNarrativeStore(s => s.newGraph);
   const loadGraph = useNarrativeStore(s => s.loadGraph);
   const exportGraph = useNarrativeStore(s => s.exportGraph);
 
-  const exitCampaign = useSimulationStore(s => s.exitCampaign);
-
-  const campaigns = useCampaignStore(s => s.campaigns);
+  const campaignsMap = useCampaignStore(s => s.campaigns);
+  const setActiveCampaign = useCampaignStore(s => s.setActiveCampaign);
   const clearCampaignsStore = useCampaignStore(s => s.clearCampaigns);
   const loadCampaignsFromObject = useCampaignStore(s => s.loadCampaignsFromObject);
 
+  const campaignsList = Object.values(campaignsMap);
+  const firstCampaignId = campaignsList.length > 0 ? campaignsList[0].id : '';
+
+  const [selectedId, setSelectedId] = useState(firstCampaignId);
   const [exportStatus, setExportStatus] = useState(false);
   const [showNewConfirm, setShowNewConfirm] = useState(false);
+
+  useEffect(() => {
+    if (campaignsList.length > 0 && !campaignsMap[selectedId]) {
+      setSelectedId(campaignsList[0].id);
+    }
+  }, [campaignsMap, selectedId, campaignsList]);
+
+  const handleCreateNode = (type) => {
+    window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: type } }));
+  };
+
+  const handleStartCampaign = () => {
+    if (selectedId) {
+      const camp = campaignsMap[selectedId];
+      if (camp) {
+        setActiveCampaign(selectedId);
+        enterCampaign(camp);
+      }
+    }
+  };
 
   const handleTitleChange = (e) => {
     if (updateMeta) {
@@ -74,7 +100,6 @@ export default function TopBar() {
 
   const handleNewConfirmed = async () => {
     setShowNewConfirm(false);
-    // NOTE: unrelated issue — not touching in refactor [Violation] 'click' handler took 1682ms
     await clearCampaignsIndexedDB();
     await clearIndexedDB();
     clearCampaignsStore();
@@ -86,7 +111,6 @@ export default function TopBar() {
     try {
       const data = await importProject();
       if (data) {
-        // PRESERVED: Teardown logic requires that loading a graph resets UI selection and explicitly exits Campaign Mode
         exitCampaign();
         clearCampaignsStore();
         if (data.campaigns) {
@@ -95,13 +119,16 @@ export default function TopBar() {
         if (data.graphData) {
           loadGraph(data.graphData);
         } else {
-          // fallback for older returned structure just in case
           loadGraph(data);
         }
       }
     } catch (err) {
       if (err.message === 'unsupported_schema_version') {
         alert("This file uses an unsupported format version. Please open a valid Branching Routes file.");
+      } else if (err.message === 'invalid_project_structure') {
+        alert("The selected file is structurally invalid or missing required node/edge data.");
+      } else {
+        alert("Failed to import project file: " + err.message);
       }
     }
   };
@@ -109,7 +136,7 @@ export default function TopBar() {
   const handleExport = async () => {
     try {
       const graphData = exportGraph();
-      await exportProject(graphData, campaigns, meta?.title || 'branching_routes_project');
+      await exportProject(graphData, campaignsMap, meta?.title || 'branching_routes_project');
       setExportStatus(true);
       setTimeout(() => setExportStatus(false), 2000);
     } catch (err) {
@@ -143,6 +170,7 @@ export default function TopBar() {
               type="text"
               value={meta?.title || ''}
               onChange={handleTitleChange}
+              disabled={isCampaignActive}
               onFocus={(e) => {
                 if (e.target.value === 'Untitled Graph') {
                   e.target.select();
@@ -154,33 +182,88 @@ export default function TopBar() {
           </div>
         </div>
 
-        {/* Middle Side: Tidy Layout | Snap On | Clusters */}
+        {/* Middle Side: Quick Create Nodes | Campaign Selector & Start */}
         <div className="br-topbar__section-center">
-          <div className="br-topbar__group">
+          <div className="br-topbar__nodes">
             <button
-              onClick={handleTidyLayout}
+              onClick={() => handleCreateNode('common')}
               disabled={isCampaignActive}
-              className="br-topbar__btn"
+              className="br-topbar__node-btn br-topbar__node-btn--common"
+              title="Common Node"
+              aria-label="Create Common Node"
             >
-              <Wand2 className="w-3.5 h-3.5" />
-              <span>Tidy Layout</span>
+              <GitCommit className="w-4 h-4" />
             </button>
-
             <button
-              onClick={toggleSnapToGrid}
+              onClick={() => handleCreateNode('choice')}
               disabled={isCampaignActive}
-              className={`br-topbar__btn ${snapToGrid ? 'br-topbar__btn--active' : ''}`}
+              className="br-topbar__node-btn br-topbar__node-btn--choice"
+              title="Choice Node"
+              aria-label="Create Choice Node"
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Snap: {snapToGrid ? 'ON' : 'OFF'}</span>
+              <GitPullRequest className="w-4 h-4" />
             </button>
-
             <button
-              onClick={cycleClusterMode}
-              className={`br-topbar__btn ${clusterMode !== 'off' ? 'br-topbar__btn--active' : ''}`}
+              onClick={() => handleCreateNode('ending')}
+              disabled={isCampaignActive}
+              className="br-topbar__node-btn br-topbar__node-btn--ending"
+              title="Ending Node"
+              aria-label="Create Ending Node"
             >
-              <BoxSelect className="w-3.5 h-3.5" />
-              <span>Clusters: {clusterMode.toUpperCase()}</span>
+              <BoxSelect className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleCreateNode('warp_entrance')}
+              disabled={isCampaignActive}
+              className="br-topbar__node-btn br-topbar__node-btn--warp-entrance"
+              title="Warp Entrance"
+              aria-label="Create Warp Entrance"
+            >
+              <LogIn className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleCreateNode('warp_exit')}
+              disabled={isCampaignActive}
+              className="br-topbar__node-btn br-topbar__node-btn--warp-exit"
+              title="Warp Exit"
+              aria-label="Create Warp Exit"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleCreateNode('hub')}
+              disabled={isCampaignActive}
+              className="br-topbar__node-btn br-topbar__node-btn--hub"
+              title="Hub Node"
+              aria-label="Create Hub Node"
+            >
+              <GitMerge className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="br-topbar__divider"></div>
+
+          <div className="br-topbar__campaign-start">
+            <div className="br-topbar__select-wrap">
+              <select
+                value={selectedId}
+                onChange={(e) => setSelectedId(e.target.value)}
+                className="br-topbar__select"
+                disabled={isCampaignActive || campaignsList.length === 0}
+              >
+                {campaignsList.length === 0 && <option value="">No Campaigns</option>}
+                {campaignsList.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-3 h-3 br-topbar__select-icon" />
+            </div>
+            <button
+              onClick={handleStartCampaign}
+              className="br-topbar__btn-start"
+              disabled={isCampaignActive || campaignsList.length === 0}
+            >
+              <Play className="br-topbar__play-icon" /> Start
             </button>
           </div>
         </div>

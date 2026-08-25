@@ -1,4 +1,5 @@
 import React from 'react';
+import useFocusTrap from '../hooks/useFocusTrap';
 import './ConfirmModal.css';
 
 /**
@@ -21,11 +22,14 @@ export default function ConfirmModal({
     confirmLabel = 'Confirm',
     danger = false,
 }) {
+    const containerRef = useFocusTrap(isOpen);
+
     if (!isOpen) return null;
 
     return (
         <div className="br-confirm-modal-backdrop" onClick={onCancel}>
             <div
+                ref={containerRef}
                 className="br-confirm-modal"
                 onClick={e => e.stopPropagation()}
                 role="dialog"

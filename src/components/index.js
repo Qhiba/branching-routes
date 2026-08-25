@@ -30,5 +30,6 @@ export { default as RightSidebar } from './layout/RightSidebar';
 export { default as NameplateTab } from './layout/NameplateTab';
 
 export { default as FloatingMiddleBar } from './floating/FloatingMiddleBar';
+export { default as ErrorBoundary } from './ErrorBoundary';
 
 // REMOVED (Phase 8): CampaignBanner — unmounted in Phase 7 Fix 4, files now deleted

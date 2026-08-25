@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNarrativeStore, useUIStore } from 'store';
 import { X } from 'lucide-react';
+import useFocusTrap from '../hooks/useFocusTrap';
 
 export default function NameModal({ entityType, initialData, onClose, onConfirm }) {
+  const containerRef = useFocusTrap(true);
   const [inputValue, setInputValue] = useState(initialData?.name || '');
   const [flagState, setFlagState] = useState(initialData?.state ?? false);
   const [statusValue, setStatusValue] = useState(initialData?.value ?? 0);
@@ -34,6 +36,7 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
     status: initialData ? 'Edit Status' : 'New Status',
     path: initialData ? 'Edit Path' : 'New Path',
     chapter: initialData ? 'Edit Chapter' : 'New Chapter',
+    tag: initialData ? 'Edit Tag' : 'New Tag',
     commonType: initialData ? 'Edit Common Type' : 'New Common Type',
     endingType: initialData ? 'Edit Ending Type' : 'New Ending Type',
     common: 'New Common Node',
@@ -73,6 +76,9 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
         case 'chapter':
           store.updateChapter(initialData.id, { name: trimmed });
           break;
+        case 'tag':
+          store.updateTag(initialData.id, { name: trimmed });
+          break;
         case 'commonType':
           store.updateCommonType(initialData.id, { name: trimmed });
           break;
@@ -100,6 +106,9 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
         case 'chapter':
           store.addChapter(trimmed);
           break;
+        case 'tag':
+          store.addTag(trimmed);
+          break;
         case 'commonType':
           store.addCommonType(trimmed);
           break;
@@ -125,10 +134,17 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
 
   return (
     <div className="br-name-modal__backdrop" onClick={onClose}>
-      <div className="br-name-modal" onClick={e => e.stopPropagation()}>
+      <div
+        ref={containerRef}
+        className="br-name-modal"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="br-name-modal-title"
+      >
         <div className="br-name-modal__header">
-          <span>{titleMap[entityType] || 'New Entity'}</span>
-          <button className="br-name-modal__close-btn" onClick={onClose}>
+          <span id="br-name-modal-title">{titleMap[entityType] || 'New Entity'}</span>
+          <button className="br-name-modal__close-btn" onClick={onClose} aria-label="Close modal">
             <X size={16} />
           </button>
         </div>

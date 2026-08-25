@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    GitCommit, GitPullRequest, BoxSelect,
+    GitCommit, GitPullRequest, BoxSelect, GitMerge,
     ChevronDown, Play, Undo, RotateCcw, X, Save, Upload, Eye,
     LogIn, LogOut
 } from 'lucide-react';
@@ -175,72 +175,6 @@ export default function FloatingMiddleBar() {
         );
     }
 
-    // Active Authoring Mode
-    return (
-        <div className="br-floating-bar br-floating-bar--authoring">
-            <div className="br-floating-bar__nodes">
-                <button
-                    onClick={() => handleCreateNode('common')}
-                    className="br-floating-bar__node-btn br-floating-bar__node-btn--common"
-                    title="Common Node"
-                >
-                    <GitCommit className="w-4 h-4" />
-                </button>
-                <button
-                    onClick={() => handleCreateNode('choice')}
-                    className="br-floating-bar__node-btn br-floating-bar__node-btn--choice"
-                    title="Choice Node"
-                >
-                    <GitPullRequest className="w-4 h-4" />
-                </button>
-                <button
-                    onClick={() => handleCreateNode('ending')}
-                    className="br-floating-bar__node-btn br-floating-bar__node-btn--ending"
-                    title="Ending Node"
-                >
-                    <BoxSelect className="w-4 h-4" />
-                </button>
-                <button
-                    onClick={() => handleCreateNode('warp_entrance')}
-                    className="br-floating-bar__node-btn br-floating-bar__node-btn--warp-entrance"
-                    title="Warp Entrance"
-                >
-                    <LogIn className="w-4 h-4" />
-                </button>
-                <button
-                    onClick={() => handleCreateNode('warp_exit')}
-                    className="br-floating-bar__node-btn br-floating-bar__node-btn--warp-exit"
-                    title="Warp Exit"
-                >
-                    <LogOut className="w-4 h-4" />
-                </button>
-            </div>
-
-            <div className="br-floating-bar__divider"></div>
-
-            <div className="br-floating-bar__campaign-start">
-                <div className="br-floating-bar__select-wrap">
-                    <select
-                        value={selectedId}
-                        onChange={(e) => setSelectedId(e.target.value)}
-                        className="br-floating-bar__select"
-                        disabled={campaigns.length === 0}
-                    >
-                        {campaigns.length === 0 && <option value="">No Campaigns</option>}
-                        {campaigns.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
-                    <ChevronDown className="w-3 h-3 br-floating-bar__select-icon" />
-                </div>
-                <button
-                    onClick={handleStartCampaign}
-                    className="br-floating-bar__btn-start"
-                    disabled={campaigns.length === 0}
-                >
-                    <Play className="br-floating-bar__play-icon" /> Start
-                </button>
-            </div>
-        </div>
-    );
+    // Hide floating bar in Edit Mode (functions moved to TopBar)
+    return null;
 }

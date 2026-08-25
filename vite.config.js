@@ -18,4 +18,21 @@ export default defineConfig({
     globals: true,
     environment: 'node',
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor_react';
+          }
+          if (id.includes('node_modules/@xyflow')) {
+            return 'vendor_reactflow';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor_icons';
+          }
+        }
+      }
+    }
+  }
 })

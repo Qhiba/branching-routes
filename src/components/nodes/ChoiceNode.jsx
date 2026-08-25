@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useSimulationStore, useNarrativeStore, useUIStore } from 'store';
 import { evaluateCondition } from 'utils';
-import { Lock } from 'lucide-react';
+import { VerboseEffectsBox, OptionVerboseEffectsBox } from './VerboseEffects';
 
 function ChoiceNode({ id, data }) {
   const nodeState = useSimulationStore(s => s.nodeStates[id]);
@@ -22,17 +22,15 @@ function ChoiceNode({ id, data }) {
   const outgoingEdgeCount = useNarrativeStore(s => s.edges.filter(e => e.sourceId === id).length);
 
   const choiceDisplayMode = useUIStore(s => s.choiceDisplayMode);
-  const editorSeenOptionIds = useNarrativeStore(s => s.editorSeenOptionIds || []);
+  const editorSeenOptionIds = useNarrativeStore(s => s.editorSeenOptionIds) ?? [];
 
   // ADDED: Phase 2 label display variables
   const labelDisplayMode = useUIStore(s => s.labelDisplayMode);
-  const flagDict = useNarrativeStore(s => s.flag);
-  const statusDict = useNarrativeStore(s => s.status);
-  const flagKeys = Object.keys(flagDict);
-  const statusKeys = Object.keys(statusDict);
 
-  // MODIFIED: Phase 3 — add coverage-gap class to className string
-  const className = `story-node choice-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''}`.trim();
+  const isFilteredOut = !!data.isFilteredOut;
+
+  // MODIFIED: Phase 3 — add coverage-gap class to className string; Step 3 — add filtered-out class
+  const className = `story-node choice-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
 
   return (
     <div className={className}>
@@ -81,42 +79,13 @@ function ChoiceNode({ id, data }) {
         )}
 
         {labelDisplayMode === 'verbose' && ((data.flags_set?.length || 0) + (data.status_set?.length || 0)) > 0 && (
-          <div className="verbose-effects-box">
-            {data.flags_set?.length > 0 && (
-              <div className="verbose-effects-section">
-                {[...data.flags_set]
-                  .sort((a, b) => flagKeys.indexOf(a) - flagKeys.indexOf(b))
-                  .map(flagId => (
-                  <span key={`nf-${flagId}`} className="effect-chip effect-chip--flag">
-                    {flagDict[flagId]?.name || 'Unknown'}
-                  </span>
-                ))}
-              </div>
-            )}
-            {data.status_set?.length > 0 && (
-              <div className="verbose-effects-section">
-                {[...data.status_set]
-                  .sort((a, b) => statusKeys.indexOf(a.statusId) - statusKeys.indexOf(b.statusId))
-                  .map(se => {
-                  const val = se.amount ?? se.value ?? 0;
-                  const isSet = se.mode === 'set';
-                  const chipClass = isSet ? 'effect-chip--set' : val > 0 ? 'effect-chip--positive' : val < 0 ? 'effect-chip--negative' : 'effect-chip--set';
-                  const formattedVal = isSet ? `= ${val}` : val > 0 ? `+${val}` : `${val}`;
-                  return (
-                    <span key={`ns-${se.statusId}`} className={`effect-chip ${chipClass}`}>
-                      {statusDict[se.statusId]?.name || 'Unknown'} {formattedVal}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <VerboseEffectsBox flagsSet={data.flags_set} statusSet={data.status_set} />
         )}
         {Array.isArray(data.options) && data.options.length > 0 && (
           <div className="choice-node__options-list">
             {data.options.map(opt => {
               const isOptionSeen = !isCampaignActive && editorSeenOptionIds.includes(`${id}::${opt.id}`);
-              const displayLabel = choiceDisplayMode === 'full' ? opt.label : (opt.label.length > 25 ? opt.label.slice(0, 22) + '...' : opt.label);
+              const displayLabel = opt.label;
               const isSelected = isActive && selectedOptionId === opt.id;
               const isDimmed = isActive && selectedOptionId !== null && !isSelected;
               
@@ -125,6 +94,7 @@ function ChoiceNode({ id, data }) {
               const isClickable = isCampaignActive && isActive && isConditionMet && selectedOptionId === null;
 
               let optClassName = 'choice-node__option';
+              if (choiceDisplayMode === 'full') optClassName += ' choice-node__option--full';
               if (isCampaignActive && isActive) {
                 if (isClickable) optClassName += ' choice-node__option--clickable';
                 if (isSelected) optClassName += ' choice-node__option--selected';
@@ -138,66 +108,12 @@ function ChoiceNode({ id, data }) {
                   className={optClassName}
                   onClick={isClickable ? (e) => { e.stopPropagation(); selectOption(opt.id); } : undefined}
                 >
-                  {displayLabel || (<i>Unnamed Option</i>)}
+                  <span className="choice-node__option-text">
+                    {displayLabel || (<i>Unnamed Option</i>)}
+                  </span>
 
-                  {labelDisplayMode === 'verbose' && (((opt.flags_set?.length || 0) + (opt.status_set?.length || 0) > 0) || (opt.requires?.conditions?.length || 0) > 0) && (
-                    <div className="verbose-effects-box--compact">
-                      {opt.requires?.conditions?.length > 0 && (
-                        <div className="verbose-effects-section">
-                          {opt.requires.conditions.map((c, i) => {
-                            if ('flag' in c) {
-                              const chipClass = c.state ? 'effect-chip--flag' : 'effect-chip--negative';
-                              return (
-                                <span key={`req-f-${i}`} className={`effect-chip effect-chip--compact ${chipClass}`}>
-                                  <Lock size={9} style={{ marginRight: '3px', marginTop: '-1px' }} />
-                                  {flagDict[c.flag]?.name || 'Unknown'} {c.state ? 'TRUE' : 'FALSE'}
-                                </span>
-                              );
-                            } else if ('status' in c) {
-                              let range = '';
-                              if (c.min !== undefined && c.max !== undefined) range = `${c.min}..${c.max}`;
-                              else if (c.min !== undefined) range = `≥${c.min}`;
-                              else if (c.max !== undefined) range = `≤${c.max}`;
-                              return (
-                                <span key={`req-s-${i}`} className="effect-chip effect-chip--compact effect-chip--status">
-                                  <Lock size={9} style={{ marginRight: '3px', marginTop: '-1px' }} />
-                                  {statusDict[c.status]?.name || 'Unknown'} {range}
-                                </span>
-                              );
-                            }
-                            return null;
-                          })}
-                        </div>
-                      )}
-                      {opt.flags_set?.length > 0 && (
-                        <div className="verbose-effects-section">
-                          {[...opt.flags_set]
-                            .sort((a, b) => flagKeys.indexOf(a) - flagKeys.indexOf(b))
-                            .map(flagId => (
-                            <span key={`of-${flagId}`} className="effect-chip effect-chip--flag effect-chip--compact">
-                              {flagDict[flagId]?.name || 'Unknown'}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      {opt.status_set?.length > 0 && (
-                        <div className="verbose-effects-section">
-                          {[...opt.status_set]
-                            .sort((a, b) => statusKeys.indexOf(a.statusId) - statusKeys.indexOf(b.statusId))
-                            .map(se => {
-                            const val = se.amount ?? se.value ?? 0;
-                            const isSet = se.mode === 'set';
-                            const chipClass = isSet ? 'effect-chip--set' : val > 0 ? 'effect-chip--positive' : val < 0 ? 'effect-chip--negative' : 'effect-chip--set';
-                            const formattedVal = isSet ? `= ${val}` : val > 0 ? `+${val}` : `${val}`;
-                            return (
-                              <span key={`os-${se.statusId}`} className={`effect-chip effect-chip--compact ${chipClass}`}>
-                                {statusDict[se.statusId]?.name || 'Unknown'} {formattedVal}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                  {labelDisplayMode === 'verbose' && (
+                    <OptionVerboseEffectsBox option={opt} />
                   )}
 
                   <Handle

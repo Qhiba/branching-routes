@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { useSimulationStore, useNarrativeStore } from 'store';
+import { useSimulationStore, useNarrativeStore, useUIStore } from 'store';
 
 function WarpExitNode({ id, data }) {
   const nodeState = useSimulationStore(s => s.nodeStates[id]);
@@ -12,7 +12,9 @@ function WarpExitNode({ id, data }) {
   const isUnreachable = useSimulationStore(s => s.unreachableNodeIds.includes(id));
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
 
-  const className = `story-node warp-exit-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''}`.trim();
+  const isFilteredOut = !!data.isFilteredOut;
+
+  const className = `story-node warp-exit-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
 
   return (
     <div className={className}>

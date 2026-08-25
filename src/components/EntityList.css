@@ -241,3 +241,24 @@
     cursor: pointer;
     border-radius: var(--radius-sm);
 }
+
+.entity-icon--pink {
+    color: var(--color-pink-500, #ec4899);
+}
+
+.entity-delete-error__force-btn {
+    padding: 4px 12px;
+    font-size: var(--font-size-sm);
+    background: rgba(255, 68, 68, 0.15);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    margin-left: 8px;
+    transition: all var(--transition-fast);
+}
+
+.entity-delete-error__force-btn:hover {
+    background: var(--color-danger);
+    color: white;
+}

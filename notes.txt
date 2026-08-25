@@ -1,0 +1,22 @@
+A bug or something I found that need to be fix:
+Modal
+1. The modal shouldn't have been inside the side bar. All modal should use the main modal location.
+2. "Enter" should be able to be pressed as confirm.
+3. Flag and Status need to replace "space" as "_" automatically after saved.
+4. Flag should have a tag filter too, 1 flag can have multiple tags.
+
+Nodes and Edge
+1. The "Requires Condition" inside the modal of "Edge", "Common Node: Variant", and "Choice Node: Option" should be revamp.
+2. Choice node's options should have a feature of "Re-choose-able" so that if the option target are looped to the starting choice, the choosen node are either be choosen again or not.
+3. The visualization of "Condition" of an edge should be able to be combine with the same condition name, visualiztion only (I don't know how to explain)
+
+Grid
+1. Snaping or Calculating between the top or side between each node should be possible (I don't know how to explain)
+
+Campaign System
+1. At the new file or project. "Main" campaign should automatically be added.
+2. The "Follow" system should be re-done.
+3. Inside the Campaign simulation, on the Choice node, when we chooce an option, we should be able to cancel it on the spot by pressing another option rather than pressing "undo" button.
+
+Addition:
+1. Need a bridge(?) or a hub(?). Because of the Edge system, when a Choice Node have branches regardless of the options it choose. Each of the edge's condition that comes from all of the option need to be set one by one. With a bridge or hub, I can connect it to 1 node and use 2 edge that has different condition.

@@ -76,6 +76,11 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
             })}>
               Add Warp Exit
             </button>
+            <button className="context-menu__item" onClick={handleAction(() => {
+              window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'hub', screenX: x, screenY: y } }));
+            })}>
+              Add HUB Node
+            </button>
             {copiedNode && (
               <>
                 <div className="context-menu__divider" />

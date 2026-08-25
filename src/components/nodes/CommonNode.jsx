@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useSimulationStore, useUIStore, useNarrativeStore } from 'store';
+import { VerboseEffectsBox } from './VerboseEffects';
 
 function CommonNode({ id, data }) {
   const nodeState = useSimulationStore(s => s.nodeStates[id]);
@@ -15,16 +16,14 @@ function CommonNode({ id, data }) {
 
   // ADDED: Phase 2 label display mode
   const labelDisplayMode = useUIStore(s => s.labelDisplayMode);
-  const flagDict = useNarrativeStore(s => s.flag);
-  const statusDict = useNarrativeStore(s => s.status);
-  const flagKeys = Object.keys(flagDict);
-  const statusKeys = Object.keys(statusDict);
   // FIX 9: Resolve nodeSubTypeId → display name from store
   const commonTypeDict = useNarrativeStore(s => s.commonType);
   const subTypeName = data.nodeSubTypeId ? commonTypeDict[data.nodeSubTypeId]?.name : null;
 
-  // MODIFIED: Phase 3 — add coverage-gap class to className string
-  const className = `story-node common-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''}`.trim();
+  const isFilteredOut = !!data.isFilteredOut;
+
+  // MODIFIED: Phase 3 — add coverage-gap class to className string; Step 3 — add filtered-out class
+  const className = `story-node common-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
 
   const sideEffectsCount = (data.flags_set?.length || 0) + (data.status_set?.length || 0);
 
@@ -67,36 +66,7 @@ function CommonNode({ id, data }) {
         )}
 
         {labelDisplayMode === 'verbose' && sideEffectsCount > 0 && (
-          <div className="verbose-effects-box">
-            {data.flags_set?.length > 0 && (
-              <div className="verbose-effects-section">
-                {[...data.flags_set]
-                  .sort((a, b) => flagKeys.indexOf(a) - flagKeys.indexOf(b))
-                  .map(flagId => (
-                  <span key={`f-${flagId}`} className="effect-chip effect-chip--flag">
-                    {flagDict[flagId]?.name || 'Unknown'}
-                  </span>
-                ))}
-              </div>
-            )}
-            {data.status_set?.length > 0 && (
-              <div className="verbose-effects-section">
-                {[...data.status_set]
-                  .sort((a, b) => statusKeys.indexOf(a.statusId) - statusKeys.indexOf(b.statusId))
-                  .map(se => {
-                  const val = se.amount ?? se.value ?? 0;
-                  const isSet = se.mode === 'set';
-                  const chipClass = isSet ? 'effect-chip--set' : val > 0 ? 'effect-chip--positive' : val < 0 ? 'effect-chip--negative' : 'effect-chip--set';
-                  const formattedVal = isSet ? `= ${val}` : val > 0 ? `+${val}` : `${val}`;
-                  return (
-                    <span key={`s-${se.statusId}`} className={`effect-chip ${chipClass}`}>
-                      {statusDict[se.statusId]?.name || 'Unknown'} {formattedVal}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <VerboseEffectsBox flagsSet={data.flags_set} statusSet={data.status_set} />
         )}
       </div>
 

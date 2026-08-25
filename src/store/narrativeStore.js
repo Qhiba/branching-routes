@@ -15,6 +15,7 @@ export const useNarrativeStore = create((set, get) => ({
   status: {},
   path: {},
   chapter: {},
+  tag: {},
   commonType: {},
   endingType: {},
 
@@ -24,6 +25,13 @@ export const useNarrativeStore = create((set, get) => ({
 
 
 
+  /**
+   * Adds a new node to the narrative graph dictionary. (RISK-CMK-10 contract documentation)
+   * @param {{x: number, y: number}} position - Canvas coordinates for the node placement.
+   * @param {string} [type='common'] - Subtype ('common', 'choice', 'ending', 'warp_entrance', 'warp_exit').
+   * @param {string} [label='Node'] - Optional custom node label.
+   * @returns {string} The newly created node ID.
+   */
   addNode: (position, type = 'common', label = 'Node') => {
     const id = generateId('n');
     set((state) => {
@@ -34,6 +42,7 @@ export const useNarrativeStore = create((set, get) => ({
         else if (type === 'ending') defaultLabel = 'Ending Node';
         else if (type === 'warp_entrance') defaultLabel = 'Warp Entrance';
         else if (type === 'warp_exit') defaultLabel = 'Warp Exit';
+        else if (type === 'hub') defaultLabel = 'Hub Node';
         else defaultLabel = 'Common Node';
       }
       const newNode = {
@@ -98,6 +107,7 @@ export const useNarrativeStore = create((set, get) => ({
       };
     });
     // INVARIANT: BI-04
+    // INTENTIONAL: Cross-store call to clear UI selection if the deleted node was selected (RISK-AUD-16)
     useUIStore.getState().clearIfSelected(id, 'node');
   },
 
@@ -156,6 +166,7 @@ export const useNarrativeStore = create((set, get) => ({
       meta: { ...state.meta, updatedAt: Date.now() }
     }));
     // INVARIANT: BI-05
+    // INTENTIONAL: Cross-store call to clear UI selection if the deleted edge was selected (RISK-AUD-16)
     useUIStore.getState().clearIfSelected(id, 'edge');
   },
 
@@ -209,7 +220,7 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
-  deleteFlag: (id) => {
+  deleteFlag: (id, force = false) => {
     const state = get();
     const references = [];
 
@@ -254,22 +265,111 @@ export const useNarrativeStore = create((set, get) => ({
       }
     });
 
-    if (references.length > 0) {
+    if (references.length > 0 && !force) {
       return { blocked: true, references };
     }
 
     set((state) => {
       const nextFlag = { ...state.flag };
       delete nextFlag[id];
+
+      if (!force) {
+        return {
+          flag: nextFlag,
+          meta: { ...state.meta, updatedAt: Date.now() }
+        };
+      }
+
+      // Force cascade clean-up
+      const nextEdges = state.edges.map(e => {
+        if (e.condition && e.condition.conditions) {
+          return {
+            ...e,
+            condition: {
+              ...e.condition,
+              conditions: e.condition.conditions.filter(c => c.flag !== id)
+            }
+          };
+        }
+        return e;
+      });
+
+      const cleanCol = (col) => {
+        const nextCol = {};
+        for (const [key, val] of Object.entries(col)) {
+          if (!val.data) {
+            nextCol[key] = val;
+            continue;
+          }
+          let modified = false;
+          let nextData = { ...val.data };
+
+          if (nextData.flags_set && nextData.flags_set.includes(id)) {
+            nextData.flags_set = nextData.flags_set.filter(fId => fId !== id);
+            modified = true;
+          }
+
+          if (Array.isArray(nextData.variants)) {
+            nextData.variants = nextData.variants.map(v => {
+              if (v.requires && Array.isArray(v.requires.conditions) && v.requires.conditions.some(c => c.flag === id)) {
+                modified = true;
+                return {
+                  ...v,
+                  requires: {
+                    ...v.requires,
+                    conditions: v.requires.conditions.filter(c => c.flag !== id)
+                  }
+                };
+              }
+              return v;
+            });
+          }
+
+          if (Array.isArray(nextData.options)) {
+            nextData.options = nextData.options.map(opt => {
+              let optModified = false;
+              let nextOpt = { ...opt };
+
+              if (nextOpt.requires && Array.isArray(nextOpt.requires.conditions) && nextOpt.requires.conditions.some(c => c.flag === id)) {
+                nextOpt.requires = {
+                  ...nextOpt.requires,
+                  conditions: nextOpt.requires.conditions.filter(c => c.flag !== id)
+                };
+                optModified = true;
+              }
+
+              if (Array.isArray(nextOpt.flags_set) && nextOpt.flags_set.includes(id)) {
+                nextOpt.flags_set = nextOpt.flags_set.filter(fId => fId !== id);
+                optModified = true;
+              }
+
+              if (optModified) {
+                modified = true;
+                return nextOpt;
+              }
+              return opt;
+            });
+          }
+
+          nextCol[key] = modified ? { ...val, data: nextData } : val;
+        }
+        return nextCol;
+      };
+
       return {
         flag: nextFlag,
+        edges: nextEdges,
+        common: cleanCol(state.common),
+        choice: cleanCol(state.choice),
+        ending: cleanCol(state.ending),
         meta: { ...state.meta, updatedAt: Date.now() }
       };
     });
+
     return { blocked: false };
   },
 
-  deleteStatus: (id) => {
+  deleteStatus: (id, force = false) => {
     const state = get();
     const references = [];
 
@@ -314,18 +414,180 @@ export const useNarrativeStore = create((set, get) => ({
       }
     });
 
-    if (references.length > 0) {
+    if (references.length > 0 && !force) {
       return { blocked: true, references };
     }
 
     set((state) => {
       const nextStatus = { ...state.status };
       delete nextStatus[id];
+
+      if (!force) {
+        return {
+          status: nextStatus,
+          meta: { ...state.meta, updatedAt: Date.now() }
+        };
+      }
+
+      // Force cascade clean-up
+      const nextEdges = state.edges.map(e => {
+        if (e.condition && e.condition.conditions) {
+          return {
+            ...e,
+            condition: {
+              ...e.condition,
+              conditions: e.condition.conditions.filter(c => c.status !== id)
+            }
+          };
+        }
+        return e;
+      });
+
+      const cleanCol = (col) => {
+        const nextCol = {};
+        for (const [key, val] of Object.entries(col)) {
+          if (!val.data) {
+            nextCol[key] = val;
+            continue;
+          }
+          let modified = false;
+          let nextData = { ...val.data };
+
+          if (nextData.status_set && nextData.status_set.some(se => se.statusId === id)) {
+            nextData.status_set = nextData.status_set.filter(se => se.statusId !== id);
+            modified = true;
+          }
+
+          if (Array.isArray(nextData.variants)) {
+            nextData.variants = nextData.variants.map(v => {
+              if (v.requires && Array.isArray(v.requires.conditions) && v.requires.conditions.some(c => c.status === id)) {
+                modified = true;
+                return {
+                  ...v,
+                  requires: {
+                    ...v.requires,
+                    conditions: v.requires.conditions.filter(c => c.status !== id)
+                  }
+                };
+              }
+              return v;
+            });
+          }
+
+          if (Array.isArray(nextData.options)) {
+            nextData.options = nextData.options.map(opt => {
+              let optModified = false;
+              let nextOpt = { ...opt };
+
+              if (nextOpt.requires && Array.isArray(nextOpt.requires.conditions) && nextOpt.requires.conditions.some(c => c.status === id)) {
+                nextOpt.requires = {
+                  ...nextOpt.requires,
+                  conditions: nextOpt.requires.conditions.filter(c => c.status !== id)
+                };
+                optModified = true;
+              }
+
+              if (Array.isArray(nextOpt.status_set) && nextOpt.status_set.some(se => se.statusId === id)) {
+                nextOpt.status_set = nextOpt.status_set.filter(se => se.statusId !== id);
+                optModified = true;
+              }
+
+              if (optModified) {
+                modified = true;
+                return nextOpt;
+              }
+              return opt;
+            });
+          }
+
+          nextCol[key] = modified ? { ...val, data: nextData } : val;
+        }
+        return nextCol;
+      };
+
       return {
         status: nextStatus,
+        edges: nextEdges,
+        common: cleanCol(state.common),
+        choice: cleanCol(state.choice),
+        ending: cleanCol(state.ending),
         meta: { ...state.meta, updatedAt: Date.now() }
       };
     });
+
+    return { blocked: false };
+  },
+
+  addTag: (name) => set((state) => {
+    if (!name || name.trim().length === 0) {
+      throw new Error('Tag name cannot be empty');
+    }
+    const id = generateId('t');
+    return {
+      tag: { ...state.tag, [id]: { id, name: name.trim() } },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  updateTag: (id, patch) => set((state) => {
+    if (!state.tag[id]) return state;
+    return {
+      tag: { ...state.tag, [id]: { ...state.tag[id], ...patch } },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    };
+  }),
+
+  deleteTag: (id, force = false) => {
+    const state = get();
+    const references = [];
+
+    const allNodes = [
+      ...Object.values(state.common),
+      ...Object.values(state.choice),
+      ...Object.values(state.ending)
+    ];
+
+    allNodes.forEach(n => {
+      if (n.data && Array.isArray(n.data.tagIds) && n.data.tagIds.includes(id)) {
+        references.push(`node_tag:${n.id}`);
+      }
+    });
+
+    if (references.length > 0 && !force) {
+      return { blocked: true, references };
+    }
+
+    set((state) => {
+      const nextTag = { ...state.tag };
+      delete nextTag[id];
+
+      const cleanCol = (col) => {
+        const nextCol = {};
+        for (const [key, val] of Object.entries(col)) {
+          if (val.data && Array.isArray(val.data.tagIds) && val.data.tagIds.includes(id)) {
+            nextCol[key] = {
+              ...val,
+              data: {
+                ...val.data,
+                tagIds: val.data.tagIds.filter(tId => tId !== id)
+              }
+            };
+          } else {
+            nextCol[key] = val;
+          }
+        }
+        return nextCol;
+      };
+
+      return {
+        tag: nextTag,
+        common: cleanCol(state.common),
+        choice: cleanCol(state.choice),
+        ending: cleanCol(state.ending),
+        meta: { ...state.meta, updatedAt: Date.now() }
+      };
+    });
+
     return { blocked: false };
   },
 
@@ -660,6 +922,7 @@ export const useNarrativeStore = create((set, get) => ({
     }));
 
     // Select the newly pasted node
+    // INTENTIONAL: Cross-store call to update UI selection and display success toast notification (RISK-AUD-16)
     useUIStore.getState().selectNode(newId);
 
     // Toast notification
@@ -687,6 +950,7 @@ export const useNarrativeStore = create((set, get) => ({
       status: graphData.status || {},
       path: graphData.path || {},
       chapter: graphData.chapter || {},
+      tag: graphData.tag || {},
       commonType: graphData.commonType || {},
       endingType: graphData.endingType || {},
       editorSeenNodeIds: graphData.editorSeenNodeIds || [],
@@ -694,6 +958,7 @@ export const useNarrativeStore = create((set, get) => ({
     });
 
     // INVARIANT: BI-16
+    // INTENTIONAL: Cross-store call to reset UI selection state upon graph load (RISK-AUD-16)
     useUIStore.getState().resetSelection();
   },
 
@@ -709,6 +974,7 @@ export const useNarrativeStore = create((set, get) => ({
       status: {},
       path: {},
       chapter: {},
+      tag: {},
       commonType: {},
       endingType: {},
       editorSeenNodeIds: [],
@@ -716,6 +982,7 @@ export const useNarrativeStore = create((set, get) => ({
     });
 
     // INVARIANT: BI-16
+    // INTENTIONAL: Cross-store call to reset UI selection state upon graph creation (RISK-AUD-16)
     useUIStore.getState().resetSelection();
   },
 
@@ -747,6 +1014,7 @@ export const useNarrativeStore = create((set, get) => ({
       status: state.status,
       path: state.path,
       chapter: state.chapter,
+      tag: state.tag,
       commonType: state.commonType,
       endingType: state.endingType,
       editorSeenNodeIds: state.editorSeenNodeIds,

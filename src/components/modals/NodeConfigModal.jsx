@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     X, Check, AlignLeft, Route, Zap, SlidersHorizontal,
-    ChevronUp, ChevronDown, Plus, Trash2, ChevronRight, Star, Eye
+    ChevronUp, ChevronDown, Plus, Trash2, ChevronRight, Star, Eye, Tag, GitMerge
 } from 'lucide-react';
 import { useNarrativeStore, useSimulationStore } from 'store';
+import useFocusTrap from '../../hooks/useFocusTrap';
 import './NodeConfigModal.css';
 
 // CHANGED: Phase 6 — Replaced legacy NodeInspector docked panel → full-screen 2-column modal
@@ -494,6 +495,8 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
     // onClose:  called when user saves / confirms (keeps node)
     // If onCancel is not provided, backdrop/Cancel falls back to onClose (edit flow)
     const handleCancel = onCancel || onClose;
+    const containerRef = useFocusTrap(!!nodeId);
+    const [showTagsPanel, setShowTagsPanel] = useState(false);
     // PRESERVED: All store mutations through narrativeStore actions (AR-04)
     const nodeType = useNarrativeStore(s => {
         if (!nodeId) return undefined;
@@ -511,6 +514,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
     // PRESERVED: Per-slice selectors (AR-23)
     const flags = Object.values(useNarrativeStore(s => s.flag) || {});
     const statuses = Object.values(useNarrativeStore(s => s.status) || {});
+    const tags = Object.values(useNarrativeStore(s => s.tag) || {});
     const paths = Object.values(useNarrativeStore(s => s.path) || {});
     const chapters = Object.values(useNarrativeStore(s => s.chapter) || {});
     // FIX 9: Read user-defined types from store, not hardcoded presets
@@ -537,11 +541,15 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
     const isEnding = nodeType === 'ending';
     const isChoice = nodeType === 'choice';
     const isCommon = nodeType === 'common';
-    const typeBadgeClass = isChoice 
-        ? 'br-node-config-modal__type-badge--choice' 
-        : isEnding 
-            ? 'br-node-config-modal__type-badge--ending' 
-            : 'br-node-config-modal__type-badge--common';
+    const isHub = node?.type === 'hub';
+
+    const typeBadgeClass = isHub
+        ? 'br-node-config-modal__type-badge--hub'
+        : isChoice 
+            ? 'br-node-config-modal__type-badge--choice' 
+            : isEnding 
+                ? 'br-node-config-modal__type-badge--ending' 
+                : 'br-node-config-modal__type-badge--common';
 
 
     const patch = (field, value) => updateNode(node.id, { data: { ...data, [field]: value } });
@@ -550,6 +558,12 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
         const current = data.flags_set || [];
         const next = current.includes(flagId) ? current.filter(id => id !== flagId) : [...current, flagId];
         patch('flags_set', next);
+    };
+
+    const toggleTagSelection = (tagId) => {
+        const current = data.tagIds || [];
+        const next = current.includes(tagId) ? current.filter(id => id !== tagId) : [...current, tagId];
+        patch('tagIds', next);
     };
 
     const addStatusEffect = () => {
@@ -574,15 +588,159 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
     const subTypeLabel = typeOptions.find(t => t.id === currentSubTypeId)?.name;
 
     // The header badge text: use subtype name if set, fallback to nodeType
-    const badgeText = subTypeLabel
-        ? subTypeLabel.toUpperCase()
-        : nodeType?.toUpperCase();
+    const badgeText = isHub
+        ? 'HUB ROUTER'
+        : subTypeLabel
+            ? subTypeLabel.toUpperCase()
+            : nodeType?.toUpperCase();
+
+    if (isHub) {
+        return (
+            <div className="br-node-config-modal__backdrop" onClick={handleCancel}>
+                <div
+                    ref={containerRef}
+                    className="br-node-config-modal__container br-node-config-modal__container--hub"
+                    onClick={e => e.stopPropagation()}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="node-config-modal-title"
+                >
+                    {/* Header */}
+                    <div className="br-node-config-modal__header br-node-config-modal__header--hub">
+                        <div className="br-node-config-modal__header__left">
+                            <span className="br-node-config-modal__type-badge br-node-config-modal__type-badge--hub">
+                                <GitMerge className="br-node-config-modal__icon-xs" style={{ marginRight: 4 }} />
+                                HUB ROUTER
+                            </span>
+                            <h3 id="node-config-modal-title" className="br-node-config-modal__header__title">Configure Hub Router</h3>
+                        </div>
+                        <div className="br-node-config-modal__header__right">
+                            <button className="br-node-config-modal__close-btn" onClick={onClose}>
+                                <X className="br-node-config-modal__icon-lg" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Body */}
+                    <div className="br-node-config-modal__body-wrapper">
+                        <div className="br-node-config-modal__body br-node-config-modal__body--hub">
+                            {/* Hub Label */}
+                            <div className="br-node-config-modal__field br-node-config-modal__mb-16">
+                                <label className="br-node-config-modal__label">Hub Label</label>
+                                <input
+                                    className="br-node-config-modal__input br-node-config-modal__input--hub"
+                                    type="text"
+                                    value={data.label || ''}
+                                    onChange={e => patch('label', e.target.value)}
+                                    placeholder="Enter router hub label..."
+                                    autoFocus
+                                />
+                            </div>
+
+                            {/* On-Enter Modifiers */}
+                            <div className="br-node-config-modal__field">
+                                <SectionTitle icon={Zap} title="On-Enter Modifiers" />
+                                <div className="br-node-config-modal__modifiers-box br-node-config-modal__modifiers-box--hub">
+                                    <div>
+                                        <label className="br-node-config-modal__label br-node-config-modal__label--block">Set Flags (True)</label>
+                                        {flags.length === 0
+                                            ? <span className="br-node-config-modal__hint--inline">No flags defined.</span>
+                                            : <FlagDropdown
+                                                flags={flags}
+                                                selectedIds={data.flags_set || []}
+                                                onAdd={toggleFlag}
+                                            />
+                                        }
+                                        {(data.flags_set || []).length > 0 && (
+                                            <>
+                                                <div className="br-flag-dropdown__divider" />
+                                                <div className="br-node-config-modal__flags-tags">
+                                                    {(data.flags_set || []).map(flagId => {
+                                                        const f = flags.find(fl => fl.id === flagId);
+                                                        return f ? (
+                                                            <span key={flagId} className="br-node-config-modal__flag-tag">
+                                                                {f.name}
+                                                                <button className="br-node-config-modal__flag-tag__remove" onClick={() => toggleFlag(flagId)}>
+                                                                    <X className="br-node-config-modal__icon-xs" />
+                                                                </button>
+                                                            </span>
+                                                        ) : null;
+                                                    })}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <div className="br-node-config-modal__border-top">
+                                        <label className="br-node-config-modal__label br-node-config-modal__label--block">Status Modifiers</label>
+                                        {(data.status_set || []).map((se, idx) => (
+                                            <div key={idx} className="br-node-config-modal__status-row br-node-config-modal__mb-6">
+                                                <SearchableSelect
+                                                    className="br-node-config-modal__select"
+                                                    value={se.statusId || ''}
+                                                    onChange={val => updateStatusEffect(idx, { statusId: val })}
+                                                    options={statuses}
+                                                    placeholder="Select status..."
+                                                />
+                                                <div className="br-node-config-modal__mode-toggle">
+                                                    <button
+                                                        className={`br-node-config-modal__mode-btn br-node-config-modal__mode-btn--add ${(se.mode || 'add') === 'add' ? 'br-node-config-modal__mode-btn--active-add' : ''}`}
+                                                        onClick={() => updateStatusEffect(idx, { mode: 'add' })}
+                                                        title="Add / subtract from current value"
+                                                    >ADD</button>
+                                                    <button
+                                                        className={`br-node-config-modal__mode-btn br-node-config-modal__mode-btn--set ${(se.mode || 'add') === 'set' ? 'br-node-config-modal__mode-btn--active-set' : ''}`}
+                                                        onClick={() => updateStatusEffect(idx, { mode: 'set' })}
+                                                        title="Force status to exact value"
+                                                    >SET</button>
+                                                </div>
+                                                <input
+                                                    type="number"
+                                                    className="br-node-config-modal__status-amount"
+                                                    value={se.amount ?? 0}
+                                                    placeholder={(se.mode || 'add') === 'set' ? 'Value' : 'Amount'}
+                                                    onChange={e => updateStatusEffect(idx, { amount: Number(e.target.value) })}
+                                                />
+                                                <button className="br-node-config-modal__remove-btn" onClick={() => removeStatusEffect(idx)}>
+                                                    <Trash2 className="br-node-config-modal__icon-md" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button className="br-node-config-modal__add-btn" onClick={addStatusEffect}>
+                                            <Plus className="br-node-config-modal__icon-xs" /> Add Status Modifier
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="br-node-config-modal__footer">
+                        <button className="br-node-config-modal__btn-cancel" onClick={handleCancel}>Cancel</button>
+                        <button
+                            className="br-node-config-modal__btn-save br-node-config-modal__btn-save--hub"
+                            onClick={onClose}
+                            disabled={!(data.label || '').trim()}
+                            title={!(data.label || '').trim() ? 'Hub label cannot be blank' : undefined}
+                        >
+                            <Check className="br-node-config-modal__icon-base" /> Save Router Hub
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="br-node-config-modal__backdrop" onClick={handleCancel}>
             <div
-                className={`br-node-config-modal__container ${isEnding ? 'br-node-config-modal__container--narrow' : 'br-node-config-modal__container--wide'}`}
+                ref={containerRef}
+                className={`br-node-config-modal__container ${isEnding ? 'br-node-config-modal__container--narrow' : 'br-node-config-modal__container--wide'} ${showTagsPanel ? 'br-node-config-modal__container--with-tags' : ''}`}
                 onClick={e => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="node-config-modal-title"
             >
                 {/* Header */}
                 <div className="br-node-config-modal__header">
@@ -591,7 +749,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                         <span className={`br-node-config-modal__type-badge ${typeBadgeClass}`}>
                             {badgeText}
                         </span>
-                        <h3 className="br-node-config-modal__header__title">Configure Node</h3>
+                        <h3 id="node-config-modal-title" className="br-node-config-modal__header__title">Configure Node</h3>
                     </div>
                     <div className="br-node-config-modal__header__right">
                         {!isCampaignActive && (
@@ -610,13 +768,26 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                     </div>
                 </div>
 
-                {/* Body */}
-                <div className="br-node-config-modal__body">
+                {/* Body Wrapper */}
+                <div className="br-node-config-modal__body-wrapper">
+                    {/* Body */}
+                    <div className="br-node-config-modal__body">
 
                     {/* LEFT COLUMN: Narrative & Routing */}
                     <div className={`br-node-config-modal__col ${isEnding ? 'br-node-config-modal__col--left-only' : 'br-node-config-modal__col--left'}`}>
                         <div>
-                            <SectionTitle icon={AlignLeft} title="Narrative Content" />
+                            <div className="br-node-config-modal__section-title-wrapper">
+                                <SectionTitle icon={AlignLeft} title="Narrative Content" />
+                                <button
+                                    type="button"
+                                    className={`br-node-config-modal__tags-toggle-btn ${showTagsPanel ? 'br-node-config-modal__tags-toggle-btn--active' : ''}`}
+                                    onClick={() => setShowTagsPanel(v => !v)}
+                                    title="Toggle Tags Sidebar"
+                                >
+                                    <Tag size={13} />
+                                    <span>+Add Tags</span>
+                                </button>
+                            </div>
                             {/* FIX 4: Label first */}
                             <div className="br-node-config-modal__field br-node-config-modal__mb-14">
                                 <label className="br-node-config-modal__label">Node Label</label>
@@ -677,7 +848,7 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                             )}
 
                             {/* Description */}
-                            <div className="br-node-config-modal__field">
+                            <div className="br-node-config-modal__field br-node-config-modal__mb-14">
                                 <label className="br-node-config-modal__label">Description / Content</label>
                                 <textarea
                                     className="br-node-config-modal__textarea"
@@ -824,10 +995,46 @@ export default function NodeConfigModal({ nodeId, onClose, onCancel }) {
                     )}
                 </div>
 
-                {/* Footer */}
+                {/* Collapsible Tags Panel */}
+                <div className={`br-node-config-modal__tags-sidebar ${showTagsPanel ? 'br-node-config-modal__tags-sidebar--open' : ''}`}>
+                    <div className="br-node-config-modal__tags-sidebar-header">
+                        <Tag size={14} className="br-node-config-modal__tags-sidebar-icon" />
+                        <span>Node Tags</span>
+                    </div>
+                    <div className="br-node-config-modal__tags-sidebar-body custom-scrollbar">
+                        {tags.length === 0 ? (
+                            <div className="br-node-config-modal__hint">
+                                No tags defined yet. Add them in the Left Sidebar ("Tags" tab).
+                            </div>
+                        ) : (
+                            tags.map(t => {
+                                const isSelected = (data.tagIds || []).includes(t.id);
+                                return (
+                                    <label key={t.id} className="br-node-config-modal__tag-checkbox-row">
+                                        <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={() => toggleTagSelection(t.id)}
+                                            className="br-node-config-modal__tag-checkbox"
+                                        />
+                                        <span className="br-node-config-modal__tag-checkbox-label">{t.name}</span>
+                                    </label>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Footer */}
                 <div className="br-node-config-modal__footer">
                     <button className="br-node-config-modal__btn-cancel" onClick={handleCancel}>Cancel</button>
-                    <button className="br-node-config-modal__btn-save" onClick={onClose}>
+                    <button
+                        className="br-node-config-modal__btn-save"
+                        onClick={onClose}
+                        disabled={!(data.label || '').trim()}
+                        title={!(data.label || '').trim() ? 'Node label cannot be blank' : undefined}
+                    >
                         <Check className="br-node-config-modal__icon-base" /> Save Node
                     </button>
                 </div>

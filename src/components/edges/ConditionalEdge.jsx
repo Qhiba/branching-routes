@@ -8,11 +8,18 @@ function clamp(val, min, max) {
 
 function ConditionalEdge(props) {
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, markerEnd, data } = props;
+  const source = props.source;
+  const target = props.target;
 
   const showTraversalOverlay = useUIStore(s => s.showTraversalOverlay);
   const isTraversedOverlay = useSimulationStore(s => s.isCampaignActive && s.traversedEdgeIds.includes(id)) && showTraversalOverlay;
   const isConditionPass = useSimulationStore(s => s.isCampaignActive && s.reachableEdgeIds.includes(id));
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+
+  const sourceNode = useNarrativeStore(s => s.common[source] || s.choice[source] || s.ending[source]);
+  const targetNode = useNarrativeStore(s => s.common[target] || s.choice[target] || s.ending[target]);
+
+  const isFilteredOut = !!(sourceNode?.data?.isFilteredOut || targetNode?.data?.isFilteredOut);
 
   const showShortestRouteOverlay = useUIStore(s => s.showShortestRouteOverlay);
   const selectedRouteIndex = useUIStore(s => s.selectedRouteIndex);
@@ -130,7 +137,9 @@ function ConditionalEdge(props) {
   }, [id, isCampaignActive, updateEdge]);
 
   let className = 'conditional-edge';
-  if (isFrozenOverlay) {
+  if (isFilteredOut) {
+    className += ' conditional-edge--filtered-out';
+  } else if (isFrozenOverlay) {
     className += ' conditional-edge--frozen-overlay';
   } else if (isRouteOverlay) {
     className += ' conditional-edge--route-overlay';
@@ -171,9 +180,9 @@ function ConditionalEdge(props) {
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX + (data?.labelOffsetX || 0)}px,${labelY + (data?.labelOffsetY || 0)}px)`
             }}
-            className={`nodrag nopan conditional-edge__label-container ${!isCampaignActive ? 'conditional-edge__label-container--draggable' : ''}`}
-            onMouseDown={!isCampaignActive ? onLabelMouseDown : undefined}
-            onDoubleClick={!isCampaignActive ? onLabelDoubleClick : undefined}
+            className={`nodrag nopan conditional-edge__label-container ${!isCampaignActive ? 'conditional-edge__label-container--draggable' : ''} ${isFilteredOut ? 'conditional-edge__label-container--filtered-out' : ''}`}
+            onMouseDown={!isCampaignActive && !isFilteredOut ? onLabelMouseDown : undefined}
+            onDoubleClick={!isCampaignActive && !isFilteredOut ? onLabelDoubleClick : undefined}
             title={!isCampaignActive ? "Drag to move label · Double-click to reset" : undefined}
           >
             {labelDisplayMode === 'compact' ? (

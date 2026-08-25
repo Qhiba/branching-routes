@@ -6,7 +6,6 @@ import {
   Controls,
   MiniMap,
   useReactFlow,
-  useViewport,
   ReactFlowProvider,
   MarkerType
 } from '@xyflow/react';
@@ -26,92 +25,25 @@ import ChoiceNode from './nodes/ChoiceNode';
 import EndingNode from './nodes/EndingNode';
 import WarpEntranceNode from './nodes/WarpEntranceNode';
 import WarpExitNode from './nodes/WarpExitNode';
+import HubNode from './nodes/HubNode';
 import ConditionalEdge from './edges/ConditionalEdge';
 
-// ADDED: Phase 3 — Cluster color palette (stable, module-level constant)
-const CLUSTER_PALETTE = [
-  '#a78bfa', // violet
-  '#34d399', // emerald
-  '#f87171', // rose
-  '#60a5fa', // blue
-  '#fbbf24', // amber
-  '#a3e635', // lime
-  '#e879f9', // fuchsia
-  '#2dd4bf'  // teal
-];
+// Module-scoped type definitions (AR-01 / RISK-AUD-01 mitigation)
+// Defined outside component scope to guarantee stable object reference across component lifecycles
+const NODE_TYPES = {
+  commonNode: CommonNode,
+  choiceNode: ChoiceNode,
+  endingNode: EndingNode,
+  warpEntranceNode: WarpEntranceNode,
+  warpExitNode: WarpExitNode,
+  hubNode: HubNode
+};
 
-// ADDED: Phase 3 — Hash entity ID to deterministic color
-function hashEntityColor(id) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  return CLUSTER_PALETTE[Math.abs(hash) % CLUSTER_PALETTE.length];
-}
+const EDGE_TYPES = {
+  conditionalEdge: ConditionalEdge
+};
 
-// ADDED: Phase 3 — Cluster overlay component renders path/chapter regions behind nodes
-function ClusterOverlay({ chapterBoxes, pathBoxes }) {
-  const { x, y, zoom } = useViewport();
-  const clusterMode = useUIStore(s => s.clusterMode);
-
-  if (clusterMode === 'off') return null;
-
-  const showChapters = clusterMode === 'chapter' || clusterMode === 'both';
-  const showPaths = clusterMode === 'path' || clusterMode === 'both';
-
-  return (
-    <div className="cluster-overlay">
-      <svg
-        className="cluster-overlay__svg"
-        style={{
-          transform: `translate(${x}px, ${y}px) scale(${zoom})`,
-          transformOrigin: '0 0'
-        }}
-      >
-        <defs>
-          {/* ADDED: Phase 3 — SVG filters for path blur effect */}
-          {showPaths && pathBoxes.map(box => (
-            <filter key={`blur-${box.id}`} id={`blur-${box.id}`}>
-              <feGaussianBlur stdDeviation="12" />
-            </filter>
-          ))}
-        </defs>
-
-        {/* ADDED: Phase 3 — Chapter regions (corner-based rounded rectangles) */}
-        {showChapters && chapterBoxes.map(box => (
-          <rect
-            key={`chapter-${box.id}`}
-            x={box.x}
-            y={box.y}
-            width={box.width}
-            height={box.height}
-            rx={8}
-            ry={8}
-            fill={box.color}
-            fillOpacity={0.15}
-            stroke={box.color}
-            strokeOpacity={0.4}
-            strokeWidth={1}
-          />
-        ))}
-
-        {/* ADDED: Phase 3 — Path regions (soft blurred rectangles) */}
-        {showPaths && pathBoxes.map(box => (
-          <rect
-            key={`path-${box.id}`}
-            x={box.x}
-            y={box.y}
-            width={box.width}
-            height={box.height}
-            rx={0}
-            ry={0}
-            fill={box.color}
-            fillOpacity={0.2}
-            filter={`url(#blur-${box.id})`}
-          />
-        ))}
-      </svg>
-    </div>
-  );
-}
+// REMOVED (Step 3): CLUSTER_PALETTE, hashEntityColor, and ClusterOverlay - retired in favor of canvas filters
 
 function GraphCanvasInner() {
 
@@ -139,6 +71,11 @@ function GraphCanvasInner() {
     snapToGrid,
     followActiveNode
   } = useUIStore();
+
+  const canvasFilterChapterId = useUIStore(s => s.canvasFilterChapterId);
+  const canvasFilterPathId = useUIStore(s => s.canvasFilterPathId);
+  const canvasFilterTagIds = useUIStore(s => s.canvasFilterTagIds) || [];
+  const canvasFilterTagsLogic = useUIStore(s => s.canvasFilterTagsLogic) || 'or';
 
   const { isCampaignActive, activeNodeId, advance, reachableNodeIds, reachableEdgeIds, runPassiveAnalysis } = useSimulationStore();
 
@@ -324,16 +261,6 @@ function GraphCanvasInner() {
     return () => window.removeEventListener('canvas-open-name-modal', handleOpenModal);
   }, []);
 
-  const nodeTypes = useMemo(() => ({
-    commonNode: CommonNode,
-    choiceNode: ChoiceNode,
-    endingNode: EndingNode,
-    warpEntranceNode: WarpEntranceNode,
-    warpExitNode: WarpExitNode
-  }), []);
-
-  const edgeTypes = useMemo(() => ({ conditionalEdge: ConditionalEdge }), []);
-
   // ADDED: Phase 3 — Build flat list of all nodes for cluster bounding box computation
   const allNodes = useMemo(() => [
     ...Object.values(common),
@@ -348,55 +275,39 @@ function GraphCanvasInner() {
         let _type = 'commonNode';
         if (node.type === 'warp_entrance') _type = 'warpEntranceNode';
         else if (node.type === 'warp_exit') _type = 'warpExitNode';
+        else if (node.type === 'hub') _type = 'hubNode';
         return { ...node, _type };
       }),
       ...Object.values(choice).map(node => ({ ...node, _type: 'choiceNode' })),
       ...Object.values(ending).map(node => ({ ...node, _type: 'endingNode' })),
     ].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
-    return sorted.map((node, idx) => ({
-      id: node.id,
-      type: node._type,
-      position: node.position,
-      zIndex: idx + 1, // FIX: z-order by creation order — later nodes on top
-      data: node.data,
-    }));
-  }, [common, choice, ending]);
+    return sorted.map((node, idx) => {
+      const nodeData = node.data || {};
+      const nodeTagIds = nodeData.tagIds || [];
+      const matchesChapter = !canvasFilterChapterId || nodeData.chapterId === canvasFilterChapterId;
+      const matchesPath = !canvasFilterPathId || nodeData.pathId === canvasFilterPathId;
+      const matchesTags = canvasFilterTagIds.length === 0 || (
+        canvasFilterTagsLogic === 'and'
+          ? canvasFilterTagIds.every(id => nodeTagIds.includes(id))
+          : canvasFilterTagIds.some(id => nodeTagIds.includes(id))
+      );
+      const isFilteredOut = !matchesChapter || !matchesPath || !matchesTags;
 
-  // ADDED: Phase 3 — Compute cluster bounding boxes (chapter and path regions)
-  const clusterBoxes = useMemo(() => {
-    const PADDING = 24;
-    const NODE_W = 240;
-    const NODE_H = 160;
+      return {
+        id: node.id,
+        type: node._type,
+        position: node.position,
+        zIndex: idx + 1, // FIX: z-order by creation order — later nodes on top
+        data: {
+          ...nodeData,
+          isFilteredOut,
+        },
+      };
+    });
+  }, [common, choice, ending, canvasFilterChapterId, canvasFilterPathId, canvasFilterTagIds, canvasFilterTagsLogic]);
 
-    const computeBoxes = (entityKey) => {
-      const groups = {};
-      allNodes.forEach(node => {
-        const id = node.data[entityKey];
-        if (!id) return;
-        if (!groups[id]) groups[id] = [];
-        groups[id].push(node.position);
-      });
-
-      return Object.entries(groups).map(([id, positions]) => {
-        const xs = positions.map(p => p.x);
-        const ys = positions.map(p => p.y);
-        return {
-          id,
-          color: hashEntityColor(id),
-          x: Math.min(...xs) - PADDING,
-          y: Math.min(...ys) - PADDING,
-          width: Math.max(...xs) - Math.min(...xs) + NODE_W + PADDING * 2,
-          height: Math.max(...ys) - Math.min(...ys) + NODE_H + PADDING * 2,
-        };
-      });
-    };
-
-    return {
-      chapterBoxes: computeBoxes('chapterId'),
-      pathBoxes: computeBoxes('pathId'),
-    };
-  }, [allNodes]);
+  // REMOVED (Step 3): clusterBoxes computation - retired in favor of canvas filters
 
   const [rfNodes, setRfNodes] = useState(derivedNodes);
 
@@ -518,6 +429,7 @@ function GraphCanvasInner() {
 
   // PROTECTED: onConnect edge-stamping logic
   const onConnect = useCallback((params) => {
+    if (isCampaignActive) return;
     try {
       if (params.sourceHandle && params.sourceHandle.startsWith('opt-')) {
         addEdge(params.source, params.target, params.sourceHandle);
@@ -527,7 +439,7 @@ function GraphCanvasInner() {
     } catch (e) {
       console.error(e.message);
     }
-  }, [addEdge]);
+  }, [addEdge, isCampaignActive]);
 
   // CHANGED: Phase 6 fix — double-click pane no longer creates a node (was: double-click-to-add)
   // Node creation is now exclusively via FloatingMiddleBar or context menu
@@ -542,6 +454,9 @@ function GraphCanvasInner() {
   }, []);
 
   // ADDED: Phase 1 multi-selection sync
+  // PROTECTED / LOAD-BEARING (RISK-CMK-12): Fires synchronously on React Flow selection events.
+  // Relies on `setSelectedNodeIds` in `uiStore.js` performing order-independent set equality checks
+  // to prevent infinite state update / re-render loops.
   const onSelectionChange = useCallback(({ nodes }) => {
     setSelectedNodeIds(nodes.map(n => n.id));
   }, [setSelectedNodeIds]);
@@ -578,8 +493,7 @@ function GraphCanvasInner() {
 
   return (
     <div ref={canvasRef} className={`canvas-wrapper canvas-wrapper--full ${isCampaignActive ? 'campaign-mode' : ''}`}>
-      {/* ADDED: Phase 3 — Cluster overlay (chapter/path regions behind nodes) */}
-      <ClusterOverlay chapterBoxes={clusterBoxes.chapterBoxes} pathBoxes={clusterBoxes.pathBoxes} />
+      {/* REMOVED (Step 3): ClusterOverlay rendering - retired in favor of canvas filters */}
 
       {/* REMOVED: Phase 5 — Legacy campaign banner retired; FloatingMiddleBar pill takes over */}
 
@@ -665,8 +579,11 @@ function GraphCanvasInner() {
       <ReactFlow
         nodes={rfNodes}
         edges={reactFlowEdges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
+        nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
+        nodesDraggable={!isCampaignActive}
+        nodesConnectable={!isCampaignActive}
+        elementsSelectable={!isCampaignActive}
         onNodesChange={onNodesChange}
         onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
