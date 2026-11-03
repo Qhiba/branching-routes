@@ -92,6 +92,13 @@ export default function useKeyboardShortcuts() {
         return;
       }
 
+      // ADDED: Snap Assist toggle (view-level shortcut, available outside campaign mode too)
+      if (e.key.toLowerCase() === 'a') {
+        useUIStore.getState().toggleSnapAssist();
+        return;
+      }
+
+
       // REMOVED (Step 3): G keybind for cycleClusterMode - retired in favor of canvas filters
 
       // Guard: Authoring shortcuts disabled in campaign mode
@@ -173,17 +180,46 @@ export default function useKeyboardShortcuts() {
     };
     const handleAltBlur = () => document.body.classList.remove('alt-pressed');
 
+    // ADDED: Snap Assist — Ctrl body class for guide line visibility (AR-30)
+    const handleCtrlKeyDown = (e) => {
+      if (e.key === 'Control') document.body.classList.add('ctrl-pressed');
+    };
+    const handleCtrlKeyUp = (e) => {
+      if (e.key === 'Control') document.body.classList.remove('ctrl-pressed');
+    };
+
+    // ADDED: Snap Assist — Shift body class for axis-lock detection (AR-30)
+    const handleShiftKeyDown = (e) => {
+      if (e.key === 'Shift') document.body.classList.add('shift-pressed');
+    };
+    const handleShiftKeyUp = (e) => {
+      if (e.key === 'Shift') document.body.classList.remove('shift-pressed');
+    };
+
+    // Clear all modifier classes on window blur (prevents stuck modifiers)
+    const handleBlur = () => {
+      document.body.classList.remove('alt-pressed', 'ctrl-pressed', 'shift-pressed');
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keydown', handleAltKeyDown);
     window.addEventListener('keyup', handleAltKeyUp);
-    window.addEventListener('blur', handleAltBlur);
+    window.addEventListener('keydown', handleCtrlKeyDown);
+    window.addEventListener('keyup', handleCtrlKeyUp);
+    window.addEventListener('keydown', handleShiftKeyDown);
+    window.addEventListener('keyup', handleShiftKeyUp);
+    window.addEventListener('blur', handleBlur);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keydown', handleAltKeyDown);
       window.removeEventListener('keyup', handleAltKeyUp);
-      window.removeEventListener('blur', handleAltBlur);
-      document.body.classList.remove('alt-pressed');
+      window.removeEventListener('keydown', handleCtrlKeyDown);
+      window.removeEventListener('keyup', handleCtrlKeyUp);
+      window.removeEventListener('keydown', handleShiftKeyDown);
+      window.removeEventListener('keyup', handleShiftKeyUp);
+      window.removeEventListener('blur', handleBlur);
+      document.body.classList.remove('alt-pressed', 'ctrl-pressed', 'shift-pressed');
     };
   }, []);
 }

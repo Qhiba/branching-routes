@@ -1624,4 +1624,107 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
 
 .error-boundary-actions .btn--danger:hover {
   background: rgba(239, 68, 68, 0.25);
-}
+}
+
+/* ─── Snap Assist — guide lines ─────────────────────────────────────────────── */
+/* Cyan dashed lines that flash when a dragged node is within snap threshold.    */
+/* Rendered by SnapGuideOverlay inside .canvas-wrapper (absolute positioning).   */
+/* pointer-events: none ensures they never intercept mouse/drag events.          */
+
+.snap-guide {
+  position: absolute;
+  pointer-events: none;
+  z-index: var(--z-cluster);
+}
+
+.snap-guide--horizontal {
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    #22d3ee 0px 6px,
+    transparent 6px 12px
+  );
+  box-shadow: 0 0 6px rgba(34, 211, 238, 0.5);
+}
+
+.snap-guide--vertical {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: repeating-linear-gradient(
+    180deg,
+    #22d3ee 0px 6px,
+    transparent 6px 12px
+  );
+  box-shadow: 0 0 6px rgba(34, 211, 238, 0.5);
+}
+
+/* ─── TopBar — Snap Assist controls ─────────────────────────────────────────── */
+
+.br-topbar__snap-assist {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Active state for the magnet toggle button */
+.br-topbar__file-btn--active {
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.08);
+  border-color: rgba(34, 211, 238, 0.3);
+}
+
+.br-topbar__snap-slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.br-topbar__snap-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 64px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  transition: background var(--transition-fast);
+}
+
+.br-topbar__snap-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #22d3ee;
+  cursor: pointer;
+  border: none;
+}
+
+.br-topbar__snap-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #22d3ee;
+  cursor: pointer;
+  border: none;
+}
+
+.br-topbar__snap-range:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.br-topbar__snap-value {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  min-width: 16px;
+  text-align: right;
+  line-height: 1;
+}
+

@@ -106,5 +106,17 @@ export const useUIStore = create((set, get) => ({
 
   // Follow Active Node toggle (Phase 8 Change #6)
   followActiveNode: false,
-  setFollowActiveNode: (val) => set({ followActiveNode: val })
+  setFollowActiveNode: (val) => set({ followActiveNode: val }),
+
+  // ADDED: Snap Assist — smart alignment guide snapping on node drop
+  // snapAssist: session-only toggle (defaults to true on every load)
+  // snapThreshold: persisted to localStorage via safeStorage (AR-33)
+  snapAssist: true,
+  snapThreshold: Number(safeGet('br_snapThreshold', 8)),
+
+  toggleSnapAssist: () => set(state => ({ snapAssist: !state.snapAssist })),
+  setSnapThreshold: (val) => {
+    safeSet('br_snapThreshold', Number(val));
+    set({ snapThreshold: Number(val) });
+  },
 }));

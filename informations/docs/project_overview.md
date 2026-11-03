@@ -62,6 +62,7 @@ branching-routes/
 │   │   ├── routeTracer.worker.js # Web Worker for off-thread route tracing
 │   │   ├── safeStorage.js  # Safe localStorage wrapper with try/catch
 │   │   ├── safeStorage.test.js # Unit test for safe localStorage wrapper
+│   │   ├── snapGuides.js   # Smart Snap Assist pure math: computeSnapGuides (binary-search guide cache), getSnappedPosition, getActiveGuides, applyAxisLock
 │   │   └── index.js        # Barrel re-export for all utilities
 │   │
 │   ├── hooks/

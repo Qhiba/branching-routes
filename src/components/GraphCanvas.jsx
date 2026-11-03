@@ -6,10 +6,12 @@ import {
   Controls,
   MiniMap,
   useReactFlow,
+  useViewport,
   ReactFlowProvider,
   MarkerType
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { computeSnapGuides, getSnappedPosition, getActiveGuides, applyAxisLock } from 'utils';
 
 import { useNarrativeStore, useSimulationStore, useUIStore } from 'store';
 import useKeyboardShortcuts from 'hooks/useKeyboardShortcuts'; // ADDED: Phase 1 hook import
@@ -76,6 +78,18 @@ function GraphCanvasInner() {
   const canvasFilterPathId = useUIStore(s => s.canvasFilterPathId);
   const canvasFilterTagIds = useUIStore(s => s.canvasFilterTagIds) || [];
   const canvasFilterTagsLogic = useUIStore(s => s.canvasFilterTagsLogic) || 'or';
+
+  // ADDED: Snap Assist — per-slice selectors (AR-23)
+  const snapAssist = useUIStore(s => s.snapAssist);
+  const snapThreshold = useUIStore(s => s.snapThreshold);
+
+  // ADDED: Snap Assist refs — no store, no re-renders (AR-03)
+  // Guide cache: computed ONCE in onNodeDragStart, reused cheaply each frame
+  const dragGuidesCache = useRef({ yGuides: [], xGuides: [] });
+  // Start positions: stored at dragStart for Shift-lock axis detection
+  const dragStartPositions = useRef({});
+  // Active guide coordinates: which guide lines to render (null = none)
+  const [activeGuides, setActiveGuides] = useState({ y: null, x: null });
 
   const { isCampaignActive, activeNodeId, advance, reachableNodeIds, reachableEdgeIds, runPassiveAnalysis } = useSimulationStore();
 
@@ -239,6 +253,15 @@ function GraphCanvasInner() {
     };
     window.addEventListener('canvas-navigate-to-node', handleNavigate);
     return () => window.removeEventListener('canvas-navigate-to-node', handleNavigate);
+  }, [setCenter]);
+
+  // ADDED: Step 1 — Listen for canvas-center-origin event to center canvas at (0, 0) and reset zoom
+  useEffect(() => {
+    const handleCenterOrigin = () => {
+      setCenter(0, 0, { zoom: 1, duration: 400 });
+    };
+    window.addEventListener('canvas-center-origin', handleCenterOrigin);
+    return () => window.removeEventListener('canvas-center-origin', handleCenterOrigin);
   }, [setCenter]);
 
   // ADDED: Phase 8 Change #6 — Follow Active Node in campaign mode
@@ -461,10 +484,48 @@ function GraphCanvasInner() {
     setSelectedNodeIds(nodes.map(n => n.id));
   }, [setSelectedNodeIds]);
 
-  const onNodeDragStart = useCallback(() => {
+  // MODIFIED: Snap Assist — store start positions for Shift-lock + pre-compute guide cache ONCE
+  const onNodeDragStart = useCallback((event, node, nodes) => {
     closeContextMenu(); // ADDED: Phase 3 dismiss
     isDragging.current = true;
-  }, [closeContextMenu]);
+
+    if (!snapAssist || isCampaignActive) return;
+
+    // Collect IDs of every node in the drag group (single or multi-select)
+    const dragging = nodes && nodes.length > 1 ? nodes : [node];
+    const draggingIds = new Set(dragging.map(n => n.id));
+
+    // Store start positions for Shift-lock (Q3)
+    const starts = {};
+    dragging.forEach(n => { starts[n.id] = { x: n.position.x, y: n.position.y }; });
+    dragStartPositions.current = starts;
+
+    // Pre-compute guide rails ONCE from all non-dragging, non-Hub nodes
+    // Hub nodes are excluded: they are pass-through routers that should not define rails
+    const otherNodes = rfNodes.filter(
+      n => !draggingIds.has(n.id) && n.type !== 'hubNode'
+    );
+    dragGuidesCache.current = computeSnapGuides(otherNodes);
+  }, [closeContextMenu, snapAssist, isCampaignActive, rfNodes]);
+
+  // ADDED: Snap Assist — per-frame guide visibility check (Ctrl-hold shows guide lines)
+  // Guide positions are read from the pre-computed cache (O log N binary search, not O N iteration)
+  const onNodeDrag = useCallback((event, node) => {
+    if (!snapAssist || isCampaignActive) return;
+
+    // Guide lines only visible when Ctrl is held (Q2)
+    if (!document.body.classList.contains('ctrl-pressed')) {
+      // Clear active guide state only if there was one — avoids unnecessary re-renders
+      setActiveGuides(prev => (prev.y === null && prev.x === null) ? prev : { y: null, x: null });
+      return;
+    }
+
+    const active = getActiveGuides(node.position, dragGuidesCache.current, snapThreshold);
+    // Only update state when active guide actually changes — prevents re-renders on every frame
+    setActiveGuides(prev =>
+      prev.y === active.y && prev.x === active.x ? prev : active
+    );
+  }, [snapAssist, isCampaignActive, snapThreshold]);
 
   // FIX 2.a: In xyflow v12, onNodeDragStop receives (event, node, nodes) where
   // `nodes` is the FULL array of all nodes currently being dragged (including
@@ -472,15 +533,41 @@ function GraphCanvasInner() {
   // to false — we ensure derivedNodes will have correct positions when the sync
   // useEffect fires on the next render.
   // PROTECTED: onNodeDragStop -> updateNode (integration point)
+  // MODIFIED: Snap Assist — apply Shift-lock (Q3) then guide snap (Q1) on drop
+  //   Hub nodes bypass both corrections: they are excluded from snap entirely.
   const onNodeDragStop = useCallback((event, node, nodes) => {
-    // `nodes` contains every node in the drag (single or multi-select)
-    if (nodes && nodes.length > 1) {
-      nodes.forEach(n => updateNode(n.id, { position: n.position }));
-    } else {
-      updateNode(node.id, { position: node.position });
-    }
+    const dragging = nodes && nodes.length > 1 ? nodes : [node];
+    const shiftHeld = document.body.classList.contains('shift-pressed');
+
+    dragging.forEach(n => {
+      // Hub nodes: persist position as-is, no snap or axis lock
+      if (n.type === 'hubNode') {
+        updateNode(n.id, { position: n.position });
+        return;
+      }
+
+      if (snapAssist && !isCampaignActive) {
+        let pos = { x: n.position.x, y: n.position.y };
+
+        // Q3: Shift-lock axis — constrain to dominant movement direction before snapping
+        if (shiftHeld && dragStartPositions.current[n.id]) {
+          pos = applyAxisLock(pos, dragStartPositions.current[n.id]);
+        }
+
+        // Q1: Snap to nearest guide within threshold (uses cached guides, O log N)
+        const snapped = getSnappedPosition(pos, dragGuidesCache.current, snapThreshold);
+        updateNode(n.id, { position: snapped });
+      } else {
+        updateNode(n.id, { position: n.position });
+      }
+    });
+
+    // Clear all snap assist drag state
+    setActiveGuides({ y: null, x: null });
+    dragStartPositions.current = {};
+    dragGuidesCache.current = { yGuides: [], xGuides: [] };
     isDragging.current = false;
-  }, [updateNode]);
+  }, [updateNode, snapAssist, isCampaignActive, snapThreshold]);
 
   // PROTECTED: graph-layout-tidy event listener
   useEffect(() => {
@@ -576,6 +663,11 @@ function GraphCanvasInner() {
         />
       )}
 
+      {/* ADDED: Snap Assist guide line overlay — only rendered when Ctrl held and guide is active */}
+      {snapAssist && (activeGuides.y !== null || activeGuides.x !== null) && (
+        <SnapGuideOverlay activeGuides={activeGuides} />
+      )}
+
       <ReactFlow
         nodes={rfNodes}
         edges={reactFlowEdges}
@@ -593,6 +685,7 @@ function GraphCanvasInner() {
         onReconnect={onReconnect}
         onPaneClick={onPaneClick}
         onNodeDragStart={onNodeDragStart}
+        onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onSelectionChange={onSelectionChange} // ADDED: Phase 1
         onPaneContextMenu={onPaneContextMenu} // ADDED: Phase 3
@@ -613,6 +706,30 @@ function GraphCanvasInner() {
         <MiniMap />
       </ReactFlow>
     </div>
+  );
+}
+
+// ADDED: Snap Assist guide line overlay component.
+// Reads useViewport() to convert flow-coordinate guide positions into screen-pixel positions.
+// Rendered inside GraphCanvasInner (inside ReactFlowProvider) so useViewport() is valid (AR-19).
+// Absolutely positioned relative to .canvas-wrapper; pointer-events: none so it never blocks interaction.
+function SnapGuideOverlay({ activeGuides }) {
+  const { x: vpX, y: vpY, zoom } = useViewport();
+  return (
+    <>
+      {activeGuides.y !== null && (
+        <div
+          className="snap-guide snap-guide--horizontal"
+          style={{ top: activeGuides.y * zoom + vpY }}
+        />
+      )}
+      {activeGuides.x !== null && (
+        <div
+          className="snap-guide snap-guide--vertical"
+          style={{ left: activeGuides.x * zoom + vpX }}
+        />
+      )}
+    </>
   );
 }
 

@@ -4,3 +4,5 @@ export { exportProject, importProject, saveToIndexedDB, loadFromIndexedDB, clear
 // ADDED: Phase 3 — Route tracing utility exports
 // MODIFIED: Phase 4 & Phase 8 — add computeShortestPaths, computeShortestPathsAsync, cancelRouteWorker exports
 export { detectDeadEnds, computeForwardReachable, computeShortestPaths, computeShortestPathsAsync, cancelRouteWorker, simulateFlagStateAlongPath, findMergeGroups, buildRouteSnapshot } from './routeTracer.js';
+// ADDED: Snap Assist — pure snap math utilities
+export { computeSnapGuides, getSnappedPosition, getActiveGuides, applyAxisLock } from './snapGuides.js';

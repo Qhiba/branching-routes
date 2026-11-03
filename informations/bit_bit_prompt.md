@@ -31,7 +31,5 @@ When you boot into a new chat session with this project:
 1. Locate and read the full contents of:
    - [project_overview.md](file:///f:/Projects/Web/branching-routes/informations/docs/project_overview.md)
    - [architecture_rules.md](file:///f:/Projects/Web/branching-routes/informations/docs/architecture_rules.md)
-   - [codebase_features.md](file:///f:/Projects/Web/branching-routes/informations/docs/codebase_features.md) (for detailed component/store documentation)
-   - [risk_register.md](file:///f:/Projects/Web/branching-routes/informations/docs/risk_register.md) (for known risks and mitigations)
-   - [fixed_risk.md](file:///f:/Projects/Web/branching-routes/informations/docs/fixed_risk.md) (for detailed resolution history of all 34 fixed risks)
+   - [codebase_features.md](file:///f:/Projects/Web/branching-routes/informations/docs/codebase_features.md) (for detailed component/store documentation and changelog)
 2. Report to the user that you are ready and confirm the next step number.

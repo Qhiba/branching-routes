@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Network, Wand2, LayoutGrid, BoxSelect, FilePlus, Upload, Download,
-  GitCommit, GitPullRequest, LogIn, LogOut, GitMerge, ChevronDown, Play
+  GitCommit, GitPullRequest, LogIn, LogOut, GitMerge, ChevronDown, Play, Magnet,
+  LocateFixed
 } from 'lucide-react';
 import { useNarrativeStore, useUIStore, useSimulationStore, useCampaignStore } from 'store';
 import { exportProject, importProject, clearIndexedDB, clearCampaignsIndexedDB } from 'utils';
@@ -15,6 +16,10 @@ export default function TopBar() {
 
   const snapToGrid = useUIStore(s => s.snapToGrid);
   const toggleSnapToGrid = useUIStore(s => s.toggleSnapToGrid);
+  const snapAssist = useUIStore(s => s.snapAssist);
+  const toggleSnapAssist = useUIStore(s => s.toggleSnapAssist);
+  const snapThreshold = useUIStore(s => s.snapThreshold);
+  const setSnapThreshold = useUIStore(s => s.setSnapThreshold);
 
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
   const enterCampaign = useSimulationStore(s => s.enterCampaign);
@@ -54,6 +59,10 @@ export default function TopBar() {
         enterCampaign(camp);
       }
     }
+  };
+
+  const handleCenterOrigin = () => {
+    window.dispatchEvent(new CustomEvent('canvas-center-origin'));
   };
 
   const handleTitleChange = (e) => {
@@ -268,8 +277,50 @@ export default function TopBar() {
           </div>
         </div>
 
-        {/* Right Side: New | Import | Export */}
+        {/* Right Side: Canvas Controls (Center View & Snap Assist) | New | Import | Export */}
         <div className="br-topbar__section-right">
+          <div className="br-topbar__canvas-controls">
+            <button
+              className="br-topbar__file-btn"
+              onClick={handleCenterOrigin}
+              title="Center Canvas at (0, 0)"
+              aria-label="Center Canvas at (0, 0)"
+            >
+              <LocateFixed className="w-3.5 h-3.5" />
+            </button>
+
+            {/* ADDED: Snap Assist toggle + threshold slider */}
+            <div className="br-topbar__snap-assist" title="Smart Snap Assist (A)">
+              <button
+                className={`br-topbar__file-btn${snapAssist ? ' br-topbar__file-btn--active' : ''}`}
+                disabled={isCampaignActive}
+                onClick={toggleSnapAssist}
+                aria-label={`Snap Assist ${snapAssist ? 'On' : 'Off'}`}
+                aria-pressed={snapAssist}
+              >
+                <Magnet className="w-3.5 h-3.5" />
+              </button>
+              {snapAssist && (
+                <div className="br-topbar__snap-slider" title={`Snap threshold: ${snapThreshold}px`}>
+                  <input
+                    type="range"
+                    min="2"
+                    max="32"
+                    step="1"
+                    value={snapThreshold}
+                    disabled={isCampaignActive}
+                    onChange={(e) => setSnapThreshold(e.target.value)}
+                    className="br-topbar__snap-range"
+                    aria-label="Snap threshold"
+                  />
+                  <span className="br-topbar__snap-value">{snapThreshold}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="br-topbar__divider" />
+
           <div className="br-topbar__file-ops">
             <button
               className="br-topbar__file-btn"
