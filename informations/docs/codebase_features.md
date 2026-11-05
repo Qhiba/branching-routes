@@ -52,15 +52,23 @@
 - **Key exports:** CSS variables (`:root` scope).
 - **Dependencies:** None.
 
-### `src/styles/utilities.css` (NEW)
 - **Purpose:** Shared UI-v2 primitive classes reused across new components: `.ui-v2-pill`, `.ui-v2-nameplate`, `.ui-v2-floating-bar`, `.ui-v2-modal-shell`, `.ui-v2-segmented-control`, and related modifier classes. Imported by `global.css`.
 - **Key exports:** None (stylesheet).
 - **Dependencies:** `styles/tokens.css` (via CSS custom properties)
 
 ### `src/styles/global.css`
-- **Purpose:** CSS reset, base element styles, component styles (StoryNode, ConditionalEdge, SandboxPanel), campaign mode overrides (`.campaign-mode` wrapper class), and the `pulse-border` animation. Contains six-state node simulation classes (`.story-node--active`, `--locked`, `--complete`, `--failed`, `--branch_locked`, `--reachable`), the `--seen` overlay pseudo-element (green border glow + `::after` corner badge, applied in both campaign mode and edit mode when marked), choice option interaction classes, edge condition-pass/fail/traversed/unselected-dim classes, `.story-node__warning-badge` styles, `.sandbox-panel` component styles, Toast overlay, CommandPalette overlay, and cluster overlay SVG regions. Node type base classes (`.common-node`, `.choice-node`, `.ending-node`) carry `box-shadow` type-color glows. React Flow handles are `opacity: 0` by default with `opacity: 1` on `.react-flow__node:hover`; campaign mode forces `opacity: 0 !important` on both states. Frozen-prefix edge overlay: `.conditional-edge--frozen-overlay` renders green dashed animated stroke. Imports `utilities.css`. Legacy TopBar, CreationBar, StatusStrip, and RouteFinderDialog CSS blocks removed in Phase 8 cleanup.
+- **Purpose:** CSS reset, base element styles, component styles (StoryNode, ConditionalEdge, SandboxPanel), campaign mode overrides (`.campaign-mode` wrapper class), and the `pulse-border` animation. Contains six-state node simulation classes (`.story-node--active`, `--locked`, `--complete`, `--failed`, `--branch_locked`, `--reachable`), the `--seen` overlay pseudo-element (green border glow + `::after` corner badge, applied in both campaign mode and edit mode when marked), choice option interaction classes, edge condition-pass/fail/traversed/unselected-dim classes, `.story-node__warning-badge` styles, `.sandbox-panel` component styles, Toast overlay, CommandPalette overlay, and cluster overlay SVG regions. Node type base classes (`.common-node`, `.choice-node`, `.ending-node`) carry `box-shadow` type-color glows. React Flow handles are `opacity: 0` by default with `opacity: 1` on `.react-flow__node:hover`; campaign mode forces `opacity: 0 !important` on both states. Frozen-prefix edge overlay: `.conditional-edge--frozen-overlay` renders green dashed animated stroke. Imports `tokens.css`, `buttons.css` and `system.css` (`utilities.css` was removed in Redesign Step 8). Legacy TopBar, CreationBar, StatusStrip, and RouteFinderDialog CSS blocks removed in Phase 8 cleanup.
 - **Key exports:** None (stylesheet).
-- **Dependencies:** `styles/tokens.css`, `styles/utilities.css` (imported via `@import`)
+- **Dependencies:** `styles/tokens.css`, `styles/buttons.css`, `styles/system.css` (imported via `@import`)
+
+### `src/styles/system.css` (NEW — Redesign Step 3)
+- **Purpose:** The design system ("Night route map"). Principle: colour belongs to the story, not the interface — chrome is graphite + chalk, the primary action is a chalk fill, and hue is reserved for node identity (route colours) and danger. Defines `--br-*` tokens (surfaces night/graphite/slate/well, lines, three text levels all ≥ 4.5:1 contrast, chalk action, danger, route colours + brightened `-mark` variants, type scale 11/12/13/15/18, radius hierarchy control 6 / menu 8 / dialog 12, control heights, shadows for floating layers only, motion that respects `prefers-reduced-motion`). Primitives (class-only selectors): `.br-btn` (`--primary`, `--ghost`, `--danger`, `--sm`, `--icon`, `[aria-pressed]`), `.br-field`/`.br-input`/`.br-select`/`.br-textarea`/`.br-range`, `.br-switch` (`role=switch`), `.br-segmented`/`.br-segment` (`aria-checked`), `.br-panel-header`, `.br-section`, `.br-setting`, `.br-row`, `.br-chip`, `.br-badge`, `.br-kbd`, `.br-empty`, `.br-menu`, `.br-dialog`, and the signature **route mark** `.br-route` / `.br-route--stripe` coloured by any `[data-route=common|choice|ending|hub|warp]` ancestor. One focus ring (2px chalk outline, 2px offset) for all primitives. Imported by `global.css` after the legacy sheets; legacy tokens are untouched until Step 8.
+- **Key exports:** None (stylesheet).
+- **Dependencies:** legacy `--color-node-*` tokens (route base colours), `--z-modal`.
+
+### `src/components/dev/DesignSystemPreview.jsx` (NEW — Redesign Step 3)
+- **Purpose:** Development-only reference sheet rendering every `system.css` primitive with realistic content. Opened at `/#design` during `npm run dev`; `main.jsx` lazy-imports it inside an `import.meta.env.DEV` branch, so it is excluded from production builds and skips persistence wiring.
+- **Key exports:** `default DesignSystemPreview`
 
 ### `src/styles/buttons.css`
 - **Purpose:** Button system style sheet serving as the single source of truth for all interactive button components. Defines base interactive styles (`.btn`), sizing overrides (`.btn--sm`, `.btn--lg`), variant surfaces (`.btn--secondary`, `.btn--ghost`, `.btn--primary`, `.btn--danger`, `.btn--danger-ghost`), shape modifiers (`.btn--pill`, `.btn--icon`), and toggle state states (`.btn--active`). All colors map to design system color tokens.
@@ -72,10 +80,11 @@
 ## `src/store/`
 
 ### `src/store/narrativeStore.js` (RENAMED FROM graphStore.js — 14-04-2026)
-- **Purpose:** Zustand store owning the canonical graph: `common{}`, `choice{}`, `ending{}`, `edges[]`, `flag{}`, `status{}`, `path{}`, `chapter{}`, `tag{}`, `commonType{}`, `endingType{}`, and `meta`. Persistent editor-level seen marks: `editorSeenNodeIds[]` and `editorSeenOptionIds[]` (composite keys `nodeId::optionId`) survive save/load cycles and are included in `exportGraph()` / `loadGraph()` / `newGraph()`. Exposes CRUD actions for all narrative entity types including path/chapter/subtype management with cascading deletion, variant CRUD on common nodes, option CRUD on choice nodes with cascading edge cleanup, list reordering, graph import/export at `schemaVersion: 4`, and new graph creation. Cross-coordinates with `uiStore` on deletions and loads, with load-bearing `// INTENTIONAL: Cross-store call...` comments. `deleteFlag` (performing pre-deletion referential integrity scan, cascading if `force=true`) and `deleteStatus` referential integrity scans cover edge conditions, node-level side effects, variant `requires`, and option `requires`/`flags_set`/`status_set`. JSDoc added on `addNode`.
+- **Purpose:** Zustand store owning the canonical graph: `common{}`, `choice{}`, `ending{}`, `edges[]`, `flag{}`, `status{}`, `path{}`, `chapter{}`, `tag{}`, `commonType{}`, `endingType{}`, `collectibleCategory{}`, `collectible{}`, and `meta`. Persistent editor-level seen marks: `editorSeenNodeIds[]` and `editorSeenOptionIds[]` (composite keys `nodeId::optionId`) survive save/load cycles and are included in `exportGraph()` / `loadGraph()` / `newGraph()`. Exposes CRUD actions for all narrative entity types including path/chapter/subtype management with cascading deletion, variant CRUD on common nodes, option CRUD on choice nodes with cascading edge cleanup, list reordering, graph import/export at `schemaVersion: 4`, and new graph creation. Cross-coordinates with `uiStore` on deletions and loads, with load-bearing `// INTENTIONAL: Cross-store call...` comments. `deleteFlag` (performing pre-deletion referential integrity scan, cascading if `force=true`) and `deleteStatus` referential integrity scans cover edge conditions, node-level side effects, variant `requires`, and option `requires`/`flags_set`/`status_set`. JSDoc added on `addNode`.
 - **Key exports:** `useNarrativeStore` (Zustand hook)
-- **Dependencies:** `utils` (barrel — `generateId`)
-- **Actions:** `addNode`, `updateNode`, `deleteNode`, `setStartNode`, `addEdge`, `updateEdge`, `deleteEdge`, `addFlag`, `updateFlag`, `deleteFlag`, `addStatus`, `updateStatus`, `deleteStatus`, `addPath`, `updatePath`, `deletePath`, `addChapter`, `updateChapter`, `deleteChapter`, `addTag`, `updateTag`, `deleteTag`, `addVariant`, `updateVariant`, `deleteVariant`, `addOption`, `updateOption`, `deleteOption`, `addCommonType`, `updateCommonType`, `deleteCommonType`, `addEndingType`, `updateEndingType`, `deleteEndingType`, `reorderDictionaryKeys`, `updateMeta`, `toggleNodeSeen`, `toggleOptionSeen`, `clearAllSeen`, `applySeenFromCampaign`, `loadGraph`, `newGraph`, `exportGraph`, `pasteNode`
+- **Dependencies:** `utils` (barrel — `generateId`, `CURRENT_SCHEMA_VERSION`)
+- **Collectibles (Redesign Step 2):** tracking-only items granted by Common nodes via `data.collectibleIds[]` (never read by `conditionEvaluator`). `addCollectibleCategory(name)` / `addCollectible(name, categoryId?)` return the new ID (unknown category → `null`). `deleteCollectible(id, force?)` returns `{ blocked, references }` while nodes grant it; `force` cascades via the module helper `stripCollectibleIds`. `deleteCollectibleCategory(id, force?)` is blocked while it has items; `force` deletes the items too. `toggleNodeCollectible(nodeId, collectibleId)` ignores non-Common nodes (hub/warp/choice/ending). `exportGraph()` emits `schemaVersion: 5`. Variant CRUD was removed.
+- **Actions:** `addNode`, `updateNode`, `deleteNode`, `setStartNode`, `addEdge`, `updateEdge`, `deleteEdge`, `addFlag`, `updateFlag`, `deleteFlag`, `addStatus`, `updateStatus`, `deleteStatus`, `addPath`, `updatePath`, `deletePath`, `addChapter`, `updateChapter`, `deleteChapter`, `addTag`, `updateTag`, `deleteTag`, `addCollectibleCategory`, `updateCollectibleCategory`, `deleteCollectibleCategory`, `addCollectible`, `updateCollectible`, `deleteCollectible`, `toggleNodeCollectible`, `addOption`, `updateOption`, `deleteOption`, `addCommonType`, `updateCommonType`, `deleteCommonType`, `addEndingType`, `updateEndingType`, `deleteEndingType`, `reorderDictionaryKeys`, `updateMeta`, `toggleNodeSeen`, `toggleOptionSeen`, `clearAllSeen`, `applySeenFromCampaign`, `loadGraph`, `newGraph`, `exportGraph`, `pasteNode`
 - **`addTag(name)`:** Creates a new tag `{ id, name }` in the `tag{}` dictionary.
 - **`updateTag(id, name)`:** Updates the name of an existing tag.
 - **`deleteTag(id, force?)`:** Removes the tag from the `tag{}` dictionary. Performs cascading cleanup: removes the tag ID from `data.tagIds[]` arrays across all nodes in `common{}`, `choice{}`, and `ending{}` collections. `force` bypasses confirmation.
@@ -137,6 +146,7 @@
 ### `src/utils/fileSystem.js`
 - **Purpose:** Primary persistence layer and explicit file I/O. Provides narrative IndexedDB functions (`saveToIndexedDB`, `loadFromIndexedDB`, `clearIndexedDB`) and campaign IndexedDB functions (`saveCampaignsToIndexedDB`, `loadCampaignsFromIndexedDB`, `clearCampaignsIndexedDB`) on a two-store IndexedDB schema (`graphs` + `campaigns`, DB v2). Explicit file I/O via Browser File System Access API with `<a download>` / `<input type="file">` fallback. Export: produces a `.zip` bundle (JSZip, browser-only) containing `datamodel.json` + `campaigns/{name}.json` per campaign when campaigns are present; falls back to a plain `.json` download when no campaigns exist. Import: detects `.zip` vs `.json` by file extension; extracts and validates `campaignSchemaVersion: 1` campaign files from ZIP; passes narrative data through the unchanged v1→v4 migration chain and a `sanitizedData` whitelist pass. Structural validation in `importProject()` throws `invalid_project_structure` error if data is not an object, edges is not an Array, or node collections are missing. The whitelist explicitly includes all schema fields — `editorSeenNodeIds`, `editorSeenOptionIds`, `path`, `chapter`, `flag`, `status`, `common`, `choice`, `ending`, `edges`, `meta`, `schemaVersion` — so that any field not listed is silently dropped on import (AR-27).
 - **Key exports:** `saveToIndexedDB(graphData): Promise<void>`, `loadFromIndexedDB(): Promise<GraphData | null>`, `clearIndexedDB(): Promise<void>`, `saveCampaignsToIndexedDB(payload): Promise<void>`, `loadCampaignsFromIndexedDB(): Promise<CampaignRecord | null>`, `clearCampaignsIndexedDB(): Promise<void>`, `exportProject(graphData, campaigns, defaultTitle): Promise<void>`, `importProject(): Promise<{ graphData, campaigns } | null>`
+- **Migration pipeline (Redesign Step 2):** `migrateGraph(data)` (exported, pure) holds the whole v1→v5 migration chain, structural validation and the `sanitizedData` whitelist. `importProject()` returns `{ graphData: migrateGraph(data), campaigns }`; `main.jsx` runs the IndexedDB autosave through it too (falling back to the raw autosave if it throws). v4→v5 deletes `data.variants` (console warning with the count), adds `collectibleCategory`/`collectible`; `sanitizeNodes` keeps `createdAt` and gives plain Common nodes `collectibleIds[]` (dangling IDs dropped), removing it elsewhere. `CURRENT_SCHEMA_VERSION = 5` is exported.
 - **Dependencies:** `utils/uuid` (`generateId`), `jszip`
 
 ### `src/utils/safeStorage.js` (NEW)
@@ -175,7 +185,7 @@
 *Note: Most component JavaScript files (e.g. TopBar.jsx, ConfirmModal.jsx, StatusStrip.jsx) have a corresponding CSS stylesheet of the same name (e.g. TopBar.css, ConfirmModal.css, StatusStrip.css) in their respective directory to define their UI-v2 specific styles. These stylesheets are imported locally by their component files.*
 
 ### `src/components/TopBar.jsx`
-- **Purpose:** Horizontal top bar with three sections: left (brand logo + editable project title), center (node quick-create buttons: Common, Choice, Ending, Warp Entrance, Warp Exit, Hub + campaign selector dropdown and Start button), right (Snap Assist controls + file ops: New / Import / Export). **Snap Assist controls** (right section, before file ops): a `Magnet` icon toggle button that calls `toggleSnapAssist()` — highlighted cyan when active, with `aria-pressed`; when snap assist is on, a `<input type="range" min="2" max="32">` threshold slider and numeric label appear inline, calling `setSnapThreshold`. All edit controls in center section, project title input, Snap Assist controls, and file ops are disabled when in Campaign Mode (`isCampaignActive === true`). `handleNew` opens a `<ConfirmModal />` before calling `clearCampaignsIndexedDB` + `clearIndexedDB` + `newGraph()`. `handleImport` catches `invalid_project_structure` errors.
+- **Purpose:** Horizontal top bar with three sections: left (brand logo + editable project title), center (node quick-create buttons: Common, Choice, Ending, Warp Entrance, Warp Exit, Hub + campaign selector dropdown and Start button), right (Center (0,0) button + file ops: New / Import / Export + Settings gear). The campaign selector and Start button render only when `uiStore.featureCampaign` is on. Snap Assist controls were moved to `SettingsModal` (Redesign Step 1). All edit controls in center section, project title input, Snap Assist controls, and file ops are disabled when in Campaign Mode (`isCampaignActive === true`). `handleNew` opens a `<ConfirmModal />` before calling `clearCampaignsIndexedDB` + `clearIndexedDB` + `newGraph()`. `handleImport` catches `invalid_project_structure` errors.
 - **Key exports:** `default TopBar`
 - **Dependencies:** `store` (barrel — `useNarrativeStore`, `useUIStore`, `useSimulationStore`, `useCampaignStore`), `utils` (barrel — `exportProject`, `importProject`, `clearIndexedDB`, `clearCampaignsIndexedDB`), `dagre`, `components/ConfirmModal`, `TopBar.css`
 
@@ -355,7 +365,228 @@
 
 ---
 
+### `src/components/modals/SettingsModal.jsx` (NEW — Redesign Step 1; rebuilt Step 3)
+- **Purpose:** Centered settings dialog — the single home for editor preferences. Opened from the TopBar gear button via `uiStore.setShowSettings(true)`; mounted once in `App.jsx`. All settings apply live (no Save button); ESC (capture-phase listener with `stopPropagation`), the close button and the backdrop close it. Uses `useFocusTrap` + `role="dialog"`/`aria-modal`/`aria-labelledby` (AR-35). Sections: **Canvas** (Snap to grid, Snap Assist + snap distance slider 2–32px — moved here from TopBar), **Display** (Choice options Medium/Full, Effect labels Compact/Verbose), **Search** (Include edge conditions — `uiStore.searchIncludeEdges`), **Features** (Campaign & Route Tracing — `uiStore.featureCampaign`; disabled while a campaign is running). Internal sub-components `ToggleRow` (`role="switch"`) and `SegmentedRow` (`role="radiogroup"`).
+- **Key exports:** `default SettingsModal`
+- **Dependencies:** `store` (barrel — `useUIStore`, `useSimulationStore`), `hooks/useFocusTrap`, `styles/system.css` primitives (`.br-dialog`, `.br-section`, `.br-setting`, `.br-switch`, `.br-segmented`, `.br-range`, `.br-kbd`). `SettingsModal.css` was deleted in Step 3. Copy rewritten in plain language (e.g. "Align to nearby nodes", "Counts / Names").
+
+---
+
+### `src/components/layout/SideRail.jsx` + `SideRail.css` (NEW — Redesign Step 4)
+- **Purpose:** Shared sidebar shell used by `LeftSidebar` and `RightSidebar`: a 68px icon+label rail (`aria-pressed` tabs) and a 300px docked panel with a `.br-panel-header` (title + close). Props: `side`, `label`, `items[{ id, label, title?, icon, render }]`, `activeId`, `onChange`, `dimmed` (campaign mode). Panels show/hide instantly, never via CSS transform (AR-29). `.br-siderail__stack` stacks several titled sections in one panel. Replaces `NameplateTab` (deleted together with `LeftSidebar.css`, `RightSidebar.css`, `NameplateTab.css`).
+- **Key exports:** `default SideRail`
+
+### `src/components/CollectibleManager.jsx` + `CollectibleManager.css` (NEW — Redesign Step 4)
+- **Purpose:** Left "Collectibles" panel. Search, New category, New collectible. Groups collectibles by category (plus "No category"), each with a count badge and row actions (add in category / rename / delete). Each collectible shows "N nodes" (expands to route-marked rows that dispatch `canvas-focus-node`) or "Not placed". Drag to reorder within a category (`reorderDictionaryKeys('collectible', …)`) or onto another category (`updateCollectible({ categoryId })`); drag is disabled while searching or during a campaign. Deletes go through `ConfirmModal`, which explains the cascade, then call the store with `force`. The empty state invites creating a first category.
+- **Dependencies:** `store` (`useNarrativeStore`, `useSimulationStore`), `@hello-pangea/dnd`, `CollectibleDialog`, `ConfirmModal`, `EntityList.css`
+
+### `src/components/CollectibleDialog.jsx` (NEW — Redesign Step 4)
+- **Purpose:** Create/rename dialog for collectibles (name + category select) and categories (name). Built on `.br-dialog` primitives, rendered through `ModalPortal`, uses `useFocusTrap`; Enter confirms (`isConfirmEnter`), Esc cancels; store errors surface as toasts.
+
+### `src/components/ModalPortal.jsx` (NEW — Redesign Step 4)
+- **Purpose:** `createPortal(children, document.body)`. Every dialog (`NameModal`, `ConfirmModal`, `NodeConfigModal`, `EdgeConfigModal`, `WarpConfigModal`, `SettingsModal`, `CollectibleDialog`) renders through it, so dialogs are never trapped in a sidebar stacking context (AR-38). The config modals keep their original component as `<Name>Inner` and export a thin wrapper.
+
+### `src/components/CanvasControls.jsx` + `CanvasControls.css` (NEW — Redesign Step 4)
+- **Purpose:** Floating canvas toolbar replacing React Flow's default `<Controls/>`: zoom out, zoom % (click resets to 100%), zoom in, fit all, zoom to selection (disabled without a selection), go to start node (disabled without one), centre on (0,0) (moved from TopBar), minimap toggle (`uiStore.showMiniMap`). Rendered inside `ReactFlowProvider` (AR-19). Also skins the MiniMap (`.br-minimap`).
+
+### `src/utils/dialogKeys.js`, `src/utils/nodeColors.js` (NEW — Redesign Step 4)
+- **dialogKeys:** `isConfirmEnter(e)` returns true for plain Enter outside textarea/select/button/link/combobox and not during IME composition.
+- **nodeColors:** `ROUTE_MARK_COLORS` and `miniMapNodeColor(node)` for JS-painted canvas elements (mirrors `--br-route-*-mark`).
+- Tests: `src/utils/redesignStep4.test.js`.
+
+### `src/store/historyStore.js` (NEW — Redesign Step 5)
+- **Purpose:** Undo/redo for the authored graph. `initHistory()` (called in `main.jsx` after the autosave restore, AR-17) subscribes to `narrativeStore`; each change to a tracked slice (`common`, `choice`, `ending`, `edges`, `flag`, `status`, `path`, `chapter`, `tag`, `commonType`, `endingType`, `collectibleCategory`, `collectible`, plus `meta.title`) pushes the previous snapshot (slice references — cheap, the store is immutable). Changes within `BURST_MS` (600ms) form one step; `beginGroup()`/`endGroup()` make a whole session one step; `cancelGroup()` drops the group's step entirely. Seen marks and `meta.updatedAt` are not tracked. A change of `narrativeStore.graphRevision` (bumped by `loadGraph`/`newGraph`) resets history. `undo()`/`redo()` are inert during a campaign (AR-08) and clear the selection. Capped at `HISTORY_LIMIT` (100). `useHistoryStore` exposes `canUndo`/`canRedo` for the TopBar.
+- **Key exports:** `useHistoryStore`, `initHistory`, `resetHistory`, `undo`, `redo`, `beginGroup`, `endGroup`, `cancelGroup`, `HISTORY_LIMIT`, `BURST_MS`, `TRACKED_SLICES` (re-exported from the `store` barrel).
+- **Dependencies:** `narrativeStore`, `simulationStore`, `uiStore` (no store imports `historyStore`, so there is no cycle — AR-06).
+- Tests: `src/store/historyStore.test.js` (7).
+
+### `src/utils/alignNodes.js` (NEW — Redesign Step 5)
+- **Purpose:** `computeAlignment(items, mode)` — pure align/distribute math. Modes: `left`, `centerX`, `right`, `top`, `middleY`, `bottom`, `distributeX`, `distributeY` (distribute needs ≥ 3 nodes and keeps the outer nodes in place with equal gaps). Returns only the nodes that move. Tests: `src/utils/alignNodes.test.js`.
+
+### `src/components/modals/ShortcutsDialog.jsx` (NEW — Redesign Step 5)
+- **Purpose:** Keyboard shortcut sheet in three columns (Edit / Add / View). Opened with `?` or from Settings ("Keyboard shortcuts"); `uiStore.showShortcuts`. Primitives (AR-37), `ModalPortal`, focus trap; Esc, Enter or `?` close it.
+
+### `src/components/panels/BrowsePanel.jsx` + `BrowsePanel.css` (NEW — Redesign Step 6)
+- **Purpose:** Right-sidebar "Browse" panel, the single place to find nodes. Replaces `NodesPanel` and `FiltersPanel` (both deleted). Search field ("Search nodes, flags, items…", Esc clears) runs `searchGraph` over node labels, collectibles, flags/statuses set on enter, Choice options (label, effects, requirements) and, when `uiStore.searchIncludeEdges` is on, edge conditions listed under their source node. A filter toggle (badge = active filter count) reveals: Type chips (All / Common / Choice / Ending / Hub / Warp, with route dots), Chapter, Path, "Grants a collectible from" (category) and Tags (Any/All when 2+ selected). Filters are the uiStore canvas filters, so they also dim the canvas; "Clear filters" calls `resetCanvasFilters`. Results are grouped in type sections with route stripes, chapter name, and hover actions Edit (opens the modal) and Delete (one undo step); match reasons are listed under each node. Click = focus + select on canvas (`canvas-focus-node`, `canvas-select-nodes`), double-click = edit. Drag-reorder (`reorderDictionaryKeys`) works for Common/Choice/Ending sections when there is no search, no filter and no campaign. Empty states explain how to add nodes or why nothing matched.
+- **Dependencies:** `store` (`useNarrativeStore`, `useUIStore`, `useSimulationStore`, `beginGroup`, `endGroup`), `utils` (`searchGraph`, `nodeMatchesFilters`, `countActiveFilters`, `ROUTE_TYPE_LABELS`), `@hello-pangea/dnd`
+
+### `src/utils/searchIndex.js` (NEW — Redesign Step 6)
+- **Purpose:** Pure search + filter helpers. `searchGraph(query, graph, { includeEdges })` → one result per node `{ nodeId, collection, routeType, label, matches[{ kind, text, targetId? }] }` (empty query → every node, no matches). `describeCondition` / `describeClause` write conditions in plain words ("affection ≥ 5", "affection 2–8", "has_key is true", nested groups in brackets). `nodeMatchesFilters(node, routeType, filters, collectibleDict)` is the single filter predicate used by both `GraphCanvas` (dimming) and `BrowsePanel` (list). Also `nodeRouteType`, `listNodes`, `countActiveFilters`, `ROUTE_TYPE_LABELS`. Tests: `src/utils/searchIndex.test.js` (9).
+
+### `src/components/panels/InspectorPanel.jsx` + `InspectorPanel.css` (NEW — Redesign Step 7)
+- **Purpose:** Right-sidebar "Inspect" tab — the docked half of hybrid editing (AR-25). Clicking a node or edge on the canvas opens it (`switch-right-panel` → `Inspector`). Views: **nothing selected** (hint); **node** — type line with route dot (+ subtype, Start chip), Label, Content, Chapter, Path, Common/Ending type, Tags (`ChipsField`), Collectibles granted here (Common only, grouped by category, `toggleNodeCollectible`), Flags set on enter (`ChipsField`) and Statuses on enter (`StatusEffectsField`) for Common/Choice/Hub, a read-only Choice option list with plain-language requirements, warp portal channel; actions "Open full editor" and "Make start node"; **edge** — from → to, source option, Label, plain-language condition, "Edit condition" (opens `EdgeConfigModal`), Delete; **several nodes** — align/distribute buttons, bulk Set chapter / Set path / Add a tag (one undo step each), Duplicate, Delete. Read-only during campaigns.
+- **Dependencies:** `store` (`useNarrativeStore`, `useUIStore`, `useSimulationStore`, `beginGroup`, `endGroup`), `utils` (`nodeRouteType`, `describeCondition`, `ROUTE_TYPE_LABELS`), `hooks/useKeyboardShortcuts` (`duplicateSelection`), `fields/ChipsField`, `fields/StatusEffectsField`
+
+### `src/components/fields/ChipsField.jsx`, `StatusEffectsField.jsx`, `fields.css` (NEW — Redesign Step 7)
+- **ChipsField:** multi-pick of entities — selected items as removable chips, the rest in an "Add…" select (with `<optgroup>` when options have a `group`). Used for tags, flags and collectibles in the Inspector and for collectibles in `NodeConfigModal`.
+- **StatusEffectsField:** edits `[{ statusId, amount, mode: 'add' | 'set' }]` with a status select, ± / = segmented control, number field and remove button.
+- Both are presentational; callers write through store actions.
+
 ## Changelog
+
+## [2026-11-04] — Redesign Step 8: Polish pass
+
+### Changed
+- `tokens.css`: legacy surface, text, border, primary and canvas tokens now hold the design-system values (night / graphite / slate / chalk), so every legacy stylesheet matches the new look. `--color-primary` is chalk; rules that fill with it now use dark text (`--br-text-on-chalk`). The font stack no longer names Inter.
+- All `text-transform: uppercase` (and its letter-spacing) removed from legacy stylesheets; node type labels (`Common`, `Choice`, `Ending`, `Warp entrance`, `Warp exit`, subtype names) and the modal type badge use sentence case. Choice node badge reads "N out".
+- Editor dialogs, context menu and command palette copy in plain sentence case (e.g. "Edit node", "On enter", "Set flags to true", "Change statuses", "Make start node", "Condition", "Text shown on the edge", "Edit warp").
+- `global.css`: context menu, command palette, toasts and the naming dialog aligned with `.br-menu` / `.br-dialog` geometry, density and focus. Edges are quieter (`--br-edge`, 1.75px; arrowheads use `EDGE_COLOR`); selected edges stay chalk.
+- `StatusStrip.css`: neutral entity icons; node-count icons use route colours; no overlay z-index inside the layout grid.
+- `system.css`: thin, dark scrollbars app-wide; new token `--br-edge`. `utils/nodeColors` exports `EDGE_COLOR`.
+
+### Fixed
+- Esc did not close the canvas context menu (documented, never implemented).
+
+### Removed
+- About 830 lines of CSS whose selectors no component uses (deleted Nodes/Filters panels, old authoring floating bar, old TopBar snap controls, unused button and token utilities), removed with a parser-based pass. Campaign, edge and route-tracing rules were kept even where currently unused, because those features are only hidden (AR-36).
+- `src/styles/utilities.css` (all `ui-v2-*` primitives unused) and its import.
+
+### Migration
+- no — styling and copy only. `schemaVersion` remains 5.
+
+## [2026-11-04] — Redesign Step 7: Inspector (hybrid editing) + collectible badge
+
+### Added
+- `InspectorPanel`, `fields/ChipsField`, `fields/StatusEffectsField` (see sections above); right-sidebar "Inspect" tab.
+- `CommonNode`: collectible badge (gem + count, names on hover) in the type bar; in verbose label mode the names are listed as small chips in the body.
+- `NodeConfigModal`: "Collectibles granted here" picker for Common nodes (left column, above the start-node section).
+
+### Changed
+- `GraphCanvas`: clicking a node or edge opens the Inspector (`switch-right-panel`). Browse clicks do not switch panels.
+- AR-25 rewritten for hybrid editing.
+
+### Migration
+- no — `schemaVersion` remains 5 (collectibleIds already existed since Step 2).
+
+## [2026-11-04] — Redesign Step 6: Browse panel (unified search + filters)
+
+### Added
+- `BrowsePanel`, `utils/searchIndex` (see sections above).
+- `uiStore.canvasFilterNodeType`, `uiStore.canvasFilterCollectibleCategoryId`, `setCanvasFilterNodeType`, `setCanvasFilterCollectibleCategoryId`, `resetCanvasFilters`.
+
+### Changed
+- Right sidebar: the Nodes and Filters tabs are replaced by one "Browse" tab.
+- `GraphCanvas`: canvas dimming uses `nodeMatchesFilters` (adds node type and collectible-category filters).
+
+### Fixed
+- The old Nodes panel type filter compared `commonTypeId`/`endingTypeId`, but nodes store `nodeSubTypeId`, so it never matched. (The panel is gone; subtype filtering was not carried over.)
+
+### Removed
+- `src/components/panels/NodesPanel.jsx`, `src/components/panels/FiltersPanel.jsx` (their CSS in `RightPanels.css` is cleaned up in Step 8).
+
+### Migration
+- no — UI and session state only. `schemaVersion` remains 5.
+
+## [2026-11-04] — Redesign Step 5: Graph-editor basics
+
+### Added
+- Undo / redo (`historyStore`): Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y, TopBar buttons. One step per typing burst, drag, nudge series, editing-modal session, multi-delete, duplicate or align. Cancelling a new node leaves no step. Resets on New/Open project.
+- Shortcuts: Ctrl+A select all, Ctrl+D duplicate (selects the copies), arrow keys move the selection (16px with snap-to-grid, 4px without; Shift ×5), Ctrl+= / Ctrl+− / Ctrl+0 zoom, Shift+1 fit all, Shift+2 fit selection, `?` shortcut sheet.
+- Right-click on a multi-selection: align left/centres/right/top/middles/bottom, distribute horizontally/vertically, duplicate, delete. Right-click on a node: Duplicate.
+- `ShortcutsDialog`, `utils/alignNodes`, `uiStore.showShortcuts`, `narrativeStore.graphRevision` (not persisted).
+- GraphCanvas events: `canvas-view` (`detail.action`: zoom-in, zoom-out, zoom-reset, fit, fit-selection), `canvas-select-nodes` (`detail.ids` or `null` for all), `canvas-align` (`detail.mode`).
+
+### Changed
+- `narrativeStore.pasteNode` now returns the new node ID (additive, AR-20).
+- `GraphCanvas`: node creation (`beginGroup` before `addNode`, `endGroup` on save, `cancelGroup` on cancel) and node/edge editing sessions are undo groups; nodes new to the canvas take their selection from `uiStore` (so a duplicate stays selected).
+- `useKeyboardShortcuts`: exports `duplicateSelection` and `nudgeSelection`; arrow keys are handled in the capture phase so React Flow's own focused-node arrow move (which never reached the store) no longer runs.
+- Settings dialog has a "Keyboard shortcuts" footer button.
+
+### Removed
+- `utils/autoLayout.js` and the `dagre` dependency. `L` stays "fit the whole story" (decision 2026-11-04).
+
+### Migration
+- no — `schemaVersion` remains 5. `graphRevision` is runtime-only and never exported.
+
+## [2026-11-04] — Redesign Step 4: Layout shell + modal fixes
+
+### Added
+- `SideRail`, `CollectibleManager`, `CollectibleDialog`, `ModalPortal`, `CanvasControls`, `utils/dialogKeys`, `utils/nodeColors` (see sections above). (`utils/autoLayout` was added here and removed in Step 5.)
+- `uiStore.showMiniMap` (persisted as `br_showMiniMap`, default on) + `toggleMiniMap`.
+- Left panel "Collectibles"; a "Types" panel stacking Common node types and Ending types.
+- AR-38 (dialogs render through ModalPortal and confirm on Enter).
+
+### Changed
+- `TopBar`: rebuilt on primitives. Brand + title | labelled "Add node" group with route dots (labels collapse below 1180px) | campaign selector + Start (switch on), File menu (New project / Open project… / Export project…), Settings. Import/export feedback uses toasts instead of `alert()`. Center (0,0) moved to the canvas controls.
+- `LeftSidebar` / `RightSidebar`: built on `SideRail`. The right side keeps Nodes + Filters until Steps 6–7; campaign tabs (Routes, Campaigns, Sandbox) only appear with the switch on.
+- `App.css`: layout regions use z-index 1–3; overlay z-indices are reserved for portalled dialogs.
+- `EntityList.css`: moved onto `--br-*` tokens (flat rows, neutral entity icons, secondary add button). Markup unchanged.
+- `ConfirmModal`: primitives + portal; Enter confirms and Esc cancels (Esc was not handled before); `ConfirmModal.css` removed.
+- `NameModal`: portal; flag/status names convert spaces to `_` (a "Saved as …" hint shows the result; batch names too); invalid names show an error toast instead of throwing.
+- `NodeConfigModal`, `EdgeConfigModal`, `WarpConfigModal`: portal; Enter saves (Node/Warp only when the label is not empty, matching the Save button).
+- `GraphCanvas`: per-slice selectors instead of whole-store destructures (AR-23); `<CanvasControls/>` and a skinned, toggleable `<MiniMap/>` replace the defaults.
+- `NodesPanel`: removed its duplicate inner "Nodes" title.
+
+### Fixed
+- Dialogs opened from sidebar panels rendered inside the sidebar (sidebars z-index 300 above modals at 200).
+- Pressing Enter in `NameModal` created the entity and immediately re-opened a new empty dialog (focus returned to the + button and the browser's follow-up keypress clicked it).
+
+### Removed
+- `NameplateTab.jsx/.css`, `LeftSidebar.css`, `RightSidebar.css`, `ConfirmModal.css`, the unused Dagre handler in `TopBar`.
+
+### Known
+- The `L` shortcut only fits the view. Decided in Step 5: it stays that way and Dagre auto-layout was removed.
+
+### Migration
+- no — UI only. `schemaVersion` remains 5.
+
+## [2026-11-04] — Redesign Step 3: Design foundation
+
+### Added
+- `src/styles/system.css`: `--br-*` tokens and `.br-*` primitives ("Night route map" system); imported from `global.css`.
+- `src/components/dev/DesignSystemPreview.jsx`: dev-only reference sheet at `/#design`.
+- AR-37 (design-system usage rule).
+
+### Changed
+- `SettingsModal.jsx` rebuilt on the primitives; plain-language copy; setting names regular weight under semibold section titles.
+- `main.jsx`: dev-only `#design` branch (lazy import, excluded from production).
+
+### Removed
+- `src/components/modals/SettingsModal.css` (superseded by primitives).
+
+### Migration
+- no — styling only. Legacy tokens (`tokens.css`) unchanged; other surfaces migrate in Steps 4–8.
+
+## [2026-11-04] — Redesign Step 2: Data model v5 (Variants removed, Collectibles added)
+
+### Added
+- `narrativeStore`: `collectibleCategory{}` and `collectible{}` dictionaries; actions `addCollectibleCategory`, `updateCollectibleCategory`, `deleteCollectibleCategory`, `addCollectible`, `updateCollectible`, `deleteCollectible`, `toggleNodeCollectible`; included in `loadGraph` / `newGraph` / `exportGraph`.
+- `fileSystem.migrateGraph()` + `CURRENT_SCHEMA_VERSION` (re-exported from the `utils` barrel).
+- Tests: `src/utils/migrateGraph.test.js`, `src/store/narrativeStore.collectibles.test.js` (26 tests total).
+
+### Changed
+- Schema bumped to **v5**. Import guard accepts v1–v5.
+- `main.jsx`: boot autosave restore now runs through `migrateGraph` (previously bypassed migration/sanitization).
+- `NodesPanel`: Common node stats show "Collectibles" count instead of "Variants".
+
+### Fixed
+- Import sanitizer dropped `createdAt`, losing node z-order after import.
+
+### Removed
+- Narrative Variants: `addVariant` / `updateVariant` / `deleteVariant`, variant branches in `deleteFlag` / `deleteStatus` / `pasteNode`, `FlagManager.isFlagUsed` variant scan, `VariantCard` and the "Narrative Variants" section of `NodeConfigModal` (the Common node right column now holds only On-Enter Modifiers).
+
+### Migration
+- yes — v4→v5 strips `data.variants` from every node and adds empty collectible dictionaries. Verified by round-tripping the real project (51 nodes, 103 edges): no field differences apart from the variant removal; only `meta.createdAt/updatedAt` formatting changes on re-export (pre-existing behaviour).
+
+## [2026-11-04] — Redesign Step 1: Feature switch + Settings modal
+
+### Added
+- `uiStore.featureCampaign` (default `false`, persisted as `br_featureCampaign` via safeStorage) + `setFeatureCampaign`. When off, the Campaign & Route Tracing feature set is hidden from the UI; stores, actions and persisted data are untouched.
+- `uiStore.searchIncludeEdges` (default `true`, persisted as `br_searchIncludeEdges`) + `setSearchIncludeEdges` — consumed by the unified search in a later step.
+- `uiStore.showSettings` (session-only) + `setShowSettings`.
+- `SettingsModal.jsx` + `SettingsModal.css` [NEW]; barrel export in `components/index.js`; mounted in `App.jsx`.
+- TopBar Settings (gear) button, available in every mode.
+
+### Changed
+- `TopBar.jsx`: campaign selector + Start are rendered only when `featureCampaign` is on. Snap Assist toggle and threshold slider **removed from TopBar** (now in SettingsModal); unused snap selectors dropped.
+- `RightSidebar.jsx`: Route Tracing, Campaign List and Sandbox tabs (and their panel mounts) exist only when `featureCampaign` is on.
+- `CommonNode`, `ChoiceNode`, `EndingNode`, `HubNode`, `WarpEntranceNode`, `WarpExitNode`: editor-level Seen styling (`story-node--seen` outside campaigns, and Choice option green "seen" text) requires `featureCampaign`. Campaign-time seen styling is unchanged.
+- `NodeConfigModal.jsx`: node and option Seen toggles require `featureCampaign`.
+- `useKeyboardShortcuts.js`: `M` (toggle seen) is inert when `featureCampaign` is off.
+- "Clear All Seen" lives in `CampaignListPanel`, so it is hidden with that tab.
+
+### Migration
+- no — no persisted data shape changes. `schemaVersion` remains `4`. Seen marks stay in the file while hidden.
 
 ## [2026-08-25] — Smart Snap Assist
 

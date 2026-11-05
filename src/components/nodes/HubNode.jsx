@@ -11,10 +11,12 @@ function HubNode({ id, data }) {
   const isOrphaned = useSimulationStore(s => s.orphanedNodeIds.includes(id));
   const isUnreachable = useSimulationStore(s => s.unreachableNodeIds.includes(id));
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+  // ADDED (Redesign Step 1): editor Seen marks hidden when the Campaign feature is off
+  const featureCampaign = useUIStore(s => s.featureCampaign);
 
   const isFilteredOut = !!data.isFilteredOut;
 
-  const className = `story-node hub-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
+  const className = `story-node hub-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive && featureCampaign) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
 
   const sideEffectsCount = (data.flags_set?.length || 0) + (data.status_set?.length || 0);
 

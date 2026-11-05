@@ -1,5 +1,6 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
-import { useNarrativeStore, useUIStore, useToastStore } from 'store';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useNarrativeStore, useUIStore, useToastStore, beginGroup, endGroup } from 'store';
+import { duplicateSelection } from 'hooks/useKeyboardShortcuts';
 
 // ADDED: Phase 3 ContextMenu component
 export default function ContextMenu({ x, y, type, targetId, onClose }) {
@@ -34,6 +35,15 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
     });
   }, [x, y, type, targetId]);
 
+  // FIX (Redesign Step 8): Esc closes the menu (documented before, but never implemented)
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+
   if (!type) return null;
 
   const handleAction = (actionFn) => {
@@ -54,32 +64,32 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
             <button className="context-menu__item" onClick={handleAction(() => {
               window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'common', screenX: x, screenY: y } }));
             })}>
-              Add Common Node
+              Add Common node
             </button>
             <button className="context-menu__item" onClick={handleAction(() => {
               window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'choice', screenX: x, screenY: y } }));
             })}>
-              Add Choice Node
+              Add Choice node
             </button>
             <button className="context-menu__item" onClick={handleAction(() => {
               window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'ending', screenX: x, screenY: y } }));
             })}>
-              Add Ending Node
+              Add Ending node
             </button>
             <button className="context-menu__item" onClick={handleAction(() => {
               window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'warp_entrance', screenX: x, screenY: y } }));
             })}>
-              Add Warp Entrance
+              Add Warp entrance
             </button>
             <button className="context-menu__item" onClick={handleAction(() => {
               window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'warp_exit', screenX: x, screenY: y } }));
             })}>
-              Add Warp Exit
+              Add Warp exit
             </button>
             <button className="context-menu__item" onClick={handleAction(() => {
               window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: 'hub', screenX: x, screenY: y } }));
             })}>
-              Add HUB Node
+              Add Hub
             </button>
             {copiedNode && (
               <>
@@ -87,7 +97,7 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
                 <button className="context-menu__item" onClick={handleAction(() => {
                   window.dispatchEvent(new CustomEvent('canvas-paste-node', { detail: { screenX: x, screenY: y } }));
                 })}>
-                  Paste Node
+                  Paste node
                 </button>
               </>
             )}
@@ -99,12 +109,12 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
             <button className="context-menu__item" onClick={handleAction(() => {
               window.dispatchEvent(new CustomEvent('canvas-edit-node-modal', { detail: { nodeId: targetId } }));
             })}>
-              Edit Node
+              Edit node
             </button>
             <button className="context-menu__item" onClick={handleAction(() => {
               navStore.setStartNode && navStore.setStartNode(targetId);
             })}>
-              Set as Start Node
+              Make start node
             </button>
             <button className="context-menu__item" onClick={handleAction(() => {
               const node = navStore.common[targetId] || navStore.choice[targetId] || navStore.ending[targetId];
@@ -113,13 +123,21 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
                 useToastStore.getState().addToast(`Copied node: ${node.data?.label || 'Node'}`, 'success');
               }
             })}>
-              Copy Node
+              Copy node
+            </button>
+            {/* ADDED (Redesign Step 5) */}
+            <button className="context-menu__item" onClick={handleAction(() => {
+              useUIStore.getState().selectNode(targetId);
+              useUIStore.getState().setSelectedNodeIds([targetId]);
+              duplicateSelection();
+            })}>
+              Duplicate node <span className="context-menu__shortcut">Ctrl D</span>
             </button>
             <div className="context-menu__divider" />
             <button className="context-menu__item context-menu__item--danger" onClick={handleAction(() => {
               navStore.deleteNode(targetId);
             })}>
-              Delete Node
+              Delete node
             </button>
           </>
         );
@@ -129,24 +147,46 @@ export default function ContextMenu({ x, y, type, targetId, onClose }) {
             <button className="context-menu__item" onClick={handleAction(() => {
               window.dispatchEvent(new CustomEvent('canvas-edit-edge-modal', { detail: { edgeId: targetId } }));
             })}>
-              Edit Edge
+              Edit edge
             </button>
             <div className="context-menu__divider" />
             <button className="context-menu__item context-menu__item--danger" onClick={handleAction(() => {
               navStore.deleteEdge(targetId);
             })}>
-              Delete Edge
+              Delete edge
             </button>
           </>
         );
-      case 'multi':
+      case 'multi': {
+        // CHANGED (Redesign Step 5): align / distribute + duplicate; multi-delete is one undo step
+        const align = (mode) => handleAction(() => window.dispatchEvent(new CustomEvent('canvas-align', { detail: { mode } })));
+        const canDistribute = selectedNodeIds.length >= 3;
         return (
-          <button className="context-menu__item context-menu__item--danger" onClick={handleAction(() => {
-            selectedNodeIds.forEach(id => navStore.deleteNode(id));
-          })}>
-            Delete Selected ({selectedNodeIds.length} nodes)
-          </button>
+          <>
+            <div className="context-menu__label">Align</div>
+            <button className="context-menu__item" onClick={align('left')}>Align left edges</button>
+            <button className="context-menu__item" onClick={align('centerX')}>Align centres (vertical line)</button>
+            <button className="context-menu__item" onClick={align('right')}>Align right edges</button>
+            <button className="context-menu__item" onClick={align('top')}>Align top edges</button>
+            <button className="context-menu__item" onClick={align('middleY')}>Align middles (horizontal line)</button>
+            <button className="context-menu__item" onClick={align('bottom')}>Align bottom edges</button>
+            <div className="context-menu__divider" />
+            <button className="context-menu__item" disabled={!canDistribute} onClick={align('distributeX')}>Distribute horizontally</button>
+            <button className="context-menu__item" disabled={!canDistribute} onClick={align('distributeY')}>Distribute vertically</button>
+            <div className="context-menu__divider" />
+            <button className="context-menu__item" onClick={handleAction(() => duplicateSelection())}>
+              Duplicate {selectedNodeIds.length} nodes <span className="context-menu__shortcut">Ctrl D</span>
+            </button>
+            <button className="context-menu__item context-menu__item--danger" onClick={handleAction(() => {
+              beginGroup();
+              selectedNodeIds.forEach(id => navStore.deleteNode(id));
+              endGroup();
+            })}>
+              Delete {selectedNodeIds.length} nodes <span className="context-menu__shortcut">Del</span>
+            </button>
+          </>
         );
+      }
       default:
         return null;
     }

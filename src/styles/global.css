@@ -1,6 +1,6 @@
 @import './tokens.css';
-@import './utilities.css';
 @import './buttons.css';
+@import './system.css'; /* ADDED (Redesign Step 3): design system — --br-* tokens and .br-* primitives */
 
 *,
 *::before,
@@ -90,14 +90,6 @@ select:focus {
 }
 
 /* Utility */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
 
 /* =========================================
    NODE — BASE CARD
@@ -137,9 +129,7 @@ select:focus {
 .story-node__type-label {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-bold);
-  letter-spacing: 0.08em;
   color: #fff;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -246,8 +236,6 @@ select:focus {
   margin: 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: var(--space-1);
 }
@@ -615,7 +603,6 @@ select:focus {
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
 }
 
-
 .story-node--seen::after {
   content: '✓';
   position: absolute;
@@ -652,6 +639,7 @@ select:focus {
 /* Default handle styling — hidden until node is hovered, matching campaign mode's clean look */
 .react-flow__handle {
   background: var(--color-primary) !important;
+  color: var(--br-text-on-chalk) !important;
   border-color: var(--color-bg-base) !important;
   opacity: 0;
   transition: opacity var(--transition-fast);
@@ -661,9 +649,10 @@ select:focus {
   opacity: 1;
 }
 
+/* CHANGED (Redesign Step 8): quieter edges so nodes lead; selected edges stay chalk */
 .conditional-edge {
-  stroke: var(--color-text-secondary);
-  stroke-width: 2px;
+  stroke: var(--br-edge);
+  stroke-width: 1.75px;
 }
 
 .react-flow__edge.selected .conditional-edge {
@@ -863,8 +852,6 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
   font-size: 10px;
   font-weight: var(--font-weight-bold);
   color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .br-name-modal__input {
@@ -918,6 +905,7 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
   bottom: 4px;
   width: calc(50% - 4px);
   background: var(--color-primary);
+  color: var(--br-text-on-chalk);
   border-radius: var(--radius-md);
   transition: transform var(--transition-normal) ease-out;
 }
@@ -929,16 +917,6 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
   gap: 12px;
   border-top: 1px solid var(--color-border);
   background: rgba(30, 34, 49, 0.5);
-}
-
-.node-creation-modal {
-  width: 480px;
-  max-width: 90vw;
-}
-
-.node-creation-modal__body {
-  max-height: 70vh;
-  overflow-y: auto;
 }
 
 /* Button system moved to src/styles/buttons.css — use .btn, .btn--primary, .btn--ghost, .btn--danger etc. */
@@ -966,7 +944,7 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
 
 .button--primary {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--br-text-on-chalk);
   border-color: transparent;
   box-shadow: 0 2px 10px rgba(115, 147, 248, 0.25);
 }
@@ -1161,8 +1139,6 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
   padding: var(--space-3) var(--space-4) var(--space-1) var(--space-4);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   font-weight: var(--font-weight-bold);
 }
 
@@ -1375,9 +1351,7 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
 .edge-operator-badge {
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.06em;
   color: var(--color-text-muted);
-  text-transform: uppercase;
   margin-bottom: 1px;
 }
 
@@ -1419,8 +1393,6 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
   flex-direction: column;
   gap: 4px;
 }
-
-
 
 /* Seen option in ChoiceNode — green text, editor mode only */
 .choice-node__option.choice-node__option--seen {
@@ -1485,7 +1457,7 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
 .br-name-modal__seq-pill--on {
   background: var(--color-primary);
   border-color: transparent;
-  color: #fff;
+  color: var(--br-text-on-chalk);
   box-shadow: 0 2px 8px rgba(115, 147, 248, 0.35);
 }
 
@@ -1663,68 +1635,146 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
 
 /* ─── TopBar — Snap Assist controls ─────────────────────────────────────────── */
 
-.br-topbar__snap-assist {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
 /* Active state for the magnet toggle button */
-.br-topbar__file-btn--active {
-  color: #22d3ee;
-  background: rgba(34, 211, 238, 0.08);
-  border-color: rgba(34, 211, 238, 0.3);
-}
 
-.br-topbar__snap-slider {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
+/* ADDED (Redesign Step 5): context menu section label, shortcut hint, disabled items */
+.context-menu__label {
+  padding: 6px 12px 2px;
+  font-size: var(--br-text-sm);
+  font-weight: 600;
+  color: var(--br-text-3);
 }
-
-.br-topbar__snap-range {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 64px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--color-border);
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  outline: none;
-  transition: background var(--transition-fast);
+.context-menu__shortcut {
+  margin-left: auto;
+  padding-left: 16px;
+  font-size: var(--br-text-sm);
+  color: var(--br-text-3);
 }
-
-.br-topbar__snap-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #22d3ee;
-  cursor: pointer;
-  border: none;
-}
-
-.br-topbar__snap-range::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #22d3ee;
-  cursor: pointer;
-  border: none;
-}
-
-.br-topbar__snap-range:disabled {
-  opacity: 0.4;
+.context-menu__item:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
 }
-
-.br-topbar__snap-value {
-  font-size: 10px;
-  color: var(--color-text-muted);
-  min-width: 16px;
-  text-align: right;
-  line-height: 1;
+.context-menu__item {
+  display: flex;
+  align-items: center;
 }
-
+
+/* ADDED (Redesign Step 7): collectible badge + verbose chips on Common nodes */
+.story-node__collectible-badge { gap: 3px; }
+.story-node__collectibles { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+.story-node__collectible-chip {
+  padding: 1px 6px;
+  border: 1px solid var(--br-line);
+  border-radius: 999px;
+  font-size: 10px;
+  color: var(--br-text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* =========================================================================
+   ADDED (Redesign Step 8): legacy overlays aligned with the design system (AR-37).
+   Colours already follow the re-pointed legacy tokens; these rules fix geometry, density and focus so the
+   context menu, command palette, toasts and the naming dialog match .br-menu / .br-dialog.
+   ========================================================================= */
+.context-menu {
+  min-width: 200px;
+  padding: 4px;
+  border: 1px solid var(--br-line);
+  border-radius: var(--br-radius-menu);
+  background: var(--br-slate);
+  box-shadow: var(--br-shadow-menu);
+  font-family: var(--br-font);
+}
+.context-menu__item {
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 5px;
+  color: var(--br-text);
+  font-size: var(--br-text-md);
+  text-align: left;
+}
+.context-menu__item:hover:not(:disabled) { background: var(--br-hover); }
+.context-menu__item:focus-visible { outline: 2px solid var(--br-focus); outline-offset: -2px; }
+.context-menu__item--danger { color: var(--br-danger); }
+.context-menu__item--danger:hover:not(:disabled) { background: var(--br-danger-wash); }
+.context-menu__divider { height: 1px; margin: 4px 0; background: var(--br-line); }
+.context-menu__label { padding: 6px 8px 2px; }
+
+.palette-panel {
+  border: 1px solid var(--br-line);
+  border-radius: var(--br-radius-dialog);
+  background: var(--br-slate);
+  box-shadow: var(--br-shadow-dialog);
+  font-family: var(--br-font);
+}
+.palette-search {
+  border-bottom: 1px solid var(--br-line);
+  background: transparent;
+  color: var(--br-text);
+  font-size: var(--br-text-lg);
+}
+.palette-section-label {
+  font-size: var(--br-text-sm);
+  font-weight: 600;
+  color: var(--br-text-3);
+}
+.palette-item { border-radius: var(--br-radius-control); color: var(--br-text); }
+.palette-item:hover,
+.palette-item--selected { background: var(--br-hover); }
+.palette-item__context { color: var(--br-text-3); }
+.palette-item__type-badge {
+  border: 1px solid var(--br-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--br-text-2);
+  font-weight: 500;
+}
+
+.toast {
+  border: 1px solid var(--br-line);
+  border-radius: var(--br-radius-menu);
+  background: var(--br-slate);
+  box-shadow: var(--br-shadow-menu);
+  color: var(--br-text);
+  font-family: var(--br-font);
+  font-size: var(--br-text-md);
+}
+
+.br-name-modal {
+  border: 1px solid var(--br-line);
+  border-radius: var(--br-radius-dialog);
+  background: var(--br-slate);
+  box-shadow: var(--br-shadow-dialog);
+  font-family: var(--br-font);
+}
+.br-name-modal__header { border-bottom-color: var(--br-line); }
+.br-name-modal__label { font-size: var(--br-text-sm); font-weight: 500; color: var(--br-text-2); }
+.br-name-modal__input {
+  height: var(--br-control-h);
+  border: 1px solid var(--br-line);
+  border-radius: var(--br-radius-control);
+  background: var(--br-well);
+  color: var(--br-text);
+  font-size: var(--br-text-md);
+}
+.br-name-modal__input:focus { border-color: var(--br-text-2); box-shadow: none; outline: none; }
+.br-name-modal__footer { border-top-color: var(--br-line); background: transparent; }
+.br-name-modal__btn-confirm {
+  border: 1px solid var(--br-chalk);
+  border-radius: var(--br-radius-control);
+  background: var(--br-chalk);
+  color: var(--br-text-on-chalk);
+  box-shadow: none;
+}
+.br-name-modal__btn-confirm:disabled { opacity: 0.45; }
+.br-name-modal__btn-cancel {
+  border: 1px solid var(--br-line);
+  border-radius: var(--br-radius-control);
+  background: transparent;
+  color: var(--br-text);
+}
+.br-name-modal__toggle-slider { background: var(--br-chalk); }
+.br-name-modal__toggle-option--active { color: var(--br-text-on-chalk); }

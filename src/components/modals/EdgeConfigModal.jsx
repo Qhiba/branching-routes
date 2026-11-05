@@ -4,6 +4,8 @@ import { useNarrativeStore } from 'store';
 import useFocusTrap from '../../hooks/useFocusTrap';
 import '../modals/NodeConfigModal.css'; /* Reuse br-node-config-modal__* token styles */
 import './EdgeConfigModal.css';
+import ModalPortal from 'components/ModalPortal';
+import { isConfirmEnter } from 'utils';
 
 // ADDED: Phase 6 — Edge configuration modal (mirrors NodeConfigModal design language)
 
@@ -71,7 +73,7 @@ function SearchableSelect({ value, options, onChange, placeholder, className }) 
     );
 }
 
-export default function EdgeConfigModal({ edgeId, onClose }) {
+function EdgeConfigModalInner({ edgeId, onClose }) {
     const containerRef = useFocusTrap(!!edgeId);
     const edge = useNarrativeStore(s => s.edges.find(e => e.id === edgeId));
     const flags = Object.values(useNarrativeStore(s => s.flag) || {});
@@ -103,7 +105,11 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
 
     // ESC to close
     useEffect(() => {
-        const handler = (e) => { if (e.key === 'Escape') onClose(); };
+        // CHANGED (Redesign Step 4): Enter saves (edits are live, Save just closes)
+        const handler = (e) => {
+            if (e.key === 'Escape') { onClose(); return; }
+            if (isConfirmEnter(e)) { e.preventDefault(); onClose(); }
+        };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
     }, [onClose]);
@@ -166,8 +172,8 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                 {/* Header */}
                 <div className="br-node-config-modal__header">
                     <div className="br-node-config-modal__header__left">
-                        <span className="br-node-config-modal__type-badge ecm-type-badge">EDGE</span>
-                        <h3 id="edge-config-modal-title" className="br-node-config-modal__header__title">Configure Edge</h3>
+                        <span className="br-node-config-modal__type-badge ecm-type-badge">Edge</span>
+                        <h3 id="edge-config-modal-title" className="br-node-config-modal__header__title">Edit edge</h3>
                     </div>
                     <button className="br-node-config-modal__close-btn" onClick={onClose} aria-label="Close modal">
                         <X className="br-node-config-modal__icon-lg" />
@@ -186,12 +192,12 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                             </div>
                             <div className="ecm-connection-row">
                                 <div className="ecm-node-chip ecm-node-chip--source">
-                                    <span className="ecm-node-chip__label">FROM</span>
+                                    <span className="ecm-node-chip__label">From</span>
                                     <span className="ecm-node-chip__name">{sourceLabel}</span>
                                 </div>
                                 <div className="ecm-arrow">→</div>
                                 <div className="ecm-node-chip ecm-node-chip--target">
-                                    <span className="ecm-node-chip__label">TO</span>
+                                    <span className="ecm-node-chip__label">To</span>
                                     <span className="ecm-node-chip__name">{targetLabel}</span>
                                 </div>
                             </div>
@@ -208,10 +214,10 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                         <div>
                             <div className="br-node-config-modal__section-title">
                                 <GitBranch className="br-node-config-modal__section-title__icon" />
-                                <h4 className="br-node-config-modal__section-title__text">Edge Label</h4>
+                                <h4 className="br-node-config-modal__section-title__text">Label</h4>
                             </div>
                             <div className="br-node-config-modal__field">
-                                <label className="br-node-config-modal__label">Label (narrative / choice text)</label>
+                                <label className="br-node-config-modal__label">Text shown on the edge</label>
                                 <input
                                     className="br-node-config-modal__input"
                                     type="text"
@@ -226,7 +232,7 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                         <div>
                             <div className="br-node-config-modal__condition-box">
                                 <div className="br-node-config-modal__condition-header">
-                                    <span className="br-node-config-modal__condition-label">Traversal Condition</span>
+                                    <span className="br-node-config-modal__condition-label">Condition</span>
                                     <div className="br-node-config-modal__flex-row">
                                         {edge.condition && (
                                             <div className="br-node-config-modal__operator-toggle">
@@ -259,7 +265,7 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                                             if ('flag' in clause) {
                                                 return (
                                                     <div key={idx} className="br-node-config-modal__clause-row">
-                                                        <span className="br-node-config-modal__clause-type br-node-config-modal__clause-type--flag">FLAG</span>
+                                                        <span className="br-node-config-modal__clause-type br-node-config-modal__clause-type--flag">Flag</span>
                                                         <SearchableSelect
                                                             className="br-node-config-modal__clause-select"
                                                             value={clause.flag || ''}
@@ -281,7 +287,7 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                                             } else if ('status' in clause) {
                                                 return (
                                                     <div key={idx} className="br-node-config-modal__clause-row">
-                                                        <span className="br-node-config-modal__clause-type br-node-config-modal__clause-type--status">STAT</span>
+                                                        <span className="br-node-config-modal__clause-type br-node-config-modal__clause-type--status">Status</span>
                                                         <SearchableSelect
                                                             className="br-node-config-modal__clause-select"
                                                             value={clause.status || ''}
@@ -309,9 +315,9 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                                             return null;
                                         })}
                                         <div className="br-node-config-modal__add-clause-row">
-                                            <button className="br-node-config-modal__add-btn" onClick={addFlagClause}>+ Flag Clause</button>
+                                            <button className="br-node-config-modal__add-btn" onClick={addFlagClause}>+ Flag clause</button>
                                             {statuses.length > 0 && (
-                                                <button className="br-node-config-modal__add-btn" onClick={addStatusClause}>+ Status Clause</button>
+                                                <button className="br-node-config-modal__add-btn" onClick={addStatusClause}>+ Status clause</button>
                                             )}
                                         </div>
                                     </div>
@@ -323,7 +329,7 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                         <div className="ecm-danger-zone">
                             <button className="ecm-delete-btn" onClick={handleDelete}>
                                 <Trash2 className="br-node-config-modal__icon-base" />
-                                Delete Edge
+                                Delete edge
                             </button>
                         </div>
 
@@ -339,5 +345,14 @@ export default function EdgeConfigModal({ edgeId, onClose }) {
                 </div>
             </div>
         </div>
+    );
+}
+
+// ADDED (Redesign Step 4): every dialog renders through ModalPortal into <body> (never inside a sidebar).
+export default function EdgeConfigModal(props) {
+    return (
+        <ModalPortal>
+            <EdgeConfigModalInner {...props} />
+        </ModalPortal>
     );
 }

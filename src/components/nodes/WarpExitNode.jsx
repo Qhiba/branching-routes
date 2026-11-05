@@ -11,15 +11,17 @@ function WarpExitNode({ id, data }) {
   const isOrphaned = useSimulationStore(s => s.orphanedNodeIds.includes(id));
   const isUnreachable = useSimulationStore(s => s.unreachableNodeIds.includes(id));
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+  // ADDED (Redesign Step 1): editor Seen marks hidden when the Campaign feature is off
+  const featureCampaign = useUIStore(s => s.featureCampaign);
 
   const isFilteredOut = !!data.isFilteredOut;
 
-  const className = `story-node warp-exit-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
+  const className = `story-node warp-exit-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive && featureCampaign) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
 
   return (
     <div className={className}>
       <div className="story-node__type-bar warp-exit-node__type-bar">
-        <span className="story-node__type-label">WARP EXIT</span>
+        <span className="story-node__type-label">Warp exit</span>
         {isOrphaned && (
           <span className="story-node__warning-badge" title="Node is entirely disconnected">
             ⚠️ Orphaned

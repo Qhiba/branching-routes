@@ -19,6 +19,8 @@ export { default as SandboxPanel } from './SandboxPanel';
 export { default as NameModal } from './NameModal';
 export { default as NodeConfigModal } from './modals/NodeConfigModal';
 export { default as WarpConfigModal } from './modals/WarpConfigModal';
+export { default as SettingsModal } from './modals/SettingsModal'; // ADDED (Redesign Step 1)
+export { default as ShortcutsDialog } from './modals/ShortcutsDialog'; // ADDED (Redesign Step 5)
 export { default as ContextMenu } from './ContextMenu';
 export { default as Toast } from './Toast';
 export { default as CommandPalette } from './CommandPalette';
@@ -27,7 +29,8 @@ export { default as StatusStrip } from './StatusStrip';
 
 export { default as LeftSidebar } from './layout/LeftSidebar';
 export { default as RightSidebar } from './layout/RightSidebar';
-export { default as NameplateTab } from './layout/NameplateTab';
+// REMOVED (Redesign Step 4): NameplateTab — replaced by layout/SideRail
+export { default as SideRail } from './layout/SideRail';
 
 export { default as FloatingMiddleBar } from './floating/FloatingMiddleBar';
 export { default as ErrorBoundary } from './ErrorBoundary';

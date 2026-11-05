@@ -77,10 +77,6 @@
 }
 
 /* ---- Size: large ---- */
-.btn--lg {
-  padding: 10px var(--space-6);
-  font-size: var(--font-size-md);
-}
 
 /* ---- Variant: secondary (filled surface) ---- */
 .btn--secondary {
@@ -110,7 +106,7 @@
 /* ---- Variant: primary (filled, brand color) ---- */
 .btn--primary {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--br-text-on-chalk);
   border-color: transparent;
   box-shadow: 0 2px 10px rgba(115, 147, 248, 0.25);
 }
@@ -148,21 +144,8 @@
 }
 
 /* ---- Variant: danger ghost (text-only, for destructive inline actions) ---- */
-.btn--danger-ghost {
-  background: transparent;
-  color: var(--color-danger);
-  border-color: transparent;
-}
-
-.btn--danger-ghost:hover:not(:disabled) {
-  background-color: rgba(229, 102, 102, 0.1);
-  border-color: transparent;
-}
 
 /* ---- Shape: pill ---- */
-.btn--pill {
-  border-radius: var(--radius-full);
-}
 
 /* ---- Shape: icon-only (square, no text) ---- */
 .btn--icon {

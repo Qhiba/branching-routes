@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useSimulationStore, useUIStore, useNarrativeStore } from 'store';
+import { Gem } from 'lucide-react';
 import { VerboseEffectsBox } from './VerboseEffects';
 
 function CommonNode({ id, data }) {
@@ -13,6 +14,8 @@ function CommonNode({ id, data }) {
   const isOrphaned = useSimulationStore(s => s.orphanedNodeIds.includes(id));
   const isUnreachable = useSimulationStore(s => s.unreachableNodeIds.includes(id));
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+  // ADDED (Redesign Step 1): editor Seen marks hidden when the Campaign feature is off
+  const featureCampaign = useUIStore(s => s.featureCampaign);
 
   // ADDED: Phase 2 label display mode
   const labelDisplayMode = useUIStore(s => s.labelDisplayMode);
@@ -23,9 +26,13 @@ function CommonNode({ id, data }) {
   const isFilteredOut = !!data.isFilteredOut;
 
   // MODIFIED: Phase 3 — add coverage-gap class to className string; Step 3 — add filtered-out class
-  const className = `story-node common-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
+  const className = `story-node common-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive && featureCampaign) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
 
   const sideEffectsCount = (data.flags_set?.length || 0) + (data.status_set?.length || 0);
+
+  // ADDED (Redesign Step 7): collectibles granted by this node — count badge, names on hover / in verbose mode
+  const collectibleDict = useNarrativeStore(s => s.collectible);
+  const collectibleNames = (data.collectibleIds || []).map(cid => collectibleDict[cid]?.name).filter(Boolean);
 
   return (
     <div className={className}>
@@ -35,7 +42,7 @@ function CommonNode({ id, data }) {
         {/* Seen check icon — visible in editor mode only when manually marked */}
         {/* FIX 9: Show user-defined nodeSubType name if set, fallback to COMMON */}
         <span className="story-node__type-label">
-          {subTypeName ? subTypeName.toUpperCase() : 'COMMON'}
+          {subTypeName || 'Common'}
         </span>
         {isOrphaned && (
           <span className="story-node__warning-badge" title="Node is entirely disconnected">
@@ -57,6 +64,12 @@ function CommonNode({ id, data }) {
             {sideEffectsCount} effect{sideEffectsCount !== 1 ? 's' : ''}
           </span>
         )}
+        {collectibleNames.length > 0 && (
+          <span className="story-node__meta-badge story-node__collectible-badge" title={`Grants: ${collectibleNames.join(', ')}`}>
+            <Gem className="story-node__meta-icon" aria-hidden="true" />
+            {collectibleNames.length}
+          </span>
+        )}
       </div>
 
       <div className="story-node__body">
@@ -67,6 +80,11 @@ function CommonNode({ id, data }) {
 
         {labelDisplayMode === 'verbose' && sideEffectsCount > 0 && (
           <VerboseEffectsBox flagsSet={data.flags_set} statusSet={data.status_set} />
+        )}
+        {labelDisplayMode === 'verbose' && collectibleNames.length > 0 && (
+          <div className="story-node__collectibles">
+            {collectibleNames.map(name => <span key={name} className="story-node__collectible-chip">{name}</span>)}
+          </div>
         )}
       </div>
 

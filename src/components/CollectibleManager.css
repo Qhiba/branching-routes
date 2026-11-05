@@ -1,0 +1,47 @@
+/* ADDED (Redesign Step 4): layout specific to CollectibleManager. Appearance comes from EntityList.css + system.css. */
+
+.br-collectibles__group + .br-collectibles__group { margin-top: 6px; }
+
+.br-collectibles__category { min-height: 32px; }
+.br-collectibles__category-name { font-weight: 600; }
+
+.br-collectibles__items { display: flex; flex-direction: column; gap: 1px; min-height: 8px; padding-left: 8px; }
+
+.br-collectibles__handle { display: flex; align-items: center; cursor: grab; }
+
+.br-collectibles__right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+.br-collectibles__count {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 22px;
+    padding: 0 6px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--br-text-2);
+    font-family: var(--br-font);
+    font-size: var(--br-text-sm);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+}
+
+.br-collectibles__count:hover { background: var(--br-press); color: var(--br-text); }
+.br-collectibles__count:focus-visible { outline: 2px solid var(--br-focus); outline-offset: 1px; }
+
+.br-collectibles__orphan {
+    padding: 0 6px;
+    font-size: var(--br-text-sm);
+    font-style: italic;
+    color: var(--br-text-3);
+}
+
+.br-collectibles__nodes { margin: 0 0 4px 22px; padding: 0; list-style: none; }
+
+.br-collectibles__hint {
+    margin: 2px 0 4px;
+    padding: 0 10px;
+    font-size: var(--br-text-sm);
+    color: var(--br-text-3);
+}

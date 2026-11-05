@@ -21,9 +21,6 @@ function isFlagUsed(id, common, choice, ending, edges) {
   const allNodes = [...Object.values(common), ...Object.values(choice), ...Object.values(ending)];
   for (const n of allNodes) {
     if (n.data && n.data.flags_set && n.data.flags_set.includes(id)) return true;
-    if (n.data && Array.isArray(n.data.variants)) {
-      if (n.data.variants.some(v => v.requires && Array.isArray(v.requires.conditions) && v.requires.conditions.some(c => c.flag === id))) return true;
-    }
     if (n.data && Array.isArray(n.data.options)) {
       if (n.data.options.some(opt => 
         (opt.requires && Array.isArray(opt.requires.conditions) && opt.requires.conditions.some(c => c.flag === id)) || 

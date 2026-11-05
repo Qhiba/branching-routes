@@ -1,0 +1,119 @@
+/* ADDED (Redesign Step 4): icon rail + docked panel (design system: AR-37). No CSS transform (AR-29). */
+
+.br-siderail {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    background: var(--br-graphite);
+    font-family: var(--br-font);
+}
+
+.br-siderail--left { border-right: 1px solid var(--br-line); }
+.br-siderail--right { border-left: 1px solid var(--br-line); }
+
+.br-siderail--dimmed {
+    opacity: 0.45;
+    pointer-events: none;
+    filter: grayscale(0.5);
+}
+
+/* Rail */
+.br-siderail__rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: 68px;
+    flex-shrink: 0;
+    padding: 8px 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.br-siderail--left.br-siderail--open .br-siderail__rail { border-right: 1px solid var(--br-line); }
+.br-siderail--right.br-siderail--open .br-siderail__rail { border-left: 1px solid var(--br-line); }
+
+.br-siderail__tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    width: 62px;
+    min-height: 48px;
+    padding: 6px 1px;
+    border: none;
+    border-radius: var(--br-radius-control);
+    background: transparent;
+    color: var(--br-text-3);
+    font-family: var(--br-font);
+    cursor: pointer;
+    transition: background-color var(--br-fast) var(--br-ease), color var(--br-fast) var(--br-ease);
+}
+
+.br-siderail__tab:hover { background: var(--br-hover); color: var(--br-text); }
+.br-siderail__tab[aria-pressed="true"] { background: var(--br-selected); color: var(--br-text); }
+.br-siderail__tab:focus-visible { outline: 2px solid var(--br-focus); outline-offset: -2px; }
+
+.br-siderail__tab-icon { width: 18px; height: 18px; }
+
+.br-siderail__tab-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+    letter-spacing: -0.01em;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+/* Panel — shown/hidden instantly; never uses CSS transform (AR-29) */
+.br-siderail__panel {
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.br-siderail__panel[hidden] { display: none; }
+
+.br-siderail__body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.br-siderail__body > * { flex: 1; min-height: 0; }
+
+/* Stacked sections inside one panel (e.g. Types: Common + Ending) */
+.br-siderail__stack {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.br-siderail__stack > section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.br-siderail__stack > section + section { border-top: 1px solid var(--br-line); }
+
+.br-siderail__stack-title {
+    margin: 0;
+    padding: 12px 16px 0;
+    font-size: var(--br-text-md);
+    font-weight: 600;
+    color: var(--br-text);
+}
+
+@media (max-width: 1100px) {
+    .br-siderail__panel { width: 260px; }
+}

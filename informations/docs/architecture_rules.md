@@ -39,7 +39,7 @@ No component file may directly mutate the graph data structure. All mutations mu
 
 ## AR-05 — Single Source of Truth
 
-The canonical graph representation is the Zustand `narrativeStore`. It holds `common{}`, `choice{}`, `ending{}`, `edges[]`, `flag{}`, `status{}`, `path{}`, `chapter{}`, and `meta`. The React Flow `nodes` and `edges` arrays are derived from the typed node sub-collections and re-synced on every store change. The JSON export/import format is the serialised form of `narrativeStore` state only.
+The canonical graph representation is the Zustand `narrativeStore`. It holds `common{}`, `choice{}`, `ending{}`, `edges[]`, `flag{}`, `status{}`, `path{}`, `chapter{}`, `tag{}`, `commonType{}`, `endingType{}`, `collectibleCategory{}`, `collectible{}`, `editorSeenNodeIds[]`, `editorSeenOptionIds[]`, and `meta`. The React Flow `nodes` and `edges` arrays are derived from the typed node sub-collections and re-synced on every store change. The JSON export/import format is the serialised form of `narrativeStore` state only.
 
 **Rationale:** A single canonical store ensures every consumer reads the same data. Enumerating the full shape prevents drift between the rule and the implementation.
 
@@ -71,7 +71,7 @@ Simulation state (active node, traversed edges, current flag values mid-campaign
 
 ## AR-09 — JSON Format Stability
 
-The exported JSON structure is versioned via a top-level `"schemaVersion"` field (starting at `1`). Any breaking change to the data model increments this field. The import function must validate and reject files with an unrecognised schema version.
+The exported JSON structure is versioned via a top-level `"schemaVersion"` field (starting at `1`). Any breaking change to the data model increments this field. The import function must validate and reject files with an unrecognised schema version. The current version is **5** (`CURRENT_SCHEMA_VERSION` in `fileSystem.js`; v4→v5 removed Narrative Variants and added Collectibles). Every graph entering the app — file import **and** the IndexedDB autosave restore at boot — must pass through the single `migrateGraph()` pipeline.
 
 **Rationale:** Schema versioning enables safe evolution of the data format while preserving backward-compatible import of older files.
 
@@ -105,7 +105,7 @@ Ending nodes are stored in a dedicated ending{} sub-collection. Because they are
 
 ## AR-13 — Sub-Array CRUD via Dedicated Store Actions
 
-Nested arrays inside `node.data` (e.g., `variants[]`, `options[]`) must be managed exclusively through dedicated store actions (e.g., `addVariant`, `updateVariant`, `deleteVariant`) rather than generic `updateNode` patches that replace the entire array. Each action must perform its own validation and cascading cleanup (e.g., `deleteOption` removes edges with matching `optionId`).
+Nested arrays inside `node.data` (e.g., `options[]`, `collectibleIds[]`) must be managed exclusively through dedicated store actions (e.g., `addOption`, `updateOption`, `deleteOption`, `toggleNodeCollectible`) rather than generic `updateNode` patches that replace the entire array. Each action must perform its own validation and cascading cleanup (e.g., `deleteOption` removes edges with matching `optionId`).
 
 **Rationale:** Dedicated actions prevent accidental full-array overwrites, enforce referential integrity cascades, and make store mutations auditable through named action calls. Validated through the Variants_on_nodes_and_Options_on_choices feature implementation.
 
@@ -193,21 +193,25 @@ Components must not subscribe to a Zustand store by destructuring the entire sto
 
 ---
 
-## AR-25 — Modal-First Entity Editing
+## AR-25 — Hybrid Entity Editing (Inspector + Full Modal)
 
-All direct entity editing (nodes, edges) must be routed through a dedicated full-screen modal component, never through a docked panel or an inline form embedded in a sidebar. The modal must be opened by dispatching a DOM custom event (per AR-19) with the target entity ID as its `detail` payload; `GraphCanvas` listens for the event and controls the modal mount lifecycle.
+Entity editing is split in two. **Simple fields** (labels, content, chapter/path/type, tags, collectibles, on-enter flags and status changes, edge label) are edited in the docked `InspectorPanel`. **Complex structures** (Choice options with their effects and conditions, edge conditions, warp connections) are edited in the full-screen modals (`NodeConfigModal`, `EdgeConfigModal`, `WarpConfigModal`), opened via DOM custom events (`canvas-edit-node-modal` / `canvas-edit-edge-modal`, per AR-19) from the Inspector's "Open full editor" / "Edit condition", double-click, or the context menu. `GraphCanvas` owns the modal mount lifecycle. Both surfaces write through the same store actions, so they always show the same data. Shared form pieces live in `components/fields/`.
 
-For node creation specifically, the flow must be **atomic**: the node is inserted into the store immediately (to receive a valid ID and position), but the `onCancel`/ESC/backdrop path must call `deleteNode` on the pending node before unmounting — preventing orphaned data if the user cancels without saving (the "pending slot" pattern, as implemented in `GraphCanvas.pendingNodeModal`).
+Node creation stays **atomic**: the node is inserted immediately (to get a valid ID and position) inside an undo group; the `onCancel`/ESC/backdrop path calls `deleteNode` and then `cancelGroup()` so a cancelled creation leaves neither data nor an undo step (the "pending slot" pattern in `GraphCanvas.pendingNodeModal`).
 
-**Rationale:** The UI integration push (Phases 6/7) validated this pattern across node editing (`NodeConfigModal`) and edge editing (`EdgeConfigModal`). The modal provides sufficient visual space for complex forms (2-column layout, condition builders, collapsible cards) that are impractical in a narrow sidebar dock. The DOM-event dispatch contract keeps the editing entry point decoupled from `ReactFlowProvider` hierarchy constraints (AR-19). Edge editing was identified as a RULE CANDIDATE during Phase 6 and subsequently confirmed stable, prompting formalisation here.
+**Rationale:** Opening a full-screen modal for every small change made routine edits slow, but forms like option condition builders still need the space a modal gives. The hybrid split (agreed in the 2026-11 redesign) keeps quick edits one click away while preserving the modal for complex work.
 
-**Scope:** Applies to all future entity types that require form-based editing. Simple quick-create flows (NameModal for flags/statuses/paths/chapters) are exempt — they use the lightweight `NameModal` pattern, which is sufficient for single-field creation.
+**Scope:** Simple quick-create flows (`NameModal` for flags/statuses/paths/chapters/tags/types, `CollectibleDialog`) remain lightweight dialogs.
+
+> **NOTE (2026-11-04):** Replaces "Modal-First Entity Editing" (sidebar editing was previously forbidden).
 
 ---
 
 ## AR-26 — Campaign Controls Belong to FloatingMiddleBar
 
-All controls that initiate, progress, or terminate a campaign simulation must be mounted exclusively in `FloatingMiddleBar`. No campaign lifecycle actions (Enter, Exit, Undo, Reset, Save, Load, Autosave toggle, Traversal Overlay toggle) may be placed in `TopBar`, `LeftSidebar`, `RightSidebar`, or any panel component.
+All controls that progress or terminate a running campaign simulation (Exit, Undo, Reset, Save, Load, Autosave toggle, Traversal Overlay toggle, Follow, Save Seen) must be mounted exclusively in `FloatingMiddleBar`. **Entering** a campaign is the only exception: it is offered by the TopBar campaign selector + Start button and by the Enter action in `CampaignListPanel`. All campaign entry points are gated by the `featureCampaign` switch (AR-36).
+
+> **NOTE (2026-11-04):** Corrected to match the code — the TopBar has hosted the campaign selector and Start button since the floating bar was reduced to campaign-only mode.
 
 **Rationale:** The UI integration push relocated campaign controls from `TopBar` (Enter/Exit/Undo/Reset) and `SandboxPanel` (Save/Load/Autosave) to `FloatingMiddleBar`, giving the author a single, spatially stable control surface for all campaign lifecycle actions. `TopBar` is now purely a project-metadata and file-operations bar. Panels and sidebars dim during campaign mode and do not present any campaign controls — they are authoring tools that are visually unavailable while a campaign is active. Enforcing this separation prevents fragmented control surfaces and ensures campaign state visibility is always centred on the canvas overlay.
 
@@ -223,7 +227,7 @@ Complex analytic or tracing tools meant for use outside of campaign playback (ed
 
 ## AR-27 — Import Sanitization Whitelist Must Include All Persisted Schema Fields
 
-The `importProject()` function in `fileSystem.js` rebuilds the imported data through an explicit `sanitizedData` whitelist object. Every field that is part of the current `schemaVersion: 4` data model and must survive a save→export→import round-trip **must be listed by name** in `sanitizedData` (Required fields: `editorSeenNodeIds`, `editorSeenOptionIds`, `path`, `chapter`, `flag`, `status`, `common`, `choice`, `ending`, `edges`, `meta`, `schemaVersion`, `tag`, `commonType`, `endingType`). Any field omitted from the whitelist is silently dropped regardless of whether it exists in the source file.
+The `migrateGraph()` function in `fileSystem.js` (used by `importProject()` and the boot autosave restore) rebuilds the data through an explicit `sanitizedData` whitelist object. Every field that is part of the current `schemaVersion: 5` data model and must survive a save→export→import round-trip **must be listed by name** in `sanitizedData` (Required fields: `editorSeenNodeIds`, `editorSeenOptionIds`, `path`, `chapter`, `flag`, `status`, `common`, `choice`, `ending`, `edges`, `meta`, `schemaVersion`, `tag`, `commonType`, `endingType`, `collectibleCategory`, `collectible`). Per node, `sanitizeNodes` keeps `id`, `type`, `position`, `createdAt` and `data`. Any field omitted from the whitelist is silently dropped regardless of whether it exists in the source file.
 
 When adding a new persisted field to `narrativeStore` (i.e., a field that appears in `exportGraph()` output), the same commit must also add that field to the `sanitizedData` whitelist in `fileSystem.importProject()`. These two locations are a paired invariant — divergence causes silent data loss on import with no error or warning.
 
@@ -286,6 +290,38 @@ All `localStorage` reads/writes must use `safeStorage.js` helpers (`safeGet`, `s
 CPU-intensive computations (route tracing BFS) must run in Web Workers via async wrappers, not on the main thread.
 
 **Rationale:** Performing heavy algorithmic traversals synchronously blocks the main UI thread, causing frame drops and unresponsiveness. Offloading these tasks to Web Workers keeps the UI interactive during background computations.
+
+---
+
+## AR-39 — Undo History Is Owned by historyStore
+
+All undo/redo goes through `store/historyStore.js`. Code must not implement its own undo stacks. Multi-step user actions that should undo as one (bulk delete, duplicate, align, a modal editing session, node creation) must be wrapped in `beginGroup()` / `endGroup()`; a creation that the user cancels must call `cancelGroup()` after reverting it. Any new persisted `narrativeStore` slice must be added to `TRACKED_SLICES` (alongside `exportGraph`, `loadGraph`, `newGraph` and the AR-27 whitelist), unless it is an annotation that should not be undoable (like editor Seen marks). Actions that replace the whole graph (`loadGraph`, `newGraph`) must bump `graphRevision` so history resets.
+
+**Rationale:** Undo was the biggest missing basic of the editor. A single snapshot-based history over immutable slices is cheap and cannot drift from the data, but only if every persisted slice is tracked and every compound action is grouped.
+
+---
+
+## AR-38 — Dialogs Render Through ModalPortal and Confirm on Enter
+
+Every modal dialog must render through `components/ModalPortal` (a portal into `document.body`), never inline inside a sidebar, panel or canvas subtree. Layout regions (`App.css`) use small z-index values (1–3); `--z-modal`, `--z-palette` and `--z-toast` are reserved for portalled or fixed overlays. Every dialog confirms on Enter using `utils/isConfirmEnter` (not in textareas, selects, buttons, comboboxes or during IME composition) and cancels on Esc. Enter handlers must call `preventDefault()`; otherwise the browser's follow-up keypress activates whichever button receives focus when the dialog closes.
+
+**Rationale:** `NameModal` was rendered inside the sidebar managers while the sidebars sat at z-index 300 and modals at 200, so dialogs appeared inside the sidebar (notes.txt). Enter-to-confirm was inconsistent across dialogs and, in `NameModal`, re-opened a fresh dialog after each confirm.
+
+---
+
+## AR-37 — Design System Primitives First
+
+New or rebuilt UI must be composed from the design system in `src/styles/system.css` (`--br-*` tokens, `.br-*` primitives) before adding component-specific CSS. Hue is reserved for node identity (`--br-route-*`, the `.br-route` mark via `[data-route]`) and danger; interface chrome stays graphite/chalk and the primary action uses `.br-btn--primary` (chalk). Labels are sentence case (no all-caps). Sections are separated by spacing and a single hairline (`.br-section`), not nested bordered boxes. Text colours must come from the three text levels (`--br-text`, `--br-text-2`, `--br-text-3`), which meet 4.5:1 contrast on every surface. Component CSS may only add layout specific to that component and must not redefine primitive appearance. Legacy tokens/classes (`tokens.css` colour aliases, `buttons.css`) are frozen: no new usage. Since Redesign Step 8 the legacy colour tokens hold design-system values, so older stylesheets already render in the system palette; migrate them to `--br-*` when they are next touched. (`utilities.css` was deleted in Step 8.)
+
+**Rationale:** The app accumulated four button styles in one toolbar, a different accent per feature, all-caps labels and boxes inside boxes — the clutter the redesign targets. One small set of primitives keeps every rebuilt surface consistent and makes the final legacy removal (Redesign Step 8) mechanical.
+
+---
+
+## AR-36 — Feature Switches Hide UI, Never Data
+
+Optional feature sets are gated by a boolean in `uiStore` persisted through `safeStorage` (currently `featureCampaign`, default `false`, covering Campaign mode, Route Tracing, Sandbox and editor Seen marks). A switch may only hide or disable UI entry points (buttons, tabs, shortcuts, visual indicators). It must never delete, migrate or skip persisting the feature's data, and the feature's stores and actions must keep working so that turning the switch back on restores the full behaviour. A switch that would hide the currently running activity (e.g. an active campaign) must be disabled until that activity ends.
+
+**Rationale:** The redesign hides Campaign & Route Tracing temporarily rather than removing them. Keeping the switch purely presentational guarantees that projects round-trip identically regardless of the switch state and that the feature can return without a migration.
 
 ---
 

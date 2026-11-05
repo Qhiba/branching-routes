@@ -1,0 +1,520 @@
+/*
+  =========================================================================
+  BRANCHING ROUTES — DESIGN SYSTEM ("Night route map")   ADDED: Redesign Step 3
+  =========================================================================
+  Principle: colour belongs to the story, not the interface.
+    - Interface chrome is graphite + chalk. The primary action is chalk, not a hue.
+    - Hue is reserved for node identity ("route" colours) and danger.
+    - Sections are separated by space and single hairlines — never boxes inside boxes.
+    - Labels are sentence case. No tracked-out all-caps.
+    - Radius grows with the size of the thing: control 6 → menu 8 → dialog 12.
+
+  Namespacing: new tokens are --br-*, new primitives are .br-* (no element selectors),
+  so legacy tokens/classes in tokens.css / utilities.css / buttons.css keep working
+  until each surface migrates (Redesign Steps 4–8). Legacy is removed in Step 8.
+  Contrast (WCAG): text levels ≥ 4.5:1 on every surface; route marks ≥ 4.6:1.
+*/
+
+:root {
+  /* Surfaces */
+  --br-night: #12151c;          /* app background, canvas */
+  --br-graphite: #191d26;       /* panels, sidebars, top bar */
+  --br-slate: #212634;          /* raised: dialogs, menus, popovers */
+  --br-well: #0f1218;           /* inset: inputs, segmented track */
+  --br-hover: rgba(228, 232, 239, 0.06);
+  --br-press: rgba(228, 232, 239, 0.1);
+  --br-selected: rgba(228, 232, 239, 0.12);
+
+  /* Lines */
+  --br-line: #2d3342;           /* hairlines, control borders */
+  --br-line-strong: #3d4558;    /* hovered control borders */
+  --br-edge: #667086;           /* canvas edges (ADDED Redesign Step 8) — keep in sync with EDGE_COLOR in utils/nodeColors.js */
+
+  /* Text (contrast on graphite: 13.7 / 7.2 / 5.1) */
+  --br-text: #e4e8ef;           /* "chalk" */
+  --br-text-2: #a2aabb;         /* "fog" — secondary */
+  --br-text-3: #848da0;         /* "dim" — hints, meta */
+  --br-text-on-chalk: #12151c;
+
+  /* Action */
+  --br-chalk: #e4e8ef;          /* primary action fill */
+  --br-chalk-hover: #ffffff;
+  --br-danger: #ec6a5e;
+  --br-danger-wash: rgba(236, 106, 94, 0.12);
+  --br-focus: #e4e8ef;
+
+  /* Route colours — node identity. Base = node chrome (unchanged legacy values);
+     -mark = brightened for small dots/stripes/text on dark surfaces. */
+  --br-route-common: var(--color-node-common);
+  --br-route-choice: var(--color-node-choice);
+  --br-route-ending: var(--color-node-ending);
+  --br-route-hub: var(--color-node-hub);
+  --br-route-warp: #8b5cf6;
+  --br-route-common-mark: #34b46a;
+  --br-route-choice-mark: #5b8cf0;
+  --br-route-ending-mark: #e2793a;
+  --br-route-hub-mark: #2cc9b6;
+  --br-route-warp-mark: #b07cf2;
+
+  /* Type (system stack — AR-10, no network fonts) */
+  --br-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --br-text-xs: 11px;           /* captions, counts */
+  --br-text-sm: 12px;           /* labels, meta, hints */
+  --br-text-md: 13px;           /* body, controls — the working size */
+  --br-text-lg: 15px;           /* panel / section titles */
+  --br-text-xl: 18px;           /* dialog titles */
+  --br-leading: 1.45;
+
+  /* Geometry */
+  --br-radius-control: 6px;
+  --br-radius-menu: 8px;
+  --br-radius-dialog: 12px;
+  --br-control-h: 30px;
+  --br-control-h-sm: 24px;
+
+  /* Elevation — used only for things that float above the canvas */
+  --br-shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --br-shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
+
+  /* Motion — only in answer to an action */
+  --br-ease: cubic-bezier(0.2, 0, 0, 1);
+  --br-fast: 120ms;
+  --br-med: 180ms;
+}
+
+/* ADDED (Redesign Step 8): quiet scrollbars everywhere (Firefox + Chromium) */
+* { scrollbar-width: thin; scrollbar-color: var(--br-line-strong) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--br-line-strong); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--br-text-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --br-fast: 0ms; --br-med: 0ms; }
+}
+
+/* ----------------------------------------------------------------------
+   Focus — one ring everywhere
+   ---------------------------------------------------------------------- */
+.br-btn:focus-visible,
+.br-input:focus-visible,
+.br-select:focus-visible,
+.br-textarea:focus-visible,
+.br-switch:focus-visible,
+.br-segment:focus-visible,
+.br-row:focus-visible,
+.br-menu__item:focus-visible,
+.br-chip--button:focus-visible {
+  outline: 2px solid var(--br-focus);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------------------
+   Button
+   .br-btn [--primary | --secondary(default) | --ghost | --danger] [--sm] [--icon]
+   ---------------------------------------------------------------------- */
+.br-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--br-control-h);
+  padding: 0 12px;
+  border: 1px solid var(--br-line);
+  border-radius: var(--br-radius-control);
+  background: transparent;
+  color: var(--br-text);
+  font-family: var(--br-font);
+  font-size: var(--br-text-md);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--br-fast) var(--br-ease),
+    border-color var(--br-fast) var(--br-ease),
+    color var(--br-fast) var(--br-ease);
+}
+
+.br-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.br-btn:hover:not(:disabled) { background: var(--br-hover); border-color: var(--br-line-strong); }
+.br-btn:active:not(:disabled) { background: var(--br-press); }
+.br-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.br-btn--primary {
+  background: var(--br-chalk);
+  border-color: var(--br-chalk);
+  color: var(--br-text-on-chalk);
+}
+.br-btn--primary:hover:not(:disabled) { background: var(--br-chalk-hover); border-color: var(--br-chalk-hover); }
+.br-btn--primary:active:not(:disabled) { background: var(--br-chalk); }
+
+.br-btn--ghost { border-color: transparent; color: var(--br-text-2); }
+.br-btn--ghost:hover:not(:disabled) { border-color: transparent; color: var(--br-text); }
+
+.br-btn--danger { border-color: transparent; color: var(--br-danger); }
+.br-btn--danger:hover:not(:disabled) { background: var(--br-danger-wash); border-color: transparent; }
+
+/* Solid danger — only for the final confirm of a destructive action */
+.br-btn--danger-solid { background: var(--br-danger); border-color: var(--br-danger); color: var(--br-text-on-chalk); }
+.br-btn--danger-solid:hover:not(:disabled) { background: #f07d72; border-color: #f07d72; }
+
+.br-btn--sm { height: var(--br-control-h-sm); padding: 0 8px; font-size: var(--br-text-sm); }
+.br-btn--sm svg { width: 13px; height: 13px; }
+
+.br-btn--icon { width: var(--br-control-h); padding: 0; }
+.br-btn--icon.br-btn--sm { width: var(--br-control-h-sm); }
+
+/* Pressed state for toggle buttons (aria-pressed="true") */
+.br-btn[aria-pressed="true"] { background: var(--br-selected); color: var(--br-text); }
+
+/* ----------------------------------------------------------------------
+   Form controls
+   ---------------------------------------------------------------------- */
+.br-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.br-field__label { font-size: var(--br-text-sm); font-weight: 500; color: var(--br-text-2); }
+.br-field__hint { font-size: var(--br-text-sm); line-height: var(--br-leading); color: var(--br-text-3); }
+
+.br-input,
+.br-select,
+.br-textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--br-line);
+  border-radius: var(--br-radius-control);
+  background: var(--br-well);
+  color: var(--br-text);
+  font-family: var(--br-font);
+  font-size: var(--br-text-md);
+  transition: border-color var(--br-fast) var(--br-ease);
+}
+
+.br-input, .br-select { height: var(--br-control-h); padding: 0 10px; }
+.br-textarea { padding: 8px 10px; line-height: var(--br-leading); resize: vertical; }
+.br-input::placeholder, .br-textarea::placeholder { color: var(--br-text-3); }
+.br-input:hover, .br-select:hover, .br-textarea:hover { border-color: var(--br-line-strong); }
+.br-input:focus, .br-select:focus, .br-textarea:focus { border-color: var(--br-text-2); outline: none; }
+.br-input:disabled, .br-select:disabled, .br-textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.br-select {
+  appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a2aabb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  cursor: pointer;
+}
+.br-select option { background: var(--br-slate); color: var(--br-text); }
+
+/* Range slider */
+.br-range { width: 140px; accent-color: var(--br-chalk); cursor: pointer; }
+
+/* Switch: <button role="switch" aria-checked> with a .br-switch__thumb child */
+.br-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 32px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--br-line-strong);
+  border-radius: 999px;
+  background: var(--br-well);
+  cursor: pointer;
+  transition: background-color var(--br-fast) var(--br-ease), border-color var(--br-fast) var(--br-ease);
+}
+.br-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--br-text-3);
+  transition: transform var(--br-fast) var(--br-ease), background-color var(--br-fast) var(--br-ease);
+}
+.br-switch[aria-checked="true"] { background: var(--br-chalk); border-color: var(--br-chalk); }
+.br-switch[aria-checked="true"] .br-switch__thumb { transform: translateX(14px); background: var(--br-text-on-chalk); }
+.br-switch:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Segmented control: .br-segmented > .br-segment[aria-checked] */
+.br-segmented {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-self: flex-start;
+  width: max-content;
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--br-line);
+  border-radius: var(--br-radius-control);
+  background: var(--br-well);
+}
+.br-segment {
+  height: 24px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--br-text-2);
+  font-family: var(--br-font);
+  font-size: var(--br-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--br-fast) var(--br-ease), color var(--br-fast) var(--br-ease);
+}
+.br-segment:hover { color: var(--br-text); }
+.br-segment[aria-checked="true"],
+.br-segment[aria-selected="true"] { background: var(--br-slate); color: var(--br-text); box-shadow: 0 0 0 1px var(--br-line-strong); }
+
+/* ----------------------------------------------------------------------
+   Panel header — title on the left, actions on the right
+   ---------------------------------------------------------------------- */
+.br-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid var(--br-line);
+}
+.br-panel-header__title { margin: 0; font-size: var(--br-text-lg); font-weight: 600; color: var(--br-text); }
+.br-panel-header__count { margin-left: 6px; font-size: var(--br-text-sm); font-weight: 400; color: var(--br-text-3); font-variant-numeric: tabular-nums; }
+.br-panel-header__actions { display: flex; align-items: center; gap: 2px; }
+
+/* Section — spacing + one hairline between siblings; never a box */
+.br-section { padding: 14px 0; }
+.br-section + .br-section { border-top: 1px solid var(--br-line); }
+.br-section__title { margin: 0 0 4px; font-size: var(--br-text-md); font-weight: 600; color: var(--br-text); }
+
+/* Setting row — label + hint on the left, control on the right */
+.br-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 8px 0;
+}
+.br-setting__text { min-width: 0; }
+.br-setting__label { display: block; font-size: var(--br-text-md); font-weight: 400; color: var(--br-text); }
+.br-setting__hint { margin: 2px 0 0; font-size: var(--br-text-sm); line-height: var(--br-leading); color: var(--br-text-3); }
+.br-setting--disabled .br-setting__label { color: var(--br-text-2); }
+.br-setting--nested { padding-left: 16px; border-left: 1px solid var(--br-line); margin-left: 2px; }
+.br-setting__control { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.br-value { min-width: 34px; text-align: right; font-size: var(--br-text-sm); color: var(--br-text-2); font-variant-numeric: tabular-nums; }
+
+/* ----------------------------------------------------------------------
+   Route mark — the one signature element: node identity as a map line
+   .br-route[data-route="common|choice|ending|hub|warp"]  (dot)
+   .br-route--stripe                                       (3px vertical line)
+   ---------------------------------------------------------------------- */
+.br-route {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--br-route-c, var(--br-text-3)); /* inherits --br-route-c from any [data-route] ancestor */
+  box-shadow: 0 0 0 2px var(--br-graphite);
+}
+.br-route--stripe { width: 3px; height: auto; align-self: stretch; border-radius: 2px; box-shadow: none; }
+[data-route="common"] { --br-route-c: var(--br-route-common-mark); }
+[data-route="choice"] { --br-route-c: var(--br-route-choice-mark); }
+[data-route="ending"] { --br-route-c: var(--br-route-ending-mark); }
+[data-route="hub"] { --br-route-c: var(--br-route-hub-mark); }
+[data-route="warp"] { --br-route-c: var(--br-route-warp-mark); }
+
+/* ----------------------------------------------------------------------
+   List row — used by entity lists, search results, menus of nodes
+   ---------------------------------------------------------------------- */
+.br-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: var(--br-radius-control);
+  background: transparent;
+  color: var(--br-text);
+  font-family: var(--br-font);
+  font-size: var(--br-text-md);
+  text-align: left;
+  width: 100%;
+  cursor: default;
+}
+.br-row:hover { background: var(--br-hover); }
+.br-row[aria-selected="true"], .br-row--selected { background: var(--br-selected); }
+.br-row__main { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.br-row__meta { flex-shrink: 0; font-size: var(--br-text-sm); color: var(--br-text-3); font-variant-numeric: tabular-nums; }
+.br-row__actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--br-fast) var(--br-ease); }
+.br-row:hover .br-row__actions, .br-row:focus-within .br-row__actions { opacity: 1; }
+
+/* ----------------------------------------------------------------------
+   Chip — compact tag / reference. Optional route dot inside.
+   ---------------------------------------------------------------------- */
+.br-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--br-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--br-text-2);
+  font-family: var(--br-font);
+  font-size: var(--br-text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.br-chip .br-route { width: 6px; height: 6px; box-shadow: none; }
+.br-chip--button { cursor: pointer; }
+.br-chip--button:hover { border-color: var(--br-line-strong); color: var(--br-text); }
+.br-chip--on { background: var(--br-selected); border-color: var(--br-line-strong); color: var(--br-text); }
+
+/* Count badge (e.g. effects on a node) */
+.br-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--br-press);
+  color: var(--br-text-2);
+  font-size: var(--br-text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keyboard key hint */
+.br-kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--br-line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--br-text-2);
+  font-family: var(--br-font);
+  font-size: var(--br-text-xs);
+  font-weight: 500;
+}
+
+/* ----------------------------------------------------------------------
+   Empty state — an invitation to act, not a mood
+   ---------------------------------------------------------------------- */
+.br-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 20px 16px;
+  color: var(--br-text-2);
+  font-size: var(--br-text-md);
+  line-height: var(--br-leading);
+}
+.br-empty__title { margin: 0; font-weight: 600; color: var(--br-text); }
+.br-empty__text { margin: 0; color: var(--br-text-3); }
+
+/* ----------------------------------------------------------------------
+   Menu — dropdowns and context menus
+   ---------------------------------------------------------------------- */
+.br-menu {
+  min-width: 180px;
+  padding: 4px;
+  border: 1px solid var(--br-line);
+  border-radius: var(--br-radius-menu);
+  background: var(--br-slate);
+  box-shadow: var(--br-shadow-menu);
+}
+.br-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--br-text);
+  font-family: var(--br-font);
+  font-size: var(--br-text-md);
+  text-align: left;
+  cursor: pointer;
+}
+.br-menu__item svg { width: 15px; height: 15px; color: var(--br-text-2); flex-shrink: 0; }
+.br-menu__item:hover:not(:disabled) { background: var(--br-hover); }
+.br-menu__item:disabled { opacity: 0.45; cursor: not-allowed; }
+.br-menu__item--danger, .br-menu__item--danger svg { color: var(--br-danger); }
+.br-menu__shortcut { margin-left: auto; font-size: var(--br-text-sm); color: var(--br-text-3); }
+.br-menu__divider { height: 1px; margin: 4px 0; background: var(--br-line); border: none; }
+
+/* ----------------------------------------------------------------------
+   Dialog — modal shell
+   ---------------------------------------------------------------------- */
+.br-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 10, 14, 0.66);
+  animation: br-fade var(--br-med) var(--br-ease);
+}
+.br-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 460px;
+  max-width: 100%;
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border: 1px solid var(--br-line);
+  border-radius: var(--br-radius-dialog);
+  background: var(--br-slate);
+  color: var(--br-text);
+  font-family: var(--br-font);
+  box-shadow: var(--br-shadow-dialog);
+  animation: br-rise var(--br-med) var(--br-ease);
+}
+.br-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 12px 12px 20px;
+}
+.br-dialog__title { margin: 0; font-size: var(--br-text-xl); font-weight: 600; letter-spacing: -0.01em; color: var(--br-text); }
+.br-dialog__body { overflow-y: auto; padding: 0 20px 8px; }
+.br-dialog--sm { width: 400px; }
+.br-dialog-backdrop--top { z-index: var(--z-toast); } /* confirmations stack above other dialogs */
+.br-confirm__message { margin: 0 0 12px; font-size: var(--br-text-md); line-height: var(--br-leading); color: var(--br-text-2); }
+.br-dialog__body--form { display: flex; flex-direction: column; gap: 14px; padding-bottom: 16px; }
+.br-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--br-line);
+}
+
+/* Keyboard shortcut sheet (Redesign Step 5) */
+.br-shortcuts { width: 820px; }
+.br-shortcuts__body { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 28px; padding-bottom: 16px; }
+.br-shortcuts__group { padding-top: 4px; }
+.br-shortcuts__list { margin: 0; }
+.br-shortcuts__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid var(--br-line); }
+.br-shortcuts__row dt { font-size: var(--br-text-md); color: var(--br-text-2); }
+.br-shortcuts__row dd { margin: 0; flex-shrink: 0; }
+.br-shortcuts__keys { display: inline-flex; gap: 3px; }
+@media (max-width: 900px) { .br-shortcuts__body { grid-template-columns: 1fr; } }
+
+@keyframes br-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes br-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

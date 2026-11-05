@@ -240,8 +240,6 @@
     border-radius: 4px;
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     border: 1px solid;
 }
 
@@ -393,8 +391,6 @@
     font-size: 11px;
     font-weight: 700;
     color: var(--color-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
     margin: 0;
 }
 
@@ -408,8 +404,6 @@
 .br-node-config-modal__label {
     font-size: 10px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
     color: var(--color-text-secondary);
 }
 
@@ -718,8 +712,6 @@
 .br-node-config-modal__condition-label {
     font-size: 10px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
     color: var(--color-text-secondary);
 }
 
@@ -771,7 +763,6 @@
     border-radius: 3px;
     font-size: 9px;
     font-weight: 700;
-    text-transform: uppercase;
     flex-shrink: 0;
 }
 
@@ -804,7 +795,6 @@
     color: var(--color-emerald-500);
     font-size: 9px;
     font-weight: 700;
-    text-transform: uppercase;
     padding: 3px 6px;
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -831,32 +821,6 @@
 
 /* Flag picker dropdown */
 /* Flag picker container — no intrinsic styles needed, positioning comes from children */
-
-.br-node-config-modal__flag-picker__dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    background-color: var(--color-bg-modal);
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    z-index: var(--z-context-menu);
-    min-width: 160px;
-    max-height: 160px;
-    overflow-y: auto;
-}
-
-.br-node-config-modal__flag-picker__item {
-    padding: 6px 12px;
-    font-size: 12px;
-    cursor: pointer;
-    color: var(--color-text-primary);
-    transition: background-color var(--transition-fast);
-}
-
-.br-node-config-modal__flag-picker__item:hover {
-    background-color: var(--color-bg-hover);
-}
 
 /* Footer */
 .br-node-config-modal__footer {
@@ -895,7 +859,7 @@
     padding: 8px 24px;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-bold);
-    color: var(--color-text-primary);
+    color: var(--br-text-on-chalk);
     background-color: var(--color-primary);
     border: none;
     border-radius: var(--radius-md);
@@ -963,20 +927,6 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-}
-
-.br-node-config-modal__flex-row--gap6 {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 8px;
-}
-
-.br-node-config-modal__flex-1 {
-    flex: 1;
-}
-
-.br-node-config-modal__flex-shrink-0 {
-    flex-shrink: 0;
 }
 
 .br-node-config-modal__mb-14 {
@@ -1063,10 +1013,6 @@
 }
 
 /* Select width utilities for flag/status search */
-.br-node-config-modal__select--narrow {
-    width: 72px;
-    flex-shrink: 0;
-}
 
 /* SearchableSelect component */
 .br-node-config-modal__searchable-select {
@@ -1311,3 +1257,5 @@
     border-color: var(--color-pink-500);
     color: var(--color-pink-400);
 }
+/* ADDED (Redesign Step 7): collectible picker block in the left column */
+.br-node-config-modal__collectibles { padding: 4px 0 8px; }

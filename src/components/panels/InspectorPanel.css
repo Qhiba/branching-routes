@@ -1,0 +1,45 @@
+/* ADDED (Redesign Step 7): Inspector layout. Appearance from system.css primitives (AR-37). */
+
+.br-inspector {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    background: var(--br-graphite);
+    font-family: var(--br-font);
+}
+
+.br-inspector__form { display: flex; flex-direction: column; gap: 14px; padding: 14px 16px 20px; }
+
+.br-inspector__kind {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--br-text-sm);
+    font-weight: 600;
+    color: var(--br-text-2);
+}
+
+.br-inspector__start { margin-left: auto; gap: 4px; color: var(--br-text); }
+
+.br-inspector__two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.br-inspector__value { font-size: var(--br-text-md); line-height: var(--br-leading); color: var(--br-text); overflow-wrap: anywhere; }
+
+.br-inspector__route { display: flex; align-items: baseline; gap: 8px; color: var(--br-text-3); }
+
+.br-inspector__options { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-left: 18px; }
+.br-inspector__options li { font-size: var(--br-text-md); color: var(--br-text); }
+.br-inspector__option-label { display: block; overflow-wrap: anywhere; }
+.br-inspector__option-meta { display: block; font-size: var(--br-text-sm); color: var(--br-text-3); }
+
+.br-inspector__align { display: flex; flex-wrap: wrap; gap: 2px; }
+
+.br-inspector__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--br-line);
+}

@@ -1,0 +1,44 @@
+/* ADDED (Redesign Step 4): canvas controls + minimap skin (design system: AR-37). */
+
+.br-canvas-controls {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--br-line);
+    border-radius: var(--br-radius-menu);
+    background: var(--br-slate);
+    box-shadow: var(--br-shadow-menu);
+    font-family: var(--br-font);
+}
+
+.br-canvas-controls__zoom {
+    min-width: 52px;
+    font-variant-numeric: tabular-nums;
+    color: var(--br-text-2);
+}
+
+.br-canvas-controls__divider {
+    width: 1px;
+    height: 16px;
+    margin: 0 3px;
+    background: var(--br-line);
+}
+
+/* React Flow minimap skin */
+.br-minimap.react-flow__minimap {
+    right: 12px;
+    bottom: 12px;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--br-line);
+    border-radius: var(--br-radius-menu);
+    background: var(--br-graphite);
+    box-shadow: var(--br-shadow-menu);
+}
+
+.br-minimap .react-flow__minimap-mask { fill: rgba(18, 21, 28, 0.72); }

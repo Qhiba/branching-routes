@@ -63,7 +63,7 @@ export default function CommandPalette() {
       items.push({
         id: node.id,
         label: node.data.label || 'Unnamed',
-        type: node.type === 'warp_entrance' ? 'Warp Entrance' : node.type === 'warp_exit' ? 'Warp Exit' : node.type === 'hub' ? 'Hub Node' : 'Common Node',
+        type: node.type === 'warp_entrance' ? 'Warp Entrance' : node.type === 'warp_exit' ? 'Warp Exit' : node.type === 'hub' ? 'Hub Node' : 'Common node',
         chapterName,
         pathName
       });
@@ -74,7 +74,7 @@ export default function CommandPalette() {
       items.push({
         id: node.id,
         label: node.data.label || 'Unnamed',
-        type: 'Choice Node',
+        type: 'Choice node',
         chapterName,
         pathName
       });
@@ -85,7 +85,7 @@ export default function CommandPalette() {
       items.push({
         id: node.id,
         label: node.data.label || 'Unnamed',
-        type: 'Ending Node',
+        type: 'Ending node',
         chapterName,
         pathName
       });
@@ -147,12 +147,12 @@ export default function CommandPalette() {
 
   // ADDED: Phase 2 — Static action list (context strings for event dispatch)
   const actions = [
-    { label: 'Create Common Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'common' } },
-    { label: 'Create Choice Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'choice' } },
-    { label: 'Create Ending Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'ending' } },
-    { label: 'Create Warp Entrance Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'warp_entrance' } },
-    { label: 'Create Warp Exit Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'warp_exit' } },
-    { label: 'Create Hub Node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'hub' } },
+    { label: 'Create Common node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'common' } },
+    { label: 'Create Choice node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'choice' } },
+    { label: 'Create Ending node', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'ending' } },
+    { label: 'Create Warp entrance', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'warp_entrance' } },
+    { label: 'Create Warp exit', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'warp_exit' } },
+    { label: 'Create Hub', type: 'action', eventType: 'canvas-open-node-modal', detail: { nodeType: 'hub' } },
     { label: 'Create Flag', type: 'action', eventType: 'canvas-open-name-modal', detail: { entityType: 'flag' } },
     { label: 'Create Status', type: 'action', eventType: 'canvas-open-name-modal', detail: { entityType: 'status' } },
     { label: 'Create Path', type: 'action', eventType: 'canvas-open-name-modal', detail: { entityType: 'path' } },

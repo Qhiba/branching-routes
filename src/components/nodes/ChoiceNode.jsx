@@ -11,6 +11,8 @@ function ChoiceNode({ id, data }) {
   // ADDED: Phase 3 — coverage-gap dimming (unreachable but unseen nodes only; visited nodes always visible)
   const isCoverageGap = useSimulationStore(s => s.isCampaignActive && s.unreachableFromActiveNodeIds.includes(id) && !s.seenNodeIds.includes(id));
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+  // ADDED (Redesign Step 1): editor Seen marks hidden when the Campaign feature is off
+  const featureCampaign = useUIStore(s => s.featureCampaign);
   const isActive = useSimulationStore(s => s.activeNodeId === id);
   const selectedOptionId = useSimulationStore(s => s.selectedOptionId);
   const selectOption = useSimulationStore(s => s.selectOption);
@@ -30,7 +32,7 @@ function ChoiceNode({ id, data }) {
   const isFilteredOut = !!data.isFilteredOut;
 
   // MODIFIED: Phase 3 — add coverage-gap class to className string; Step 3 — add filtered-out class
-  const className = `story-node choice-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
+  const className = `story-node choice-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive && featureCampaign) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
 
   return (
     <div className={className}>
@@ -38,7 +40,7 @@ function ChoiceNode({ id, data }) {
 
       <div className="story-node__type-bar choice-node__type-bar">
         {/* Seen check icon — visible in editor mode only when manually marked */}
-        <span className="story-node__type-label">CHOICE</span>
+        <span className="story-node__type-label">Choice</span>
         {isOrphaned && (
           <span className="story-node__warning-badge" title="Node is entirely disconnected">
             ⚠️ Orphaned
@@ -67,7 +69,7 @@ function ChoiceNode({ id, data }) {
             <svg className="story-node__meta-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            → {outgoingEdgeCount} outgoing{outgoingEdgeCount !== 1 ? 's' : ''}
+            {outgoingEdgeCount} out
           </span>
         </div>
       </div>
@@ -84,7 +86,7 @@ function ChoiceNode({ id, data }) {
         {Array.isArray(data.options) && data.options.length > 0 && (
           <div className="choice-node__options-list">
             {data.options.map(opt => {
-              const isOptionSeen = !isCampaignActive && editorSeenOptionIds.includes(`${id}::${opt.id}`);
+              const isOptionSeen = featureCampaign && !isCampaignActive && editorSeenOptionIds.includes(`${id}::${opt.id}`);
               const displayLabel = opt.label;
               const isSelected = isActive && selectedOptionId === opt.id;
               const isDimmed = isActive && selectedOptionId !== null && !isSelected;

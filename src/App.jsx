@@ -1,5 +1,5 @@
 // CHANGED (Phase 8): Removed RouteFinderDialog import — superseded by RouteTracingPanel inside RightSidebar
-import { TopBar, GraphCanvas, Toast, CommandPalette, StatusStrip, LeftSidebar, RightSidebar, FloatingMiddleBar } from 'components';
+import { TopBar, GraphCanvas, Toast, CommandPalette, StatusStrip, LeftSidebar, RightSidebar, FloatingMiddleBar, SettingsModal, ShortcutsDialog } from 'components';
 import './App.css';
 
 export default function App() {
@@ -29,6 +29,10 @@ export default function App() {
       <Toast />
       {/* ADDED: Phase 2 — Command palette overlay for keyboard-driven navigation/authoring (fixed positioning, no grid impact) */}
       <CommandPalette />
+      {/* ADDED (Redesign Step 1): Settings modal overlay (opened via uiStore.showSettings) */}
+      <SettingsModal />
+      {/* ADDED (Redesign Step 5): keyboard shortcut sheet */}
+      <ShortcutsDialog />
       {/* CHANGED (Phase 8): Removed RouteFinderDialog mount — RouteTracingPanel in RightSidebar is the new entry point */}
     </div>
   );

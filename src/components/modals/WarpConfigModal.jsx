@@ -4,6 +4,8 @@ import { useNarrativeStore } from 'store';
 import useFocusTrap from '../../hooks/useFocusTrap';
 import '../modals/NodeConfigModal.css'; /* Reuse br-node-config-modal__* token styles */
 import './EdgeConfigModal.css'; /* Reuse ecm-* narrow/chip styles */
+import ModalPortal from 'components/ModalPortal';
+import { isConfirmEnter } from 'utils';
 
 // Custom SearchableSelect (adapted from EdgeConfigModal / NodeConfigModal)
 function SearchableSelect({ value, options, onChange, placeholder, className }) {
@@ -71,7 +73,7 @@ function SearchableSelect({ value, options, onChange, placeholder, className }) 
     );
 }
 
-export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
+function WarpConfigModalInner({ nodeId, onClose, onCancel }) {
     const handleCancel = onCancel || onClose;
     const containerRef = useFocusTrap(!!nodeId);
     const node = useNarrativeStore(s => s.common[nodeId]);
@@ -81,10 +83,17 @@ export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
 
     // ESC to close
     useEffect(() => {
-        const handler = (e) => { if (e.key === 'Escape') handleCancel(); };
+        // CHANGED (Redesign Step 4): Enter saves when the label is not empty (same rule as the Save button)
+        const handler = (e) => {
+            if (e.key === 'Escape') { handleCancel(); return; }
+            if (isConfirmEnter(e)) {
+                const n = useNarrativeStore.getState().common[nodeId];
+                if ((n?.data?.label || '').trim()) { e.preventDefault(); onClose(); }
+            }
+        };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [handleCancel]);
+    }, [handleCancel, onClose, nodeId]);
 
     if (!node) return null;
 
@@ -165,7 +174,7 @@ export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
                         <span className="br-node-config-modal__type-badge br-node-config-modal__type-badge--warp">
                             {isEntrance ? 'WARP ENTRANCE' : 'WARP EXIT'}
                         </span>
-                        <h3 id="warp-config-modal-title" className="br-node-config-modal__header__title">Configure Warp Portal</h3>
+                        <h3 id="warp-config-modal-title" className="br-node-config-modal__header__title">Edit warp</h3>
                     </div>
                     <button className="br-node-config-modal__close-btn" onClick={onClose} aria-label="Close modal">
                         <X className="br-node-config-modal__icon-lg" />
@@ -180,10 +189,10 @@ export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
                         <div>
                             <div className="br-node-config-modal__section-title">
                                 <GitBranch className="br-node-config-modal__section-title__icon" />
-                                <h4 className="br-node-config-modal__section-title__text">Title</h4>
+                                <h4 className="br-node-config-modal__section-title__text">Label</h4>
                             </div>
                             <div className="br-node-config-modal__field">
-                                <label className="br-node-config-modal__label">Node Label</label>
+                                <label className="br-node-config-modal__label">Label</label>
                                 <input
                                     className="br-node-config-modal__input"
                                     type="text"
@@ -198,10 +207,10 @@ export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
                         <div>
                             <div className="br-node-config-modal__section-title">
                                 <AlignLeft className="br-node-config-modal__section-title__icon" />
-                                <h4 className="br-node-config-modal__section-title__text">Description</h4>
+                                <h4 className="br-node-config-modal__section-title__text">Text</h4>
                             </div>
                             <div className="br-node-config-modal__field">
-                                <label className="br-node-config-modal__label">Portal Description / Content</label>
+                                <label className="br-node-config-modal__label">Text</label>
                                 <textarea
                                     className="br-node-config-modal__textarea"
                                     rows={4}
@@ -216,7 +225,7 @@ export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
                         <div>
                             <div className="br-node-config-modal__section-title">
                                 <Link2 className="br-node-config-modal__section-title__icon" />
-                                <h4 className="br-node-config-modal__section-title__text">Connect to Warp</h4>
+                                <h4 className="br-node-config-modal__section-title__text">Connected warp</h4>
                             </div>
                             <div className="br-node-config-modal__field">
                                 <label className="br-node-config-modal__label">
@@ -232,7 +241,7 @@ export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
                             </div>
 
                             <div className="br-node-config-modal__field" style={{ marginTop: '12px' }}>
-                                <label className="br-node-config-modal__label">Connection Channel Name (Optional)</label>
+                                <label className="br-node-config-modal__label">Channel name (optional)</label>
                                 <input
                                     className="br-node-config-modal__input"
                                     type="text"
@@ -250,7 +259,7 @@ export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
                         <div className="ecm-danger-zone">
                             <button className="ecm-delete-btn" onClick={handleDelete}>
                                 <Trash2 className="br-node-config-modal__icon-base" />
-                                Delete Portal Node
+                                Delete warp
                             </button>
                         </div>
 
@@ -271,5 +280,14 @@ export default function WarpConfigModal({ nodeId, onClose, onCancel }) {
                 </div>
             </div>
         </div>
+    );
+}
+
+// ADDED (Redesign Step 4): every dialog renders through ModalPortal into <body> (never inside a sidebar).
+export default function WarpConfigModal(props) {
+    return (
+        <ModalPortal>
+            <WarpConfigModalInner {...props} />
+        </ModalPortal>
     );
 }

@@ -1,54 +1,54 @@
 import React, { useState } from 'react';
-import NameplateTab from './NameplateTab';
+import { Flag, Activity, Gem, Tag, BookOpen, Signpost, Shapes } from 'lucide-react';
+import SideRail from './SideRail';
 import FlagManager from '../FlagManager';
 import StatusManager from '../StatusManager';
 import PathChapterManager from '../PathChapterManager';
+import CollectibleManager from '../CollectibleManager';
 import { useSimulationStore } from 'store';
-import './LeftSidebar.css';
 
-// CHANGED: Added dynamic rendering bindings for Phase 2 data managers (Flags, Status, Chapters, Paths)
-// CHANGED: Phase 7 — subscribes to isCampaignActive to apply campaign-mode dim class
+// CHANGED (Redesign Step 4): left = project data. Rotated NameplateTab tabs replaced by the shared SideRail
+// (icon + label rail, docked panel with a titled header). Collectibles panel added; Common Types and Ending Types
+// merged into one "Types" panel. Dims during campaign mode (AR-08 read-only authoring tools).
+
+function TypesPanel() {
+    return (
+        <div className="br-siderail__stack">
+            <section aria-labelledby="br-types-common">
+                <h3 id="br-types-common" className="br-siderail__stack-title">Common node types</h3>
+                <PathChapterManager filterType="commonType" />
+            </section>
+            <section aria-labelledby="br-types-ending">
+                <h3 id="br-types-ending" className="br-siderail__stack-title">Ending types</h3>
+                <PathChapterManager filterType="endingType" />
+            </section>
+        </div>
+    );
+}
+
+const ITEMS = [
+    { id: 'Flags', label: 'Flags', icon: Flag, render: () => <FlagManager /> },
+    { id: 'Status', label: 'Status', title: 'Statuses', icon: Activity, render: () => <StatusManager /> },
+    { id: 'Collectibles', label: 'Collectibles', icon: Gem, render: () => <CollectibleManager /> },
+    { id: 'Tags', label: 'Tags', icon: Tag, render: () => <PathChapterManager filterType="tag" /> },
+    { id: 'Chapter', label: 'Chapters', icon: BookOpen, render: () => <PathChapterManager filterType="chapter" /> },
+    { id: 'Paths', label: 'Paths', icon: Signpost, render: () => <PathChapterManager filterType="path" /> },
+    { id: 'Types', label: 'Types', title: 'Node types', icon: Shapes, render: () => <TypesPanel /> },
+];
+
 export default function LeftSidebar() {
     const [activePanel, setActivePanel] = useState(null);
     // PRESERVED: per-slice selector per AR-23; AR-08 isolation — reads only isCampaignActive
     const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
 
-    const mockTabs = [
-        { id: 'Flags', label: 'Flags' },
-        { id: 'Status', label: 'Status' },
-        { id: 'Tags', label: 'Tags' },
-        { id: 'Chapter', label: 'Chapter' },
-        { id: 'Paths', label: 'Paths' },
-        { id: 'CommonType', label: 'Common Types' },
-        { id: 'EndingType', label: 'Ending Types' }
-    ];
-
     return (
-        /* CHANGED: Phase 7 — br-left-sidebar--campaign-mode class dims/disables sidebar during campaign */
-        <div className={`br-left-sidebar${isCampaignActive ? ' br-left-sidebar--campaign-mode' : ''}`}>
-            <div className="br-left-sidebar__rail">
-                {mockTabs.map(tab => (
-                    <NameplateTab
-                        key={tab.id}
-                        id={tab.id}
-                        label={tab.label}
-                        isActive={activePanel === tab.id}
-                        onClick={() => setActivePanel(activePanel === tab.id ? null : tab.id)}
-                        leftSide={true}
-                    />
-                ))}
-            </div>
-            <div className={`br-left-sidebar__panel ${activePanel ? 'br-left-sidebar__panel--open' : ''}`}>
-                <div className="br-left-sidebar__panel-content">
-                    {activePanel === 'Flags' && <FlagManager />}
-                    {activePanel === 'Status' && <StatusManager />}
-                    {activePanel === 'Tags' && <PathChapterManager filterType="tag" />}
-                    {activePanel === 'Chapter' && <PathChapterManager filterType="chapter" />}
-                    {activePanel === 'Paths' && <PathChapterManager filterType="path" />}
-                    {activePanel === 'CommonType' && <PathChapterManager filterType="commonType" />}
-                    {activePanel === 'EndingType' && <PathChapterManager filterType="endingType" />}
-                </div>
-            </div>
-        </div>
+        <SideRail
+            side="left"
+            label="Project data"
+            items={ITEMS}
+            activeId={activePanel}
+            onChange={setActivePanel}
+            dimmed={isCampaignActive}
+        />
     );
 }

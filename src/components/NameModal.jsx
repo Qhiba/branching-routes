@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNarrativeStore, useUIStore } from 'store';
+import { useNarrativeStore, useUIStore, useToastStore } from 'store';
 import { X } from 'lucide-react';
 import useFocusTrap from '../hooks/useFocusTrap';
+import ModalPortal from './ModalPortal';
 
-export default function NameModal({ entityType, initialData, onClose, onConfirm }) {
+function NameModalInner({ entityType, initialData, onClose, onConfirm }) {
   const containerRef = useFocusTrap(true);
   const [inputValue, setInputValue] = useState(initialData?.name || '');
   const [flagState, setFlagState] = useState(initialData?.state ?? false);
@@ -22,7 +23,7 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
   const setSeqPad = useUIStore(s => s.setSeqPad);
 
   const seqNames = useMemo(() => {
-    const base = inputValue.trim();
+    const base = toVariableName(inputValue); // CHANGED (Redesign Step 4): spaces -> '_'
     const count = seqEnd - seqStart + 1;
     if (!base || count < 1) return [];
     return Array.from({ length: count }, (_, i) => {
@@ -50,8 +51,11 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
     }
   }, []);
 
+  // CHANGED (Redesign Step 4): flag/status names turn spaces into '_' instead of being rejected (notes.txt).
+  // Other invalid characters are still rejected by the store (AR-02) and reported as a toast below.
+  const isVariable = entityType === 'flag' || entityType === 'status';
   const handleConfirm = () => {
-    const trimmed = inputValue.trim();
+    const trimmed = isVariable ? toVariableName(inputValue) : inputValue.trim();
     if (!trimmed) return;
 
     if (onConfirm) {
@@ -61,6 +65,7 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
     }
 
     const store = useNarrativeStore.getState();
+    try {
     if (initialData) {
       // update mode
       switch (entityType) {
@@ -118,6 +123,11 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
         default: break;
       }
     }
+    } catch (err) {
+      // e.g. a flag name with characters other than letters, digits and '_'
+      useToastStore.getState().addToast(`Couldn't save "${trimmed}": use only letters, numbers and _ (${err.message}).`, 'error');
+      return;
+    }
     onClose();
   };
 
@@ -126,6 +136,9 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
     if (e.key === 'Escape') {
       onClose();
     } else if (e.key === 'Enter') {
+      // FIX (Redesign Step 4): preventDefault stops the browser's follow-up keypress from "clicking" the
+      // button that receives focus when the dialog closes (it re-opened a fresh dialog after every Enter).
+      e.preventDefault();
       handleConfirm();
     }
   };
@@ -160,6 +173,10 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
               onKeyDown={handleKeyDown}
               placeholder={`Enter ${entityType} name...`}
             />
+            {/* ADDED (Redesign Step 4): show the saved form of variable names */}
+            {isVariable && /\s/.test(inputValue.trim()) && (
+              <span className="br-field__hint">Saved as <strong>{toVariableName(inputValue)}</strong></span>
+            )}
           </div>
 
           {entityType === 'flag' && (
@@ -292,4 +309,18 @@ export default function NameModal({ entityType, initialData, onClose, onConfirm 
       </div>
     </div>
   );
+}
+
+// ADDED (Redesign Step 4): 'has key' -> 'has_key' (AR-02: flag/status names are alphanumeric + underscore)
+function toVariableName(value) {
+  return value.trim().replace(/\s+/g, '_');
+}
+
+// ADDED (Redesign Step 4): every dialog renders through ModalPortal into <body> (never inside a sidebar).
+export default function NameModal(props) {
+    return (
+        <ModalPortal>
+            <NameModalInner {...props} />
+        </ModalPortal>
+    );
 }

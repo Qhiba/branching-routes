@@ -2,6 +2,8 @@
 
 A visual graph-based editor for branching narrative games with live simulation, built entirely for the browser.
 
+Layout (since the 2026-11 redesign): **left = project data** (Flags, Status, Collectibles, Tags, Chapters, Paths, Types), **canvas = navigation** (zoom/fit/start/minimap controls), **right = nodes** (Browse search + filters, Inspector). Campaign mode and Route Tracing are hidden behind the Settings switch "Campaign and Route Tracing" (AR-36). Design system: `src/styles/system.css` ("Night route map", AR-37).
+
 ---
 
 ## Tech Stack
@@ -12,8 +14,7 @@ A visual graph-based editor for branching narrative games with live simulation, 
 | **Build Tool** | Vite 8 | Dev server, bundling, path alias resolution |
 | **Canvas** | React Flow (`@xyflow/react`) | Interactive node/edge graph visualisation |
 | **State Management** | Zustand 5 | Global stores for graph data and simulation state |
-| **Auto-Layout** | Dagre | One-click left-to-right graph tidying |
-| **Icon** | Lucide-React | UI icons for sidebars, panels, modals, and floating bar |
+| **Icon** | Lucide-React | UI icons for rails, panels, toolbars, menus and dialogs |
 | **Language** | JavaScript (`.jsx` / `.js`) | No TypeScript |
 | **Backend** | None | Zero network requests; primary persistence via IndexedDB auto-save; explicit export/import via browser File System Access API (JSON for narrative-only projects, ZIP for projects with campaigns) |
 | **Drag & Drop** | @hello-pangea/dnd | Drag-and-drop reordering for entity lists (nodes, flags, statuses) |
@@ -40,16 +41,19 @@ branching-routes/
 │   ├── styles/
 │   │   ├── buttons.css     # Shared interactive button style classes
 │   │   ├── tokens.css      # Design system CSS custom properties (colours, spacing, typography using system font stack); explicit z-index scale (--z-cluster, --z-context-menu, --z-modal, --z-palette, --z-toast); cluster palette color tokens; indigo accent scale; shadow and animation keyframe tokens; node type color tokens (--color-node-common, --color-node-choice, --color-node-ending)
-│   │   ├── utilities.css   # Shared UI-v2 primitive classes (pill, nameplate, floating-bar, modal-shell, segmented-control); imported by global.css
+│   │   ├── system.css      # Design system (Redesign Step 3): --br-* tokens + .br-* primitives (buttons, inputs, switch, segmented, rows, chips, menu, dialog, route marks)
 │   │   └── global.css      # CSS reset, base styles, component styles, simulation mode overrides (!important); Toast overlay; CommandPalette overlay; cluster overlay SVG regions; node type box-shadow glows; hover-only React Flow handles; frozen-prefix edge overlay; ErrorBoundary styles; ending-node active halo
 │   │
 │   ├── store/
-│   │   ├── narrativeStore.js # Zustand store: canonical graph (common, choice, ending, edges, flag, status, path, chapter, tag, commonType, endingType, meta); persistent editor-level seen marks (editorSeenNodeIds, editorSeenOptionIds) with toggle, clear, and applySeenFromCampaign actions; tag CRUD; load-bearing cross-store comments
+│   │   ├── narrativeStore.js # Zustand store: canonical graph (common, choice, ending, edges, flag, status, path, chapter, tag, commonType, endingType, collectibleCategory, collectible, meta); schema v5; persistent editor-level seen marks (editorSeenNodeIds, editorSeenOptionIds) with toggle, clear, and applySeenFromCampaign actions; tag CRUD; load-bearing cross-store comments
 │   │   ├── uiStore.js      # Zustand store: UI state (selection, multi-select, snap-to-grid, choice display mode, label display mode, canvas filters (chapter/path/tag with AND/OR logic), shortest route overlays, selected route index, frozenWaypointEdgeIds, mergedGroupEdgeIds, copiedNode buffer, followActiveNode toggle, sequential flag batch settings persistent to localStorage via safeStorage)
 │   │   ├── uiStore.test.js # Unit test for selection equality
 │   │   ├── toastStore.js   # Zustand store: ephemeral toast notifications (toasts[], addToast, removeToast, auto-dismiss timer); never persisted to IndexedDB
 │   │   ├── simulationStore.js  # Zustand store: campaign-mode lifecycle, six-state node enum, campaign-only seen tracking (seenNodeIds), traversal records capped at MAX_TRAVERSAL_DEPTH=1000, async computeRoutesFromStart, selected option, passive analysis, sequence pathfinding (Route Finder), sandbox overrides, campaign snapshotting
 │   │   ├── simulationStore.test.js # Unit test for traversal depth cap
+│   │   ├── narrativeStore.collectibles.test.js # Collectible CRUD, cascade and v5 round-trip
+│   │   ├── historyStore.js # Undo / redo for narrativeStore: snapshots, bursts, groups, reset on load (Redesign Step 5)
+│   │   ├── historyStore.test.js
 │   │   ├── campaignStore.js    # Zustand store: campaign dictionary (CRUD, IndexedDB persistence, ZIP import restore)
 │   │   └── index.js        # Barrel re-export for all stores
 │   │
@@ -57,11 +61,19 @@ branching-routes/
 │   │   ├── uuid.js         # UUID v4 generation wrapper with crypto.randomUUID() fallback for non-secure contexts
 │   │   ├── uuid.test.js    # Unit test for UUID generation
 │   │   ├── conditionEvaluator.js  # Pure functions for AND/OR condition evaluation
-│   │   ├── fileSystem.js   # IndexedDB auto-save; campaign IndexedDB persistence; browser File System Access API export/import with fallback; ZIP bundling via JSZip; import validation (with structural checks), sanitization, and migration chain
+│   │   ├── migrateGraph.test.js # v4→v5 migration and sanitizer tests
+│   │   ├── fileSystem.js   # migrateGraph() v1→v5 migration + sanitization pipeline (import and boot restore); IndexedDB auto-save; campaign IndexedDB persistence; browser File System Access API export/import with fallback; ZIP bundling via JSZip; import validation (with structural checks), sanitization, and migration chain
 │   │   ├── routeTracer.js  # Algorithm utilities: DFS dead-end scanning, BFS forward-reachability marking, k-shortest-paths sequence pathfinding (computeShortestPathsAsync), cancelRouteWorker, flag-state replay, convergent route merge grouping, and route-to-campaign snapshot building
 │   │   ├── routeTracer.worker.js # Web Worker for off-thread route tracing
 │   │   ├── safeStorage.js  # Safe localStorage wrapper with try/catch
 │   │   ├── safeStorage.test.js # Unit test for safe localStorage wrapper
+│   │   ├── dialogKeys.js   # isConfirmEnter: shared Enter-to-confirm rule
+│   │   ├── nodeColors.js   # Route colours for JS-painted canvas elements (minimap)
+│   │   ├── redesignStep4.test.js # Tests for dialogKeys, nodeColors
+│   │   ├── alignNodes.js   # computeAlignment: align / distribute math for multi-selection (Redesign Step 5)
+│   │   ├── alignNodes.test.js
+│   │   ├── searchIndex.js  # searchGraph, describeCondition, nodeMatchesFilters (Redesign Step 6)
+│   │   ├── searchIndex.test.js
 │   │   ├── snapGuides.js   # Smart Snap Assist pure math: computeSnapGuides (binary-search guide cache), getSnappedPosition, getActiveGuides, applyAxisLock
 │   │   └── index.js        # Barrel re-export for all utilities
 │   │
@@ -71,6 +83,14 @@ branching-routes/
 │   │   └── useFocusTrap.test.js     # Unit test for useFocusTrap
 │   │
 │   └── components/
+│       ├── dev/
+│       │   └── DesignSystemPreview.jsx # Dev-only design-system reference sheet at /#design (excluded from production)
+│       ├── ModalPortal.jsx      # Portal into <body> used by every dialog (AR-38)
+│       ├── CanvasControls.jsx   # Zoom / fit / go-to-start / origin / minimap toolbar (replaces React Flow Controls)
+│       ├── CanvasControls.css
+│       ├── CollectibleManager.jsx # Left "Collectibles" panel: categories, items, granted-by nodes, orphans, drag reorder
+│       ├── CollectibleManager.css
+│       ├── CollectibleDialog.jsx  # Create / rename a collectible or category
 │       ├── ErrorBoundary.jsx    # React class component error boundary with emergency export + storage reset
 │       ├── TopBar.jsx           # Project title input + edit mode controls (node quick-create buttons & campaign start selector, disabled in campaign mode) + file ops (New/Import/Export); structural import validation error handling
 │       ├── GraphCanvas.jsx      # React Flow canvas wrapper; centralized canvas filter evaluation; declarative campaign mode guards; nodeTypes/edgeTypes in module scope
@@ -86,18 +106,22 @@ branching-routes/
 │       ├── CommandPalette.jsx   # Ctrl+K searchable overlay using per-slice selectors and functional state updates; entity search index across all narrative types; navigate-to-entity via canvas-navigate-to-node DOM event
 │       ├── Toast.jsx            # Top-right fixed overlay reading toastStore; renders stacked auto-dismiss notifications with info/success/warning/error variants
 │       ├── layout/
+│       │   ├── SideRail.jsx     # Shared icon+label rail + docked panel (Redesign Step 4); replaces NameplateTab
+│       │   ├── SideRail.css
 │       │   ├── LeftSidebar.jsx  # Nameplate-tab sidebar: Flags / Status / Chapter / Paths tabs; dims to opacity 0.4 + grayscale during campaign mode
-│       │   ├── LeftSidebar.css
 │       │   ├── RightSidebar.jsx # Nameplate-tab sidebar: Filters / Nodes / Route Tracing / Campaign List / Sandbox tabs; dims during campaign mode; mounts SandboxPanel directly in Sandbox tab
-│       │   ├── RightSidebar.css
-│       │   ├── NameplateTab.jsx # Reusable vertical nameplate tab component with rotation animation
-│       │   └── NameplateTab.css
 │       ├── panels/
-│       │   ├── FiltersPanel.jsx         # Global canvas filter panel: chapter, path, tag filtering with AND/OR logic and reset; mounted in RightSidebar Filters tab
-│       │   ├── NodesPanel.jsx          # Segmented Common/Choice/Ending filter + search; drag-and-drop node reordering via @hello-pangea/dnd; edit pencil dispatches canvas-edit-node-modal event
+│       │   ├── BrowsePanel.jsx         # Right "Browse": unified search (labels, flags, statuses, collectibles, options, edge conditions) + filters that dim the canvas
+│       │   ├── BrowsePanel.css
+│       │   ├── InspectorPanel.jsx      # Right "Inspect": quick-edit node / edge / multi-selection; opens full modals for complex parts
+│       │   ├── InspectorPanel.css
 │       │   ├── RouteTracingPanel.jsx   # Route tracing panel (config → results view); flag and status priority groups; store-driven results via shortestRouteResults; convergent routes merged into grouped cards via findMergeGroups; Save to Campaign button with multi-axis node-navigator modal; searchAll checkbox (uncapped BFS) with warning and Cancel button; clickable route items navigate canvas via canvas-navigate-to-node; freeze-at-waypoint stores prefix edge IDs in uiStore.frozenWaypointEdgeIds for green overlay; re-route clears waypoints before recomputing
 │       │   ├── CampaignListPanel.jsx   # Campaign list with icon-only Enter/Edit/Delete buttons; create/rename/delete via campaignStore; Clear All Seen button (clears narrativeStore editorSeenNodeIds/editorSeenOptionIds)
 │       │   └── RightPanels.css        # Shared CSS for all right-sidebar panel components
+│       ├── fields/
+│       │   ├── ChipsField.jsx          # Removable chips + "Add…" select (tags, flags, collectibles)
+│       │   ├── StatusEffectsField.jsx  # Edit status changes (status, ± / =, amount)
+│       │   └── fields.css
 │       ├── floating/
 │       │   ├── FloatingMiddleBar.jsx   # Centered overlay above canvas; hidden in authoring mode (functions moved to TopBar); displays exclusively in campaign mode: active-campaign pill with Overlay/Follow/Undo/Reset/Save/Load/Autosave/Save Seen/Exit controls
 │       │   └── FloatingMiddleBar.css
@@ -106,7 +130,9 @@ branching-routes/
 │       │   ├── NodeConfigModal.css
 │       │   ├── WarpConfigModal.jsx     # Narrow single-column configuration modal for warp entrance/exit node connections (portalChannel selector, delete button); disabled save button when label empty
 │       │   ├── EdgeConfigModal.jsx     # Full-screen edge editor with ARIA attributes; label, AND/OR condition builder with flag and status clauses; edge deletion
-│       │   └── EdgeConfigModal.css
+│       │   ├── EdgeConfigModal.css
+│       │   ├── ShortcutsDialog.jsx     # Keyboard shortcut sheet ("?" or Settings)
+│       │   └── SettingsModal.jsx       # Editor preferences (snap, display modes, search edge toggle, Campaign & Route Tracing switch); built on system.css primitives; applies live
 │       ├── nodes/
 │       │   ├── CommonNode.jsx          # Custom React Flow node; reads isFilteredOut from data; type bar displays user-defined subtype name when assigned
 │       │   ├── ChoiceNode.jsx          # Custom React Flow node for player choices with per-option source handles; reads isFilteredOut from data; options with unmet requirements show a lock pill and are dimmed/click-gated in campaign mode

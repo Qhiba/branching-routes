@@ -1,33 +1,101 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Network, Wand2, LayoutGrid, BoxSelect, FilePlus, Upload, Download,
-  GitCommit, GitPullRequest, LogIn, LogOut, GitMerge, ChevronDown, Play, Magnet,
-  LocateFixed
-} from 'lucide-react';
-import { useNarrativeStore, useUIStore, useSimulationStore, useCampaignStore } from 'store';
+import React, { useState, useEffect, useRef } from 'react';
+import { Network, Play, Settings, ChevronDown, FilePlus, FolderOpen, Download, Undo2, Redo2 } from 'lucide-react';
+import { useNarrativeStore, useUIStore, useSimulationStore, useCampaignStore, useToastStore, useHistoryStore, undo, redo } from 'store';
 import { exportProject, importProject, clearIndexedDB, clearCampaignsIndexedDB } from 'utils';
-import dagre from 'dagre';
 import ConfirmModal from './ConfirmModal.jsx';
 import './TopBar.css';
+
+// CHANGED (Redesign Step 4): rebuilt on design-system primitives (AR-37).
+//   Left:   brand + project title
+//   Centre: "Add node" group — one labelled button per node type, marked with its route colour
+//   Right:  campaign selector + Start (only when the Campaign feature is on, AR-36), File menu, Settings
+// Center (0,0) moved to the canvas controls. Snap Assist moved to Settings (Step 1).
+// The unused Dagre auto-layout handler was removed (L stays "fit view"). Import/export feedback uses toasts instead of alert().
+
+const NODE_BUTTONS = [
+  { type: 'common', route: 'common', label: 'Common', hint: 'Add a Common node (N)' },
+  { type: 'choice', route: 'choice', label: 'Choice', hint: 'Add a Choice node (C)' },
+  { type: 'ending', route: 'ending', label: 'Ending', hint: 'Add an Ending node (E)' },
+  { type: 'hub', route: 'hub', label: 'Hub', hint: 'Add a Hub: routes one input to several conditional edges' },
+  { type: 'warp_entrance', route: 'warp', label: 'Warp in', hint: 'Add a Warp entrance (W)' },
+  { type: 'warp_exit', route: 'warp', label: 'Warp out', hint: 'Add a Warp exit (Ctrl+W)' },
+];
+
+function FileMenu({ disabled, onNew, onImport, onExport }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+  const firstItemRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    firstItemRef.current?.focus();
+    const onPointer = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const items = [...wrapRef.current.querySelectorAll('[role="menuitem"]:not(:disabled)')];
+        const i = items.indexOf(document.activeElement);
+        const next = e.key === 'ArrowDown' ? (i + 1) % items.length : (i - 1 + items.length) % items.length;
+        items[next]?.focus();
+      }
+    };
+    window.addEventListener('pointerdown', onPointer);
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('pointerdown', onPointer);
+      window.removeEventListener('keydown', onKey, true);
+    };
+  }, [open]);
+
+  const run = (fn) => () => { setOpen(false); fn(); };
+
+  return (
+    <div className="br-topbar__menu-wrap" ref={wrapRef}>
+      <button
+        className="br-btn br-btn--ghost"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => setOpen(o => !o)}
+      >
+        File <ChevronDown />
+      </button>
+      {open && (
+        <div className="br-menu br-topbar__menu" role="menu" aria-label="File">
+          <button ref={firstItemRef} className="br-menu__item" role="menuitem" onClick={run(onNew)}>
+            <FilePlus />New project
+          </button>
+          <button className="br-menu__item" role="menuitem" onClick={run(onImport)}>
+            <FolderOpen />Open project…
+          </button>
+          <hr className="br-menu__divider" />
+          <button className="br-menu__item" role="menuitem" onClick={run(onExport)}>
+            <Download />Export project…
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TopBar() {
   const meta = useNarrativeStore(s => s.meta);
   const updateMeta = useNarrativeStore(s => s.updateMeta);
-
-  const snapToGrid = useUIStore(s => s.snapToGrid);
-  const toggleSnapToGrid = useUIStore(s => s.toggleSnapToGrid);
-  const snapAssist = useUIStore(s => s.snapAssist);
-  const toggleSnapAssist = useUIStore(s => s.toggleSnapAssist);
-  const snapThreshold = useUIStore(s => s.snapThreshold);
-  const setSnapThreshold = useUIStore(s => s.setSnapThreshold);
-
-  const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
-  const enterCampaign = useSimulationStore(s => s.enterCampaign);
-  const exitCampaign = useSimulationStore(s => s.exitCampaign);
-
   const newGraph = useNarrativeStore(s => s.newGraph);
   const loadGraph = useNarrativeStore(s => s.loadGraph);
   const exportGraph = useNarrativeStore(s => s.exportGraph);
+
+  // ADDED (Redesign Step 1): campaign selector gated by the Campaign feature switch
+  const featureCampaign = useUIStore(s => s.featureCampaign);
+  const setShowSettings = useUIStore(s => s.setShowSettings);
+
+  const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+  // ADDED (Redesign Step 5): undo / redo availability
+  const canUndo = useHistoryStore(s => s.canUndo);
+  const canRedo = useHistoryStore(s => s.canRedo);
+  const enterCampaign = useSimulationStore(s => s.enterCampaign);
+  const exitCampaign = useSimulationStore(s => s.exitCampaign);
 
   const campaignsMap = useCampaignStore(s => s.campaigns);
   const setActiveCampaign = useCampaignStore(s => s.setActiveCampaign);
@@ -35,76 +103,23 @@ export default function TopBar() {
   const loadCampaignsFromObject = useCampaignStore(s => s.loadCampaignsFromObject);
 
   const campaignsList = Object.values(campaignsMap);
-  const firstCampaignId = campaignsList.length > 0 ? campaignsList[0].id : '';
-
-  const [selectedId, setSelectedId] = useState(firstCampaignId);
-  const [exportStatus, setExportStatus] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState('');
+  // Derive a valid selection instead of syncing it in an effect: fall back to the first campaign.
+  const selectedId = campaignsMap[selectedCampaignId] ? selectedCampaignId : (campaignsList[0]?.id || '');
   const [showNewConfirm, setShowNewConfirm] = useState(false);
 
-  useEffect(() => {
-    if (campaignsList.length > 0 && !campaignsMap[selectedId]) {
-      setSelectedId(campaignsList[0].id);
-    }
-  }, [campaignsMap, selectedId, campaignsList]);
+  const toast = (msg, variant) => useToastStore.getState().addToast(msg, variant);
 
   const handleCreateNode = (type) => {
     window.dispatchEvent(new CustomEvent('canvas-open-node-modal', { detail: { nodeType: type } }));
   };
 
   const handleStartCampaign = () => {
-    if (selectedId) {
-      const camp = campaignsMap[selectedId];
-      if (camp) {
-        setActiveCampaign(selectedId);
-        enterCampaign(camp);
-      }
+    const camp = campaignsMap[selectedId];
+    if (camp) {
+      setActiveCampaign(selectedId);
+      enterCampaign(camp);
     }
-  };
-
-  const handleCenterOrigin = () => {
-    window.dispatchEvent(new CustomEvent('canvas-center-origin'));
-  };
-
-  const handleTitleChange = (e) => {
-    if (updateMeta) {
-      updateMeta({ title: e.target.value });
-    }
-  };
-
-  const handleTidyLayout = () => {
-    const graphState = useNarrativeStore.getState();
-    const storeNodes = [
-      ...Object.values(graphState.common || {}),
-      ...Object.values(graphState.choice || {}),
-      ...Object.values(graphState.ending || {})
-    ];
-    const edges = graphState.edges;
-    const updateNode = graphState.updateNode;
-
-    const g = new dagre.graphlib.Graph();
-    g.setGraph({ rankdir: 'LR' });
-    g.setDefaultEdgeLabel(() => ({}));
-
-    storeNodes.forEach(node => {
-      g.setNode(node.id, { width: 250, height: 150 });
-    });
-
-    edges.forEach(edge => {
-      g.setEdge(edge.sourceId, edge.targetId);
-    });
-
-    dagre.layout(g);
-
-    g.nodes().forEach(nodeId => {
-      const nodeWithPos = g.node(nodeId);
-      updateNode(nodeId, { position: { x: nodeWithPos.x - 125, y: nodeWithPos.y - 75 } });
-    });
-
-    window.dispatchEvent(new Event('graph-layout-tidy'));
-  };
-
-  const handleNew = async () => {
-    setShowNewConfirm(true);
   };
 
   const handleNewConfirmed = async () => {
@@ -122,34 +137,27 @@ export default function TopBar() {
       if (data) {
         exitCampaign();
         clearCampaignsStore();
-        if (data.campaigns) {
-          loadCampaignsFromObject(data.campaigns);
-        }
-        if (data.graphData) {
-          loadGraph(data.graphData);
-        } else {
-          loadGraph(data);
-        }
+        if (data.campaigns) loadCampaignsFromObject(data.campaigns);
+        loadGraph(data.graphData || data);
+        toast(`Opened "${data.graphData?.meta?.title || 'project'}"`, 'success');
       }
     } catch (err) {
       if (err.message === 'unsupported_schema_version') {
-        alert("This file uses an unsupported format version. Please open a valid Branching Routes file.");
+        toast("This file was made by a newer or unknown version of Branching Routes, so it can't be opened.", 'error');
       } else if (err.message === 'invalid_project_structure') {
-        alert("The selected file is structurally invalid or missing required node/edge data.");
+        toast("This file isn't a Branching Routes project: its nodes or edges are missing.", 'error');
       } else {
-        alert("Failed to import project file: " + err.message);
+        toast(`Couldn't open the file: ${err.message}`, 'error');
       }
     }
   };
 
   const handleExport = async () => {
     try {
-      const graphData = exportGraph();
-      await exportProject(graphData, campaignsMap, meta?.title || 'branching_routes_project');
-      setExportStatus(true);
-      setTimeout(() => setExportStatus(false), 2000);
-    } catch (err) {
-      alert("Export failed. Check browser permissions for file access.");
+      await exportProject(exportGraph(), campaignsMap, meta?.title || 'branching_routes_project');
+      toast('Project exported', 'success');
+    } catch {
+      toast("Couldn't export. Check that the browser may save files here.", 'error');
     }
   };
 
@@ -158,192 +166,103 @@ export default function TopBar() {
       <ConfirmModal
         isOpen={showNewConfirm}
         title="Start a new project?"
-        message="All unsaved changes will be lost. This action cannot be undone."
-        confirmLabel="New Project"
+        message="Everything in the current project is cleared. Export it first if you want to keep it."
+        confirmLabel="Start new project"
         danger
         onConfirm={handleNewConfirmed}
         onCancel={() => setShowNewConfirm(false)}
       />
       <div className="br-topbar">
-        {/* Left Side: Logo | Project Name */}
-        <div className="br-topbar__section-left">
-          <div className="br-topbar__brand">
-            <Network className="w-5 h-5" />
-            <span>Branching Routes</span>
+        <div className="br-topbar__left">
+          <div className="br-topbar__brand" aria-label="Branching Routes">
+            <Network aria-hidden="true" />
+            <span className="br-topbar__brand-name">Branching Routes</span>
           </div>
-
-          <div className="br-topbar__divider"></div>
-
-          <div>
-            <input
-              type="text"
-              value={meta?.title || ''}
-              onChange={handleTitleChange}
-              disabled={isCampaignActive}
-              onFocus={(e) => {
-                if (e.target.value === 'Untitled Graph') {
-                  e.target.select();
-                }
-              }}
-              placeholder="Project Title"
-              className="br-topbar__input"
-            />
-          </div>
+          <input
+            type="text"
+            className="br-topbar__title"
+            value={meta?.title || ''}
+            onChange={(e) => updateMeta?.({ title: e.target.value })}
+            disabled={isCampaignActive}
+            onFocus={(e) => { if (e.target.value === 'Untitled Graph') e.target.select(); }}
+            placeholder="Untitled project"
+            aria-label="Project title"
+          />
         </div>
 
-        {/* Middle Side: Quick Create Nodes | Campaign Selector & Start */}
-        <div className="br-topbar__section-center">
-          <div className="br-topbar__nodes">
+        <div className="br-topbar__center" role="group" aria-label="Add node">
+          {NODE_BUTTONS.map(b => (
             <button
-              onClick={() => handleCreateNode('common')}
+              key={b.type}
+              className="br-btn br-btn--ghost br-btn--sm br-topbar__node-btn"
+              data-route={b.route}
+              onClick={() => handleCreateNode(b.type)}
               disabled={isCampaignActive}
-              className="br-topbar__node-btn br-topbar__node-btn--common"
-              title="Common Node"
-              aria-label="Create Common Node"
+              title={b.hint}
+              aria-label={b.hint}
             >
-              <GitCommit className="w-4 h-4" />
+              <span className="br-route" aria-hidden="true" />
+              <span className="br-topbar__node-label">{b.label}</span>
             </button>
-            <button
-              onClick={() => handleCreateNode('choice')}
-              disabled={isCampaignActive}
-              className="br-topbar__node-btn br-topbar__node-btn--choice"
-              title="Choice Node"
-              aria-label="Create Choice Node"
-            >
-              <GitPullRequest className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleCreateNode('ending')}
-              disabled={isCampaignActive}
-              className="br-topbar__node-btn br-topbar__node-btn--ending"
-              title="Ending Node"
-              aria-label="Create Ending Node"
-            >
-              <BoxSelect className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleCreateNode('warp_entrance')}
-              disabled={isCampaignActive}
-              className="br-topbar__node-btn br-topbar__node-btn--warp-entrance"
-              title="Warp Entrance"
-              aria-label="Create Warp Entrance"
-            >
-              <LogIn className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleCreateNode('warp_exit')}
-              disabled={isCampaignActive}
-              className="br-topbar__node-btn br-topbar__node-btn--warp-exit"
-              title="Warp Exit"
-              aria-label="Create Warp Exit"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleCreateNode('hub')}
-              disabled={isCampaignActive}
-              className="br-topbar__node-btn br-topbar__node-btn--hub"
-              title="Hub Node"
-              aria-label="Create Hub Node"
-            >
-              <GitMerge className="w-4 h-4" />
-            </button>
-          </div>
+          ))}
+        </div>
 
-          <div className="br-topbar__divider"></div>
-
-          <div className="br-topbar__campaign-start">
-            <div className="br-topbar__select-wrap">
+        <div className="br-topbar__right">
+          {featureCampaign && (
+            <div className="br-topbar__campaign">
               <select
+                className="br-select br-topbar__campaign-select"
                 value={selectedId}
-                onChange={(e) => setSelectedId(e.target.value)}
-                className="br-topbar__select"
+                onChange={(e) => setSelectedCampaignId(e.target.value)}
+                disabled={isCampaignActive || campaignsList.length === 0}
+                aria-label="Campaign to play"
+              >
+                {campaignsList.length === 0 && <option value="">No campaigns</option>}
+                {campaignsList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button
+                className="br-btn br-btn--sm"
+                onClick={handleStartCampaign}
                 disabled={isCampaignActive || campaignsList.length === 0}
               >
-                {campaignsList.length === 0 && <option value="">No Campaigns</option>}
-                {campaignsList.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <ChevronDown className="w-3 h-3 br-topbar__select-icon" />
-            </div>
-            <button
-              onClick={handleStartCampaign}
-              className="br-topbar__btn-start"
-              disabled={isCampaignActive || campaignsList.length === 0}
-            >
-              <Play className="br-topbar__play-icon" /> Start
-            </button>
-          </div>
-        </div>
-
-        {/* Right Side: Canvas Controls (Center View & Snap Assist) | New | Import | Export */}
-        <div className="br-topbar__section-right">
-          <div className="br-topbar__canvas-controls">
-            <button
-              className="br-topbar__file-btn"
-              onClick={handleCenterOrigin}
-              title="Center Canvas at (0, 0)"
-              aria-label="Center Canvas at (0, 0)"
-            >
-              <LocateFixed className="w-3.5 h-3.5" />
-            </button>
-
-            {/* ADDED: Snap Assist toggle + threshold slider */}
-            <div className="br-topbar__snap-assist" title="Smart Snap Assist (A)">
-              <button
-                className={`br-topbar__file-btn${snapAssist ? ' br-topbar__file-btn--active' : ''}`}
-                disabled={isCampaignActive}
-                onClick={toggleSnapAssist}
-                aria-label={`Snap Assist ${snapAssist ? 'On' : 'Off'}`}
-                aria-pressed={snapAssist}
-              >
-                <Magnet className="w-3.5 h-3.5" />
+                <Play />Start
               </button>
-              {snapAssist && (
-                <div className="br-topbar__snap-slider" title={`Snap threshold: ${snapThreshold}px`}>
-                  <input
-                    type="range"
-                    min="2"
-                    max="32"
-                    step="1"
-                    value={snapThreshold}
-                    disabled={isCampaignActive}
-                    onChange={(e) => setSnapThreshold(e.target.value)}
-                    className="br-topbar__snap-range"
-                    aria-label="Snap threshold"
-                  />
-                  <span className="br-topbar__snap-value">{snapThreshold}</span>
-                </div>
-              )}
             </div>
-          </div>
-
-          <div className="br-topbar__divider" />
-
-          <div className="br-topbar__file-ops">
+          )}
+          <div className="br-topbar__history" role="group" aria-label="History">
             <button
-              className="br-topbar__file-btn"
-              disabled={isCampaignActive}
-              onClick={handleNew}
+              className="br-btn br-btn--ghost br-btn--icon"
+              onClick={() => undo()}
+              disabled={isCampaignActive || !canUndo}
+              title="Undo (Ctrl+Z)"
+              aria-label="Undo"
             >
-              <FilePlus className="w-3.5 h-3.5" /> New
+              <Undo2 />
             </button>
             <button
-              className="br-topbar__file-btn"
-              disabled={isCampaignActive}
-              onClick={handleImport}
+              className="br-btn br-btn--ghost br-btn--icon"
+              onClick={() => redo()}
+              disabled={isCampaignActive || !canRedo}
+              title="Redo (Ctrl+Shift+Z)"
+              aria-label="Redo"
             >
-              <Download className="w-3.5 h-3.5" /> Import
-            </button>
-            <button
-              className="br-topbar__file-btn"
-              disabled={isCampaignActive}
-              onClick={handleExport}
-            >
-              <Upload className="w-3.5 h-3.5" /> {exportStatus ? "Exported ✓" : "Export"}
+              <Redo2 />
             </button>
           </div>
+          <FileMenu
+            disabled={isCampaignActive}
+            onNew={() => setShowNewConfirm(true)}
+            onImport={handleImport}
+            onExport={handleExport}
+          />
+          <button
+            className="br-btn br-btn--ghost br-btn--icon"
+            onClick={() => setShowSettings(true)}
+            title="Settings"
+            aria-label="Open Settings"
+          >
+            <Settings />
+          </button>
         </div>
       </div>
     </>

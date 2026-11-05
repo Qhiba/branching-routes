@@ -3,7 +3,6 @@ import { ConnectionLineType, applyNodeChanges } from '@xyflow/react';
 import {
   ReactFlow,
   Background,
-  Controls,
   MiniMap,
   useReactFlow,
   useViewport,
@@ -11,9 +10,9 @@ import {
   MarkerType
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { computeSnapGuides, getSnappedPosition, getActiveGuides, applyAxisLock } from 'utils';
+import { computeSnapGuides, getSnappedPosition, getActiveGuides, applyAxisLock, miniMapNodeColor, computeAlignment, nodeMatchesFilters, nodeRouteType, EDGE_COLOR } from 'utils';
 
-import { useNarrativeStore, useSimulationStore, useUIStore } from 'store';
+import { useNarrativeStore, useSimulationStore, useUIStore, beginGroup, endGroup, cancelGroup } from 'store';
 import useKeyboardShortcuts from 'hooks/useKeyboardShortcuts'; // ADDED: Phase 1 hook import
 import NameModal from 'components/NameModal'; // ADDED: Phase 2 NameModal import
 // CHANGED: NodeInspector docked panel → NodeConfigModal full-screen modal (Phase 6)
@@ -21,6 +20,7 @@ import NodeConfigModal from 'components/modals/NodeConfigModal';
 import WarpConfigModal from 'components/modals/WarpConfigModal';
 import EdgeConfigModal from 'components/modals/EdgeConfigModal'; // ADDED: Phase 6
 import ContextMenu from 'components/ContextMenu'; // ADDED: Phase 3 ContextMenu import
+import CanvasControls from 'components/CanvasControls'; // ADDED (Redesign Step 4)
 
 import CommonNode from './nodes/CommonNode';
 import ChoiceNode from './nodes/ChoiceNode';
@@ -49,35 +49,36 @@ const EDGE_TYPES = {
 
 function GraphCanvasInner() {
 
-  const {
-    common = {},
-    choice = {},
-    ending = {},
-    edges: storeEdges,
-    addNode,
-    addEdge,
-    updateNode,
-    updateEdge,
-    deleteNode,
-    pasteNode,
-  } = useNarrativeStore();
+  // FIX (Redesign Step 4): per-slice selectors instead of whole-store destructures (AR-23) — previously every
+  // store change (selection, toasts of unrelated fields, simulation ticks) re-rendered the whole canvas.
+  const common = useNarrativeStore(s => s.common);
+  const choice = useNarrativeStore(s => s.choice);
+  const ending = useNarrativeStore(s => s.ending);
+  const storeEdges = useNarrativeStore(s => s.edges);
+  const addNode = useNarrativeStore(s => s.addNode);
+  const addEdge = useNarrativeStore(s => s.addEdge);
+  const updateNode = useNarrativeStore(s => s.updateNode);
+  const updateEdge = useNarrativeStore(s => s.updateEdge);
+  const deleteNode = useNarrativeStore(s => s.deleteNode);
+  const pasteNode = useNarrativeStore(s => s.pasteNode);
 
-  const {
-    selectNode,
-    selectEdge,
-    clearSelection,
-    selectedNodeId,
-    selectedEdgeId,
-    selectedNodeIds, // ADDED: Phase 1
-    setSelectedNodeIds, // ADDED: Phase 1
-    snapToGrid,
-    followActiveNode
-  } = useUIStore();
+  const selectNode = useUIStore(s => s.selectNode);
+  const selectEdge = useUIStore(s => s.selectEdge);
+  const clearSelection = useUIStore(s => s.clearSelection);
+  const selectedEdgeId = useUIStore(s => s.selectedEdgeId);
+  const selectedNodeIds = useUIStore(s => s.selectedNodeIds); // ADDED: Phase 1
+  const setSelectedNodeIds = useUIStore(s => s.setSelectedNodeIds); // ADDED: Phase 1
+  const snapToGrid = useUIStore(s => s.snapToGrid);
+  const followActiveNode = useUIStore(s => s.followActiveNode);
+  const showMiniMap = useUIStore(s => s.showMiniMap); // ADDED (Redesign Step 4)
 
   const canvasFilterChapterId = useUIStore(s => s.canvasFilterChapterId);
   const canvasFilterPathId = useUIStore(s => s.canvasFilterPathId);
-  const canvasFilterTagIds = useUIStore(s => s.canvasFilterTagIds) || [];
-  const canvasFilterTagsLogic = useUIStore(s => s.canvasFilterTagsLogic) || 'or';
+  const canvasFilterTagIds = useUIStore(s => s.canvasFilterTagIds);
+  const canvasFilterTagsLogic = useUIStore(s => s.canvasFilterTagsLogic);
+  const canvasFilterNodeType = useUIStore(s => s.canvasFilterNodeType); // ADDED (Redesign Step 6)
+  const canvasFilterCollectibleCategoryId = useUIStore(s => s.canvasFilterCollectibleCategoryId); // ADDED (Redesign Step 6)
+  const collectibleDict = useNarrativeStore(s => s.collectible); // ADDED (Redesign Step 6)
 
   // ADDED: Snap Assist — per-slice selectors (AR-23)
   const snapAssist = useUIStore(s => s.snapAssist);
@@ -91,7 +92,12 @@ function GraphCanvasInner() {
   // Active guide coordinates: which guide lines to render (null = none)
   const [activeGuides, setActiveGuides] = useState({ y: null, x: null });
 
-  const { isCampaignActive, activeNodeId, advance, reachableNodeIds, reachableEdgeIds, runPassiveAnalysis } = useSimulationStore();
+  const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+  const activeNodeId = useSimulationStore(s => s.activeNodeId);
+  const advance = useSimulationStore(s => s.advance);
+  const reachableNodeIds = useSimulationStore(s => s.reachableNodeIds);
+  const reachableEdgeIds = useSimulationStore(s => s.reachableEdgeIds);
+  const runPassiveAnalysis = useSimulationStore(s => s.runPassiveAnalysis);
 
   // PROTECTED: runPassiveAnalysis trigger useEffect
   useEffect(() => {
@@ -203,6 +209,7 @@ function GraphCanvasInner() {
       } else {
         pos = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
       }
+      beginGroup(); // ADDED (Redesign Step 5): creation + modal edits = one undo step
       const newId = addNode(pos, nodeType);
       selectNode(newId);
       setPendingNodeModal(newId);
@@ -219,6 +226,18 @@ function GraphCanvasInner() {
     window.addEventListener('canvas-edit-node-modal', handleEditNodeModal);
     return () => window.removeEventListener('canvas-edit-node-modal', handleEditNodeModal);
   }, []);
+
+  // ADDED (Redesign Step 5): each node / edge editing session is a single undo step
+  useEffect(() => {
+    if (editingNodeModal === null) return undefined;
+    beginGroup();
+    return () => endGroup();
+  }, [editingNodeModal]);
+  useEffect(() => {
+    if (editingEdgeModal === null) return undefined;
+    beginGroup();
+    return () => endGroup();
+  }, [editingEdgeModal]);
 
   // ADDED: Phase 6 listen for edge edit modal requests (from context menu + double-click)
   useEffect(() => {
@@ -305,17 +324,19 @@ function GraphCanvasInner() {
       ...Object.values(ending).map(node => ({ ...node, _type: 'endingNode' })),
     ].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
+    // CHANGED (Redesign Step 6): one shared predicate (utils/searchIndex) for canvas dimming and the Browse list
+    const filters = {
+      chapterId: canvasFilterChapterId,
+      pathId: canvasFilterPathId,
+      tagIds: canvasFilterTagIds,
+      tagsLogic: canvasFilterTagsLogic,
+      nodeType: canvasFilterNodeType,
+      collectibleCategoryId: canvasFilterCollectibleCategoryId,
+    };
     return sorted.map((node, idx) => {
       const nodeData = node.data || {};
-      const nodeTagIds = nodeData.tagIds || [];
-      const matchesChapter = !canvasFilterChapterId || nodeData.chapterId === canvasFilterChapterId;
-      const matchesPath = !canvasFilterPathId || nodeData.pathId === canvasFilterPathId;
-      const matchesTags = canvasFilterTagIds.length === 0 || (
-        canvasFilterTagsLogic === 'and'
-          ? canvasFilterTagIds.every(id => nodeTagIds.includes(id))
-          : canvasFilterTagIds.some(id => nodeTagIds.includes(id))
-      );
-      const isFilteredOut = !matchesChapter || !matchesPath || !matchesTags;
+      const collection = node._type === 'choiceNode' ? 'choice' : node._type === 'endingNode' ? 'ending' : 'common';
+      const isFilteredOut = !nodeMatchesFilters(node, nodeRouteType(node, collection), filters, collectibleDict);
 
       return {
         id: node.id,
@@ -328,7 +349,7 @@ function GraphCanvasInner() {
         },
       };
     });
-  }, [common, choice, ending, canvasFilterChapterId, canvasFilterPathId, canvasFilterTagIds, canvasFilterTagsLogic]);
+  }, [common, choice, ending, canvasFilterChapterId, canvasFilterPathId, canvasFilterTagIds, canvasFilterTagsLogic, canvasFilterNodeType, canvasFilterCollectibleCategoryId, collectibleDict]);
 
   // REMOVED (Step 3): clusterBoxes computation - retired in favor of canvas filters
 
@@ -370,11 +391,14 @@ function GraphCanvasInner() {
   const isDragging = useRef(false);
   useEffect(() => {
     if (!isDragging.current) {
+      // CHANGED (Redesign Step 5): nodes that are new to the canvas (e.g. just duplicated) take their selection
+      // from uiStore, so a programmatic selection made before React rendered them is not lost.
+      const pendingSelected = new Set(useUIStore.getState().selectedNodeIds);
       setRfNodes(prevNodes => derivedNodes.map(dn => {
         const prevNode = prevNodes.find(p => p.id === dn.id);
         return {
           ...dn,
-          selected: prevNode?.selected || false
+          selected: prevNode ? !!prevNode.selected : pendingSelected.has(dn.id)
         };
       }));
     }
@@ -391,7 +415,7 @@ function GraphCanvasInner() {
       reconnectable: common[edge.sourceId] ? true : 'target',
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: '#b1b6be',
+        color: EDGE_COLOR, // CHANGED (Redesign Step 8)
       },
       data: {
         label: edge.label,
@@ -435,11 +459,17 @@ function GraphCanvasInner() {
       return;
     }
     selectNode(node.id);
+    // ADDED (Redesign Step 7): clicking a node on the canvas shows it in the Inspector
+    window.dispatchEvent(new CustomEvent('switch-right-panel', { detail: 'Inspector' }));
   }, [selectNode, isCampaignActive, reachableNodeIds, reachableEdgeIds, storeEdges, advance]);
 
   const onEdgeClick = useCallback((event, edge) => {
     event.stopPropagation();
     selectEdge(edge.id);
+    if (!useSimulationStore.getState().isCampaignActive) {
+      // ADDED (Redesign Step 7): clicking an edge shows it in the Inspector
+      window.dispatchEvent(new CustomEvent('switch-right-panel', { detail: 'Inspector' }));
+    }
   }, [selectEdge]);
 
   const onReconnect = useCallback((oldEdge, newConnection) => {
@@ -569,6 +599,69 @@ function GraphCanvasInner() {
     isDragging.current = false;
   }, [updateNode, snapAssist, isCampaignActive, snapThreshold]);
 
+  // ADDED (Redesign Step 5): canvas view commands (keyboard zoom / fit shortcuts) — AR-19 event bridge
+  const { zoomIn, zoomOut, zoomTo, getNodes } = useReactFlow();
+  useEffect(() => {
+    const handleView = (e) => {
+      const action = e.detail?.action;
+      if (action === 'zoom-in') zoomIn({ duration: 150 });
+      else if (action === 'zoom-out') zoomOut({ duration: 150 });
+      else if (action === 'zoom-reset') zoomTo(1, { duration: 200 });
+      else if (action === 'fit') fitView({ duration: 300, padding: 0.15 });
+      else if (action === 'fit-selection') {
+        const ui = useUIStore.getState();
+        const ids = ui.selectedNodeIds.length ? ui.selectedNodeIds : (ui.selectedNodeId ? [ui.selectedNodeId] : []);
+        if (ids.length) fitView({ nodes: ids.map(id => ({ id })), duration: 300, padding: 0.3, maxZoom: 1.5 });
+      }
+    };
+    window.addEventListener('canvas-view', handleView);
+    return () => window.removeEventListener('canvas-view', handleView);
+  }, [zoomIn, zoomOut, zoomTo, fitView]);
+
+  // ADDED (Redesign Step 5): programmatic selection — detail.ids = array of node IDs, or null for every node (Ctrl+A).
+  // Keeps React Flow's visual selection and uiStore in step.
+  useEffect(() => {
+    const handleSelectNodes = (e) => {
+      if (useSimulationStore.getState().isCampaignActive) return;
+      const ids = e.detail?.ids;
+      const wanted = ids ? new Set(ids) : null;
+      setRfNodes(nds => nds.map(n => {
+        const sel = wanted ? wanted.has(n.id) : true;
+        return n.selected === sel ? n : { ...n, selected: sel };
+      }));
+      const list = ids || derivedNodes.map(n => n.id);
+      setSelectedNodeIds(list);
+      useUIStore.setState({ selectedNodeId: list.length === 1 ? list[0] : null, selectedEdgeId: null });
+    };
+    window.addEventListener('canvas-select-nodes', handleSelectNodes);
+    return () => window.removeEventListener('canvas-select-nodes', handleSelectNodes);
+  }, [derivedNodes, setSelectedNodeIds]);
+
+  // ADDED (Redesign Step 5): align / distribute the multi-selection (uses measured node sizes → needs the provider)
+  useEffect(() => {
+    const handleAlign = (e) => {
+      if (useSimulationStore.getState().isCampaignActive) return;
+      const ids = new Set(useUIStore.getState().selectedNodeIds);
+      const items = getNodes()
+        .filter(n => ids.has(n.id))
+        .map(n => ({
+          id: n.id,
+          x: n.position.x,
+          y: n.position.y,
+          width: n.measured?.width ?? n.width ?? 240,
+          height: n.measured?.height ?? n.height ?? 120,
+        }));
+      const moves = computeAlignment(items, e.detail?.mode);
+      const entries = Object.entries(moves);
+      if (!entries.length) return;
+      beginGroup();
+      entries.forEach(([id, position]) => updateNode(id, { position }));
+      endGroup();
+    };
+    window.addEventListener('canvas-align', handleAlign);
+    return () => window.removeEventListener('canvas-align', handleAlign);
+  }, [getNodes, updateNode]);
+
   // PROTECTED: graph-layout-tidy event listener
   useEffect(() => {
     const handleTidy = () => {
@@ -597,7 +690,12 @@ function GraphCanvasInner() {
       {pendingNodeModal !== null && (() => {
         const cancelNodeModal = () => {
           deleteNode(pendingNodeModal);
+          cancelGroup(); // ADDED (Redesign Step 5): a cancelled creation is not undoable
           clearSelection();
+          setPendingNodeModal(null);
+        };
+        const closeNodeModal = () => {
+          endGroup(); // ADDED (Redesign Step 5)
           setPendingNodeModal(null);
         };
         const node = common[pendingNodeModal] || choice[pendingNodeModal] || ending[pendingNodeModal];
@@ -607,7 +705,7 @@ function GraphCanvasInner() {
           return (
             <WarpConfigModal
               nodeId={pendingNodeModal}
-              onClose={() => setPendingNodeModal(null)}
+              onClose={closeNodeModal}
               onCancel={cancelNodeModal}
             />
           );
@@ -616,7 +714,7 @@ function GraphCanvasInner() {
         return (
           <NodeConfigModal
             nodeId={pendingNodeModal}
-            onClose={() => setPendingNodeModal(null)}
+            onClose={closeNodeModal}
             onCancel={cancelNodeModal}
           />
         );
@@ -701,10 +799,23 @@ function GraphCanvasInner() {
         minZoom={0.1}
         fitView
       >
-        <Background variant="dots" gap={16} />
-        <Controls />
-        <MiniMap />
+        <Background variant="dots" gap={16} color="#2a3040" />
+        {/* CHANGED (Redesign Step 4): default <Controls/> replaced by <CanvasControls/>; minimap skinned + toggleable */}
+        {showMiniMap && (
+          <MiniMap
+            className="br-minimap"
+            nodeColor={miniMapNodeColor}
+            nodeStrokeWidth={0}
+            nodeBorderRadius={3}
+            bgColor="#191d26"
+            maskColor="rgba(18, 21, 28, 0.72)"
+            pannable
+            zoomable
+            ariaLabel="Minimap"
+          />
+        )}
       </ReactFlow>
+      <CanvasControls />
     </div>
   );
 }

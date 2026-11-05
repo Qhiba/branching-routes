@@ -1,342 +1,126 @@
-/* src/components/TopBar.css */
+/* src/components/TopBar.css — CHANGED (Redesign Step 4): rebuilt on the design system (AR-37).
+   Only TopBar-specific layout lives here; buttons, menu, select and route marks come from system.css. */
 
 .br-topbar {
-    height: 48px;
-    background: linear-gradient(180deg, var(--color-bg-surface) 0%, var(--color-bg-base) 100%);
-    border-bottom: 1px solid var(--color-border);
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
-    padding: 0 var(--space-4);
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-sm);
-    font-family: var(--font-family-base);
-    z-index: var(--z-palette);
-    flex-shrink: 0;
+    gap: 12px;
     width: 100%;
-    overflow-x: auto;
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
-    scrollbar-width: none;
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    height: 48px;
+    padding: 0 8px 0 14px;
+    border-bottom: 1px solid var(--br-line);
+    background: var(--br-graphite);
+    color: var(--br-text);
+    font-family: var(--br-font);
 }
 
-.br-topbar::-webkit-scrollbar {
-    display: none;
-}
-
-.br-topbar__section-left {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    flex: 1;
-    justify-content: flex-start;
-}
-
-.br-topbar__section-center {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    flex: none;
-    justify-content: center;
-}
-
-.br-topbar__section-right {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-    flex: 1;
-    justify-content: flex-end;
-}
-
-.br-topbar__canvas-controls {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-}
-
-/* Brand */
-.br-topbar__brand {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    color: var(--color-primary);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: 0.05em;
-    flex-shrink: 0;
-    text-shadow: 0 2px 10px rgba(var(--color-campaign-indigo-rgb), 0.2);
-}
-
-.br-topbar__brand svg {
-    filter: drop-shadow(0 2px 4px rgba(var(--color-campaign-indigo-rgb), 0.4));
-}
-
-/* Divider */
-.br-topbar__divider {
-    height: 20px;
-    width: 1px;
-    background-color: var(--color-border);
-    opacity: 0.5;
-    flex-shrink: 0;
-}
-
-/* Title Input */
-.br-topbar__input {
-    background-color: rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: var(--radius-sm);
-    padding: 5px 12px;
-    outline: none;
-    color: var(--color-text-primary);
-    transition: all var(--transition-normal);
-    width: 192px;
-    font-weight: var(--font-weight-medium);
-    font-size: var(--font-size-sm);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.br-topbar__input:hover {
-    background-color: var(--color-bg-hover);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.br-topbar__input:focus {
-    background-color: #000;
-    border-color: var(--color-primary);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 2px rgba(var(--color-campaign-indigo-rgb), 0.2);
-}
-
-/* Center Button Group Container */
-.br-topbar__group {
-    display: flex;
-    align-items: center;
-    background-color: rgba(0, 0, 0, 0.25);
-    border-radius: var(--radius-md);
-    padding: 3px;
-    gap: var(--space-1);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    flex-shrink: 0;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-/* Center Group Buttons */
-.br-topbar__btn,
-.br-topbar__file-btn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 11px;
-    border-radius: var(--radius-sm);
-    color: var(--color-text-secondary);
-    transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-medium);
-    border: 1px solid transparent;
-    cursor: pointer;
-    background: transparent;
-    white-space: nowrap;
-}
-
-.br-topbar__btn svg,
-.br-topbar__file-btn svg {
-    opacity: 0.75;
-    flex-shrink: 0;
-}
-
-.br-topbar__btn:hover:not(:disabled),
-.br-topbar__file-btn:hover:not(:disabled) {
-    background-color: var(--color-bg-hover);
-    color: var(--color-text-primary);
-    border-color: var(--color-border);
-}
-
-.br-topbar__btn:hover:not(:disabled) svg,
-.br-topbar__file-btn:hover:not(:disabled) svg {
-    opacity: 1;
-}
-
-.br-topbar__btn:active:not(:disabled),
-.br-topbar__file-btn:active:not(:disabled) {
-    transform: scale(0.97);
-}
-
-.br-topbar__btn:disabled,
-.br-topbar__file-btn:disabled {
-    opacity: 0.38;
-    cursor: not-allowed;
-}
-
-.br-topbar__btn--active {
-    background-color: var(--color-bg-elevated);
-    color: var(--color-primary);
-    border-color: var(--color-border);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.br-topbar__btn--active svg {
-    opacity: 1;
-    color: var(--color-primary);
-}
-
-.br-topbar__input:disabled {
-    opacity: 0.38;
-    cursor: not-allowed;
-}
-
-/* Quick Create Node Buttons in TopBar */
-.br-topbar__nodes {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background-color: rgba(0, 0, 0, 0.25);
-    border-radius: 9999px;
-    padding: 3px 6px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.br-topbar__node-btn {
-    padding: 5px;
-    border-radius: 9999px;
-    cursor: pointer;
-    background: transparent;
-    border: 1px solid transparent;
-    transition: all var(--transition-fast);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.br-topbar__node-btn:hover:not(:disabled) {
-    background-color: var(--color-bg-hover);
-}
-
-.br-topbar__node-btn:active:not(:disabled) {
-    transform: scale(0.95);
-}
-
-.br-topbar__node-btn:disabled {
-    opacity: 0.38;
-    cursor: not-allowed;
-}
-
-.br-topbar__node-btn--common {
-    color: var(--color-emerald-500);
-}
-
-.br-topbar__node-btn--choice {
-    color: var(--color-blue-500);
-}
-
-.br-topbar__node-btn--ending {
-    color: var(--color-amber-500);
-}
-
-.br-topbar__node-btn--warp-entrance,
-.br-topbar__node-btn--warp-exit {
-    color: var(--color-purple-500);
-}
-
-.br-topbar__node-btn--hub {
-    color: var(--color-node-hub);
-}
-
-/* Campaign Starter in TopBar */
-.br-topbar__campaign-start {
+.br-topbar__left,
+.br-topbar__right {
     display: flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
 }
 
-.br-topbar__select-wrap {
-    position: relative;
+.br-topbar__right { justify-content: flex-end; }
+
+.br-topbar__brand {
     display: flex;
     align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding-right: 10px;
+    margin-right: 2px;
+    border-right: 1px solid var(--br-line);
+    color: var(--br-text-2);
 }
 
-.br-topbar__select {
-    appearance: none;
-    -webkit-appearance: none;
-    background-color: var(--color-bg-deep);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-primary);
-    font-size: 11px;
-    border-radius: 9999px;
-    padding: 2px 24px 2px 10px;
-    outline: none;
-    transition: all var(--transition-fast);
-    font-weight: var(--font-weight-medium);
-    width: 120px;
-    height: 26px;
-    box-sizing: border-box;
-    cursor: pointer;
+.br-topbar__brand svg { width: 18px; height: 18px; color: var(--br-text); }
+
+.br-topbar__brand-name {
+    font-size: var(--br-text-md);
+    font-weight: 600;
+    color: var(--br-text);
+    white-space: nowrap;
 }
 
-.br-topbar__select:hover:not(:disabled) {
-    border-color: var(--color-text-secondary);
+/* Project title: reads as text, becomes a field on hover/focus */
+.br-topbar__title {
+    min-width: 80px;
+    max-width: 280px;
+    width: 100%;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: var(--br-radius-control);
+    background: transparent;
+    color: var(--br-text);
+    font-family: var(--br-font);
+    font-size: var(--br-text-md);
+    font-weight: 500;
+    text-overflow: ellipsis;
+    transition: background-color var(--br-fast) var(--br-ease), border-color var(--br-fast) var(--br-ease);
 }
 
-.br-topbar__select:focus:not(:disabled) {
-    border-color: var(--color-primary);
-}
+.br-topbar__title::placeholder { color: var(--br-text-3); }
+.br-topbar__title:hover:not(:disabled) { background: var(--br-hover); }
+.br-topbar__title:focus { border-color: var(--br-text-2); background: var(--br-well); outline: none; }
 
-.br-topbar__select:disabled {
-    opacity: 0.38;
-    cursor: not-allowed;
-}
-
-.br-topbar__select-icon {
-    position: absolute;
-    right: 8px;
-    pointer-events: none;
-    color: var(--color-text-secondary);
-    opacity: 0.8;
-}
-
-.br-topbar__btn-start {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    background-color: var(--color-btn-start-campaign);
-    color: #ffffff;
-    border-radius: var(--radius-full);
-    padding: 0 14px;
-    height: 26px;
-    box-sizing: border-box;
-    font-size: var(--font-size-xs);
-    line-height: normal;
-    font-weight: var(--font-weight-bold);
-    border: none;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.br-topbar__btn-start:hover:not(:disabled) {
-    background-color: var(--color-btn-start-campaign-hover);
-}
-
-.br-topbar__btn-start:active:not(:disabled) {
-    transform: scale(0.95);
-}
-
-.br-topbar__btn-start:disabled {
-    opacity: 0.38;
-    cursor: not-allowed;
-}
-
-.br-topbar__play-icon {
-    width: 10px;
-    height: 10px;
-    fill: currentColor;
-}
-
-/* Right File Operation Buttons — shared base with .br-topbar__btn above */
-.br-topbar__file-ops {
+/* Add-node group: one quiet segmented strip; the route dot carries the type colour */
+.br-topbar__center {
     display: flex;
     align-items: center;
     gap: 2px;
-    flex-shrink: 0;
+    padding: 2px;
+    border: 1px solid var(--br-line);
+    border-radius: 8px;
+    background: var(--br-well);
 }
 
-/* .br-topbar__file-btn rules are merged into the shared selector block above */
+.br-topbar__node-btn { gap: 7px; color: var(--br-text-2); }
+.br-topbar__node-btn:hover:not(:disabled) { color: var(--br-text); }
+.br-topbar__node-btn .br-route { box-shadow: none; }
+
+.br-topbar__campaign {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-right: 8px;
+    margin-right: 2px;
+    border-right: 1px solid var(--br-line);
+}
+
+.br-topbar__campaign-select { width: 150px; height: var(--br-control-h-sm); font-size: var(--br-text-sm); }
+
+/* File menu */
+.br-topbar__menu-wrap { position: relative; }
+
+.br-topbar__menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 10;
+    animation: br-fade var(--br-fast) var(--br-ease);
+}
+
+/* Narrow windows: node buttons collapse to their route dot (labels stay available as tooltip/aria-label) */
+@media (max-width: 1180px) {
+    .br-topbar__node-label { display: none; }
+    .br-topbar__node-btn { width: 28px; padding: 0; }
+    .br-topbar__node-btn .br-route { width: 10px; height: 10px; }
+}
+
+@media (max-width: 900px) {
+    .br-topbar__brand-name { display: none; }
+}
+
+/* ADDED (Redesign Step 5): undo / redo pair */
+.br-topbar__history {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-right: 6px;
+    margin-right: 2px;
+    border-right: 1px solid var(--br-line);
+}

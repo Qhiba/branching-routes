@@ -1,9 +1,26 @@
 import { create } from 'zustand';
-import { generateId } from 'utils';
+import { generateId, CURRENT_SCHEMA_VERSION } from 'utils';
 import { useUIStore } from './uiStore.js';
 import { useToastStore } from './toastStore.js';
 
 // INVARIANT: HS-08 (Do not import simulationStore to avoid circular dependence)
+
+// ADDED (Redesign Step 2): removes the given collectible IDs from every Common node that references them.
+// Returns the same object reference when nothing changes.
+function stripCollectibleIds(commonCol, idSet) {
+  let changed = false;
+  const next = {};
+  for (const [key, node] of Object.entries(commonCol)) {
+    const ids = node.data?.collectibleIds;
+    if (Array.isArray(ids) && ids.some(cid => idSet.has(cid))) {
+      next[key] = { ...node, data: { ...node.data, collectibleIds: ids.filter(cid => !idSet.has(cid)) } };
+      changed = true;
+    } else {
+      next[key] = node;
+    }
+  }
+  return changed ? next : commonCol;
+}
 
 export const useNarrativeStore = create((set, get) => ({
   meta: { title: 'Untitled Graph', createdAt: Date.now(), updatedAt: Date.now(), commonNodeTypes: [], endingTypes: [] },
@@ -18,6 +35,10 @@ export const useNarrativeStore = create((set, get) => ({
   tag: {},
   commonType: {},
   endingType: {},
+  collectibleCategory: {}, // ADDED (Redesign Step 2)
+  collectible: {}, // ADDED (Redesign Step 2)
+  // ADDED (Redesign Step 5): bumped by loadGraph/newGraph so undo history can reset. Never persisted/exported.
+  graphRevision: 0,
 
   // Persistent editor-level seen marks (survive save/load, not cleared by campaign)
   editorSeenNodeIds: [],
@@ -242,15 +263,6 @@ export const useNarrativeStore = create((set, get) => ({
       if (n.data && n.data.flags_set && n.data.flags_set.includes(id)) {
         references.push(`node_sideEffect:${n.id}`);
       }
-      if (n.data && Array.isArray(n.data.variants)) {
-        n.data.variants.forEach(v => {
-          if (v.requires && Array.isArray(v.requires.conditions)) {
-            if (v.requires.conditions.some(c => c.flag === id)) {
-              references.push(`variant_requires:${n.id}:${v.id}`);
-            }
-          }
-        });
-      }
       if (n.data && Array.isArray(n.data.options)) {
         n.data.options.forEach(opt => {
           if (opt.requires && Array.isArray(opt.requires.conditions)) {
@@ -307,22 +319,6 @@ export const useNarrativeStore = create((set, get) => ({
           if (nextData.flags_set && nextData.flags_set.includes(id)) {
             nextData.flags_set = nextData.flags_set.filter(fId => fId !== id);
             modified = true;
-          }
-
-          if (Array.isArray(nextData.variants)) {
-            nextData.variants = nextData.variants.map(v => {
-              if (v.requires && Array.isArray(v.requires.conditions) && v.requires.conditions.some(c => c.flag === id)) {
-                modified = true;
-                return {
-                  ...v,
-                  requires: {
-                    ...v.requires,
-                    conditions: v.requires.conditions.filter(c => c.flag !== id)
-                  }
-                };
-              }
-              return v;
-            });
           }
 
           if (Array.isArray(nextData.options)) {
@@ -391,15 +387,6 @@ export const useNarrativeStore = create((set, get) => ({
       if (n.data && n.data.status_set && n.data.status_set.some(se => se.statusId === id)) {
         references.push(`node_sideEffect:${n.id}`);
       }
-      if (n.data && Array.isArray(n.data.variants)) {
-        n.data.variants.forEach(v => {
-          if (v.requires && Array.isArray(v.requires.conditions)) {
-            if (v.requires.conditions.some(c => c.status === id)) {
-              references.push(`variant_requires:${n.id}:${v.id}`);
-            }
-          }
-        });
-      }
       if (n.data && Array.isArray(n.data.options)) {
         n.data.options.forEach(opt => {
           if (opt.requires && Array.isArray(opt.requires.conditions)) {
@@ -456,22 +443,6 @@ export const useNarrativeStore = create((set, get) => ({
           if (nextData.status_set && nextData.status_set.some(se => se.statusId === id)) {
             nextData.status_set = nextData.status_set.filter(se => se.statusId !== id);
             modified = true;
-          }
-
-          if (Array.isArray(nextData.variants)) {
-            nextData.variants = nextData.variants.map(v => {
-              if (v.requires && Array.isArray(v.requires.conditions) && v.requires.conditions.some(c => c.status === id)) {
-                modified = true;
-                return {
-                  ...v,
-                  requires: {
-                    ...v.requires,
-                    conditions: v.requires.conditions.filter(c => c.status !== id)
-                  }
-                };
-              }
-              return v;
-            });
           }
 
           if (Array.isArray(nextData.options)) {
@@ -627,51 +598,113 @@ export const useNarrativeStore = create((set, get) => ({
     return { endingType: nextList, meta: { ...state.meta, updatedAt: Date.now() } };
   }),
 
-  // ─── VARIANT CRUD ────────────────────────────────────────────────────────
+  // ─── COLLECTIBLE CRUD (ADDED: Redesign Step 2) ───────────────────────────
+  // Collectibles are tracking-only items (CG, Live2D, Items, Achievements…) granted by Common nodes via
+  // data.collectibleIds[]. They are never read by conditionEvaluator (AR-07). Categories are user-defined.
+  // REMOVED (Redesign Step 2): VARIANT CRUD (addVariant / updateVariant / deleteVariant) — variants dropped in schema v5.
 
-  // variants[] is display-only; which variant is active is a simulation concern deferred to a later update
-  addVariant: (nodeId, variantData = {}) => set((state) => {
-    const node = state.common[nodeId];
-    if (!node) return state;
-    const newVariant = {
-      id: generateId('v'),
-      label: variantData.label || '',
-      text: variantData.text || '',
-      requires: variantData.requires || null
-    };
-    const currentVariants = Array.isArray(node.data.variants) ? node.data.variants : [];
+  /** @returns {string} new category ID */
+  addCollectibleCategory: (name) => {
+    if (!name || name.trim().length === 0) throw new Error('Category name cannot be empty');
+    const id = generateId('cc');
+    set((state) => ({
+      collectibleCategory: { ...state.collectibleCategory, [id]: { id, name: name.trim() } },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    }));
+    return id;
+  },
+
+  updateCollectibleCategory: (id, patch) => set((state) => {
+    if (!state.collectibleCategory[id]) return state;
     return {
-      common: {
-        ...state.common,
-        [nodeId]: { ...node, data: { ...node.data, variants: [...currentVariants, newVariant] } }
-      },
+      collectibleCategory: { ...state.collectibleCategory, [id]: { ...state.collectibleCategory[id], ...patch } },
       meta: { ...state.meta, updatedAt: Date.now() }
     };
   }),
 
-  updateVariant: (nodeId, variantId, patch) => set((state) => {
-    const node = state.common[nodeId];
-    if (!node) return state;
-    const currentVariants = Array.isArray(node.data.variants) ? node.data.variants : [];
-    const nextVariants = currentVariants.map(v => v.id === variantId ? { ...v, ...patch } : v);
-    return {
-      common: {
-        ...state.common,
-        [nodeId]: { ...node, data: { ...node.data, variants: nextVariants } }
+  /**
+   * Deletes a category. Blocked while collectibles still belong to it unless force=true, in which case
+   * the category's collectibles are deleted too (and removed from every node's collectibleIds).
+   * @returns {{blocked: boolean, references?: string[]}}
+   */
+  deleteCollectibleCategory: (id, force = false) => {
+    const state = get();
+    const memberIds = Object.values(state.collectible).filter(c => c.categoryId === id).map(c => c.id);
+    if (memberIds.length > 0 && !force) {
+      return { blocked: true, references: memberIds.map(cid => `collectible:${cid}`) };
+    }
+    set((s) => {
+      const nextCategory = { ...s.collectibleCategory };
+      delete nextCategory[id];
+      const nextCollectible = { ...s.collectible };
+      memberIds.forEach(cid => delete nextCollectible[cid]);
+      return {
+        collectibleCategory: nextCategory,
+        collectible: nextCollectible,
+        common: stripCollectibleIds(s.common, new Set(memberIds)),
+        meta: { ...s.meta, updatedAt: Date.now() }
+      };
+    });
+    return { blocked: false };
+  },
+
+  /** @returns {string} new collectible ID */
+  addCollectible: (name, categoryId = null) => {
+    if (!name || name.trim().length === 0) throw new Error('Collectible name cannot be empty');
+    const id = generateId('col');
+    set((state) => ({
+      collectible: {
+        ...state.collectible,
+        [id]: { id, name: name.trim(), categoryId: categoryId && state.collectibleCategory[categoryId] ? categoryId : null }
       },
+      meta: { ...state.meta, updatedAt: Date.now() }
+    }));
+    return id;
+  },
+
+  updateCollectible: (id, patch) => set((state) => {
+    if (!state.collectible[id]) return state;
+    return {
+      collectible: { ...state.collectible, [id]: { ...state.collectible[id], ...patch } },
       meta: { ...state.meta, updatedAt: Date.now() }
     };
   }),
 
-  deleteVariant: (nodeId, variantId) => set((state) => {
+  /**
+   * Deletes a collectible. Blocked while Common nodes grant it unless force=true (cascade removal).
+   * @returns {{blocked: boolean, references?: string[]}}
+   */
+  deleteCollectible: (id, force = false) => {
+    const state = get();
+    const references = Object.values(state.common)
+      .filter(n => Array.isArray(n.data?.collectibleIds) && n.data.collectibleIds.includes(id))
+      .map(n => `node_collectible:${n.id}`);
+    if (references.length > 0 && !force) {
+      return { blocked: true, references };
+    }
+    set((s) => {
+      const nextCollectible = { ...s.collectible };
+      delete nextCollectible[id];
+      return {
+        collectible: nextCollectible,
+        common: stripCollectibleIds(s.common, new Set([id])),
+        meta: { ...s.meta, updatedAt: Date.now() }
+      };
+    });
+    return { blocked: false };
+  },
+
+  // AR-13: dedicated action for the node's collectibleIds[] sub-array. Common nodes only
+  // (hub / warp nodes live in common{} too but have their own node.type and are excluded).
+  toggleNodeCollectible: (nodeId, collectibleId) => set((state) => {
     const node = state.common[nodeId];
-    if (!node) return state;
-    const currentVariants = Array.isArray(node.data.variants) ? node.data.variants : [];
+    if (!node || (node.type && node.type !== 'common') || !state.collectible[collectibleId]) return state;
+    const current = Array.isArray(node.data?.collectibleIds) ? node.data.collectibleIds : [];
+    const next = current.includes(collectibleId)
+      ? current.filter(cid => cid !== collectibleId)
+      : [...current, collectibleId];
     return {
-      common: {
-        ...state.common,
-        [nodeId]: { ...node, data: { ...node.data, variants: currentVariants.filter(v => v.id !== variantId) } }
-      },
+      common: { ...state.common, [nodeId]: { ...node, data: { ...node.data, collectibleIds: next } } },
       meta: { ...state.meta, updatedAt: Date.now() }
     };
   }),
@@ -883,8 +916,9 @@ export const useNarrativeStore = create((set, get) => ({
     };
   }),
 
+  // CHANGED (Redesign Step 5): returns the new node ID (additive, AR-20) so Duplicate can select the copies
   pasteNode: (copiedNode, position) => {
-    if (!copiedNode) return;
+    if (!copiedNode) return null;
     const newId = generateId('n');
     const pastedNode = JSON.parse(JSON.stringify(copiedNode));
     
@@ -905,13 +939,7 @@ export const useNarrativeStore = create((set, get) => ({
         }));
       }
 
-      // Regenerate nested variant IDs for common nodes to preserve referential integrity
-      if (pastedNode.type === 'common' && Array.isArray(pastedNode.data.variants)) {
-        pastedNode.data.variants = pastedNode.data.variants.map(v => ({
-          ...v,
-          id: generateId('v')
-        }));
-      }
+      // REMOVED (Redesign Step 2): variant ID regeneration — variants no longer exist (schema v5)
     }
 
     const target = pastedNode.type === 'ending' ? 'ending' : pastedNode.type === 'choice' ? 'choice' : 'common';
@@ -927,6 +955,7 @@ export const useNarrativeStore = create((set, get) => ({
 
     // Toast notification
     useToastStore.getState().addToast(`Pasted node: ${pastedNode.data.label}`, 'success');
+    return newId;
   },
 
   loadGraph: (graphData) => {
@@ -953,8 +982,11 @@ export const useNarrativeStore = create((set, get) => ({
       tag: graphData.tag || {},
       commonType: graphData.commonType || {},
       endingType: graphData.endingType || {},
+      collectibleCategory: graphData.collectibleCategory || {},
+      collectible: graphData.collectible || {},
       editorSeenNodeIds: graphData.editorSeenNodeIds || [],
-      editorSeenOptionIds: graphData.editorSeenOptionIds || []
+      editorSeenOptionIds: graphData.editorSeenOptionIds || [],
+      graphRevision: get().graphRevision + 1 // ADDED (Redesign Step 5)
     });
 
     // INVARIANT: BI-16
@@ -977,8 +1009,11 @@ export const useNarrativeStore = create((set, get) => ({
       tag: {},
       commonType: {},
       endingType: {},
+      collectibleCategory: {},
+      collectible: {},
       editorSeenNodeIds: [],
-      editorSeenOptionIds: []
+      editorSeenOptionIds: [],
+      graphRevision: get().graphRevision + 1 // ADDED (Redesign Step 5)
     });
 
     // INVARIANT: BI-16
@@ -997,7 +1032,7 @@ export const useNarrativeStore = create((set, get) => ({
 
     return {
 
-      schemaVersion: 4,
+      schemaVersion: CURRENT_SCHEMA_VERSION, // CHANGED (Redesign Step 2): v5
       meta: {
         ...state.meta,
         createdAt: formatTs(state.meta.createdAt),
@@ -1017,6 +1052,8 @@ export const useNarrativeStore = create((set, get) => ({
       tag: state.tag,
       commonType: state.commonType,
       endingType: state.endingType,
+      collectibleCategory: state.collectibleCategory,
+      collectible: state.collectible,
       editorSeenNodeIds: state.editorSeenNodeIds,
       editorSeenOptionIds: state.editorSeenOptionIds
     };

@@ -12,6 +12,8 @@ export const useUIStore = create((set, get) => ({
   canvasFilterPathId: null, // ADDED: Step 3 canvas path filter
   canvasFilterTagIds: [], // ADDED: canvas tag filters
   canvasFilterTagsLogic: 'or', // ADDED: tags filtering logic ('or' | 'and')
+  canvasFilterNodeType: null, // ADDED (Redesign Step 6): 'common' | 'choice' | 'ending' | 'hub' | 'warp' | null
+  canvasFilterCollectibleCategoryId: null, // ADDED (Redesign Step 6): collectible category ID | null
 
   // ADDED: Phase 1 — overlay toggle states for route tracing visualization
   showTraversalOverlay: true,
@@ -52,6 +54,17 @@ export const useUIStore = create((set, get) => ({
   setCanvasFilterPathId: (id) => set({ canvasFilterPathId: id }), // ADDED: Step 3
   setCanvasFilterTagIds: (ids) => set({ canvasFilterTagIds: ids }), // ADDED: tags filters
   setCanvasFilterTagsLogic: (logic) => set({ canvasFilterTagsLogic: logic }), // ADDED: tags filtering logic
+  // ADDED (Redesign Step 6)
+  setCanvasFilterNodeType: (type) => set({ canvasFilterNodeType: type || null }),
+  setCanvasFilterCollectibleCategoryId: (id) => set({ canvasFilterCollectibleCategoryId: id || null }),
+  resetCanvasFilters: () => set({
+    canvasFilterChapterId: null,
+    canvasFilterPathId: null,
+    canvasFilterTagIds: [],
+    canvasFilterTagsLogic: 'or',
+    canvasFilterNodeType: null,
+    canvasFilterCollectibleCategoryId: null,
+  }),
   selectNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }), // PROTECTED: Primary single-select semantics
   selectEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),
   
@@ -113,6 +126,37 @@ export const useUIStore = create((set, get) => ({
   // snapThreshold: persisted to localStorage via safeStorage (AR-33)
   snapAssist: true,
   snapThreshold: Number(safeGet('br_snapThreshold', 8)),
+
+  // ADDED (Redesign Step 1): Feature switch — Campaign & Route Tracing (incl. Seen marks, Sandbox).
+  // Default OFF. Persisted via safeStorage (AR-33). Hides UI only; stores and code stay intact.
+  featureCampaign: safeGet('br_featureCampaign', 'false') === 'true',
+  setFeatureCampaign: (val) => {
+    safeSet('br_featureCampaign', !!val);
+    set({ featureCampaign: !!val });
+  },
+
+  // ADDED (Redesign Step 1): Search setting — include edge conditions under their source node.
+  // Default ON. Consumed by the unified search (Redesign Step 4).
+  searchIncludeEdges: safeGet('br_searchIncludeEdges', 'true') === 'true',
+  setSearchIncludeEdges: (val) => {
+    safeSet('br_searchIncludeEdges', !!val);
+    set({ searchIncludeEdges: !!val });
+  },
+
+  // ADDED (Redesign Step 4): minimap visibility (canvas controls toggle). Default ON, persisted (AR-33).
+  showMiniMap: safeGet('br_showMiniMap', 'true') === 'true',
+  toggleMiniMap: () => set(state => {
+    safeSet('br_showMiniMap', !state.showMiniMap);
+    return { showMiniMap: !state.showMiniMap };
+  }),
+
+  // ADDED (Redesign Step 5): keyboard shortcut sheet visibility ("?" or Settings → Keyboard shortcuts)
+  showShortcuts: false,
+  setShowShortcuts: (val) => set({ showShortcuts: !!val }),
+
+  // ADDED (Redesign Step 1): Settings modal visibility (UI-only; opened from TopBar gear)
+  showSettings: false,
+  setShowSettings: (val) => set({ showSettings: !!val }),
 
   toggleSnapAssist: () => set(state => ({ snapAssist: !state.snapAssist })),
   setSnapThreshold: (val) => {

@@ -80,24 +80,6 @@
 }
 
 /* Overlay toggle button */
-.br-status-strip__toggle {
-    background-color: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 1px 8px;
-    color: var(--color-text-primary);
-    transition: all var(--transition-fast);
-    font-size: 11px;
-    font-weight: var(--font-weight-medium);
-    cursor: pointer;
-    margin-left: var(--space-2);
-}
-
-.br-status-strip__toggle:hover {
-    background-color: var(--color-bg-hover);
-    border-color: var(--color-primary);
-    color: var(--color-text-primary);
-}
 
 /* Icon color variants */
 .status-icon--emerald {
@@ -144,3 +126,21 @@
 .campaign-count--deadends {
     color: var(--color-rose-500);
 }
+/* ADDED (Redesign Step 8): design-system alignment (AR-37). Node-count icons keep their route colours
+   (they identify node types); the other entity icons are neutral. No overlay z-index inside the layout grid. */
+.br-status-strip {
+    z-index: auto;
+    background-color: var(--br-graphite);
+    border-top-color: var(--br-line);
+    box-shadow: none;
+    font-family: var(--br-font);
+    color: var(--br-text-3);
+}
+.br-status-strip strong { color: var(--br-text-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.status-icon--emerald { color: var(--br-route-common-mark); }
+.status-icon--blue { color: var(--br-route-choice-mark); }
+.status-icon--amber { color: var(--br-route-ending-mark); }
+.status-icon--purple,
+.status-icon--rose,
+.status-icon--cyan,
+.status-icon--indigo { color: var(--br-text-3); }

@@ -248,7 +248,16 @@ export async function importProject() {
   }
 
 
-  if (![1, 2, 3, 4].includes(data?.schemaVersion)) {
+  return { graphData: migrateGraph(data), campaigns };
+}
+
+// ADDED (Redesign Step 2): Single migration + sanitization pipeline for every graph that enters the app
+// (file import AND IndexedDB boot restore). Pure: no I/O, throws 'unsupported_schema_version' or
+// 'invalid_project_structure'. Input may be mutated; always use the returned object.
+export const CURRENT_SCHEMA_VERSION = 5;
+
+export function migrateGraph(data) {
+  if (![1, 2, 3, 4, CURRENT_SCHEMA_VERSION].includes(data?.schemaVersion)) {
     throw new Error('unsupported_schema_version');
   }
 
@@ -420,6 +429,28 @@ export async function importProject() {
     data.schemaVersion = 4;
   }
 
+  if (data.schemaVersion === 4) {
+    // MIGRATION (Redesign Step 2): v4 to v5 — Narrative Variants removed from the data model;
+    // Collectibles introduced (collectibleCategory{}, collectible{}, Common node data.collectibleIds[]).
+    let droppedVariants = 0;
+    ['common', 'choice', 'ending'].forEach(col => {
+      Object.values(data[col] || {}).forEach(node => {
+        if (node?.data && 'variants' in node.data) {
+          droppedVariants += Array.isArray(node.data.variants) ? node.data.variants.length : 0;
+          delete node.data.variants;
+        }
+      });
+    });
+    if (droppedVariants > 0) {
+      console.warn(`[migrateGraph] v4→v5: removed ${droppedVariants} narrative variant(s); variants are no longer supported.`);
+    }
+    data.collectibleCategory = data.collectibleCategory || {};
+    data.collectible = data.collectible || {};
+    data.schemaVersion = 5;
+  }
+
+  const isDict = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
+
   const sanitizedData = {
     schemaVersion: data.schemaVersion,
     meta: {
@@ -440,6 +471,9 @@ export async function importProject() {
     tag: typeof data.tag === 'object' && data.tag !== null ? data.tag : {},
     commonType: typeof data.commonType === 'object' && data.commonType !== null ? data.commonType : {},
     endingType: typeof data.endingType === 'object' && data.endingType !== null ? data.endingType : {},
+    // ADDED (Redesign Step 2): AR-27 paired invariant — collectibles must survive the whitelist
+    collectibleCategory: isDict(data.collectibleCategory) ? data.collectibleCategory : {},
+    collectible: isDict(data.collectible) ? data.collectible : {},
     editorSeenNodeIds: Array.isArray(data.editorSeenNodeIds) ? data.editorSeenNodeIds : [],
     editorSeenOptionIds: Array.isArray(data.editorSeenOptionIds) ? data.editorSeenOptionIds : []
   };
@@ -452,12 +486,24 @@ export async function importProject() {
       if (!Array.isArray(nData.tagIds)) {
         nData.tagIds = [];
       }
-      targetCol[id] = {
+      // ADDED (Redesign Step 2): collectibles attach to Common nodes only; drop dangling IDs
+      // (hub / warp nodes also live in common{} but carry their own node.type)
+      if (type === 'common' && (node.type || 'common') === 'common') {
+        nData.collectibleIds = Array.isArray(nData.collectibleIds)
+          ? nData.collectibleIds.filter(cid => cid in sanitizedData.collectible)
+          : [];
+      } else {
+        delete nData.collectibleIds;
+      }
+      const sanitizedNode = {
         id: node.id || id,
         type: node.type || type,
         position: node.position || { x: 0, y: 0 },
         data: nData
       };
+      // FIX (Redesign Step 2): keep createdAt — GraphCanvas uses it for z-ordering
+      if (typeof node.createdAt === 'number') sanitizedNode.createdAt = node.createdAt;
+      targetCol[id] = sanitizedNode;
     });
   };
 
@@ -465,5 +511,5 @@ export async function importProject() {
   sanitizeNodes(data.choice, sanitizedData.choice, 'choice');
   sanitizeNodes(data.ending, sanitizedData.ending, 'ending');
 
-  return { graphData: sanitizedData, campaigns };
+  return sanitizedData;
 }

@@ -12,6 +12,8 @@ function EndingNode({ id, data }) {
   const isOrphaned = useSimulationStore(s => s.orphanedNodeIds.includes(id));
   const isUnreachable = useSimulationStore(s => s.unreachableNodeIds.includes(id));
   const isCampaignActive = useSimulationStore(s => s.isCampaignActive);
+  // ADDED (Redesign Step 1): editor Seen marks hidden when the Campaign feature is off
+  const featureCampaign = useUIStore(s => s.featureCampaign);
   // FIX 9: Resolve nodeSubTypeId → display name from store
   const endingTypeDict = useNarrativeStore(s => s.endingType);
   const subTypeName = data.nodeSubTypeId ? endingTypeDict[data.nodeSubTypeId]?.name : null;
@@ -19,7 +21,7 @@ function EndingNode({ id, data }) {
   const isFilteredOut = !!data.isFilteredOut;
 
   // MODIFIED: Phase 3 — add coverage-gap class to className string; Step 3 — add filtered-out class
-  const className = `story-node ending-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
+  const className = `story-node ending-node ${nodeState ? 'story-node--' + nodeState : ''} ${isSeen || (isEditorSeen && !isCampaignActive && featureCampaign) ? 'story-node--seen' : ''} ${isCoverageGap ? 'story-node--coverage-gap' : ''} ${isFilteredOut ? 'story-node--filtered-out' : ''}`.trim();
 
   return (
     <div className={className}>
@@ -29,7 +31,7 @@ function EndingNode({ id, data }) {
         {/* Seen check icon — visible in editor mode only when manually marked */}
         {/* FIX 9: Show user-defined nodeSubType name if set, fallback to ENDING */}
         <span className="story-node__type-label">
-          {subTypeName ? subTypeName.toUpperCase() : 'ENDING'}
+          {subTypeName || 'Ending'}
         </span>
         {isOrphaned && (
           <span className="story-node__warning-badge" title="Node is entirely disconnected">

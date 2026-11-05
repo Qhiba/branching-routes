@@ -1,73 +1,86 @@
+/* Shared list view for FlagManager, StatusManager, PathChapterManager (tags, chapters, paths, types).
+   CHANGED (Redesign Step 4): moved onto the design system (--br-* tokens, AR-37). Class names unchanged.
+   Rows are flat (no per-row boxes); entity icons are neutral because hue is reserved for node identity. */
+
 .entity-list-view {
-    padding: var(--space-4);
     display: flex;
     flex-direction: column;
     height: 100%;
-    gap: var(--space-4);
-    background: var(--color-bg-surface);
+    min-height: 0;
+    gap: 8px;
+    padding: 12px 8px 8px;
+    background: var(--br-graphite);
+    font-family: var(--br-font);
 }
 
 .entity-list-header {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: 6px;
+    padding: 0 4px;
 }
 
 .entity-list-search {
     position: relative;
     flex: 1;
+    min-width: 0;
 }
 
 .entity-list-search-icon {
     position: absolute;
-    left: 10px;
+    left: 9px;
     top: 50%;
     transform: translateY(-50%);
-    color: var(--color-text-secondary);
+    color: var(--br-text-3);
+    pointer-events: none;
 }
 
 .entity-list-input {
     width: 100%;
-    background: var(--color-bg-base);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 6px 10px 6px 32px;
-    color: var(--color-text-primary);
-    font-size: var(--font-size-xs);
-    transition: border var(--transition-fast);
+    height: var(--br-control-h);
+    padding: 0 10px 0 30px;
+    border: 1px solid var(--br-line);
+    border-radius: var(--br-radius-control);
+    background: var(--br-well);
+    color: var(--br-text);
+    font-family: var(--br-font);
+    font-size: var(--br-text-md);
+    transition: border-color var(--br-fast) var(--br-ease);
 }
 
-.entity-list-input:focus {
-    border-color: var(--color-primary);
-    outline: none;
-}
+.entity-list-input::placeholder { color: var(--br-text-3); }
+.entity-list-input:hover { border-color: var(--br-line-strong); }
+.entity-list-input:focus { border-color: var(--br-text-2); outline: none; }
 
+/* "+" add button — secondary icon button (the primary chalk fill is reserved for dialog confirms) */
 .entity-list-add-btn {
-    background: var(--color-primary);
-    color: white;
-    padding: 6px;
-    border-radius: var(--radius-sm);
-    border: none;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    box-shadow: var(--shadow-sm);
-    transition: background var(--transition-fast);
+    width: var(--br-control-h);
+    height: var(--br-control-h);
+    padding: 0;
+    border: 1px solid var(--br-line);
+    border-radius: var(--br-radius-control);
+    background: transparent;
+    color: var(--br-text);
+    cursor: pointer;
+    transition: background-color var(--br-fast) var(--br-ease), border-color var(--br-fast) var(--br-ease);
 }
 
-.entity-list-add-btn:hover {
-    background: var(--color-primary-hover);
-}
+.entity-list-add-btn:hover:not(:disabled) { background: var(--br-hover); border-color: var(--br-line-strong); }
+.entity-list-add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.entity-list-add-btn:focus-visible,
+.entity-action-btn:focus-visible { outline: 2px solid var(--br-focus); outline-offset: 2px; }
 
 .entity-list-content {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding-right: 4px;
+    gap: 1px;
 }
 
 .entity-list-item-wrapper {
@@ -80,185 +93,164 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: rgba(30, 34, 49, 0.4);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 8px 10px;
-    transition: all var(--transition-fast);
-    cursor: pointer;
+    gap: 8px;
+    min-height: 36px;
+    padding: 4px 6px 4px 4px;
+    border-radius: var(--br-radius-control);
+    background: transparent;
+    cursor: default;
+    transition: background-color var(--br-fast) var(--br-ease);
 }
 
-.entity-list-item:hover {
-    background: var(--color-bg-elevated);
-    border-color: rgba(255, 255, 255, 0.2);
-}
+.entity-list-item:hover { background: var(--br-hover); }
+.entity-list-item-wrapper.is-dragging .entity-list-item { background: var(--br-slate); box-shadow: var(--br-shadow-menu); }
 
 .entity-list-item-left {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: 8px;
+    min-width: 0;
     overflow: hidden;
+}
+
+.entity-drag-handle { color: var(--br-text-3); }
+
+.entity-list-item-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
 }
 
 .entity-list-item-name {
-    font-weight: var(--font-weight-medium);
-    font-size: var(--font-size-xs);
-    color: var(--color-text-primary);
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--br-text-md);
+    font-weight: 400;
+    color: var(--br-text);
 }
 
 .entity-list-item-sub {
-    font-size: 10px;
-    color: var(--color-text-secondary);
+    font-size: var(--br-text-sm);
+    color: var(--br-text-3);
+    font-variant-numeric: tabular-nums;
 }
 
 .entity-list-item-actions {
     display: flex;
     align-items: center;
-    opacity: 0;
-    transition: opacity var(--transition-fast);
+    gap: 2px;
     flex-shrink: 0;
+    opacity: 0;
+    transition: opacity var(--br-fast) var(--br-ease);
 }
 
-.entity-list-item:hover .entity-list-item-actions {
-    opacity: 1;
-}
+.entity-list-item:hover .entity-list-item-actions,
+.entity-list-item:focus-within .entity-list-item-actions { opacity: 1; }
 
 .entity-action-btn {
-    padding: 4px;
-    color: var(--color-text-secondary);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
+    justify-content: center;
+    width: var(--br-control-h-sm);
+    height: var(--br-control-h-sm);
+    padding: 0;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--br-text-2);
+    cursor: pointer;
 }
 
-.entity-action-btn:hover {
-    color: var(--color-primary);
+.entity-action-btn:hover { background: var(--br-press); color: var(--br-text); }
+.entity-action-btn--danger:hover { background: var(--br-danger-wash); color: var(--br-danger); }
+
+/* Entity icons — neutral (AR-37: hue is reserved for node identity). Kept as separate classes so a
+   future per-type treatment stays possible without markup changes. */
+.entity-icon--purple,
+.entity-icon--rose,
+.entity-icon--emerald,
+.entity-icon--amber,
+.entity-icon--indigo,
+.entity-icon--cyan,
+.entity-icon--pink {
+    flex-shrink: 0;
+    color: var(--br-text-3);
 }
 
-.entity-action-btn--danger:hover {
-    color: var(--color-danger);
-}
-
-/* Icon color variants */
-.entity-icon--purple {
-    color: var(--color-purple-500);
-}
-
-.entity-icon--rose {
-    color: var(--color-rose-500);
-}
-
-.entity-icon--emerald {
-    color: var(--color-emerald-500);
-}
-
-.entity-icon--amber {
-    color: var(--color-amber-500);
-}
-
-.entity-icon--indigo {
-    color: var(--color-primary);
-}
-
-.entity-icon--cyan {
-    color: var(--color-cyan-500);
-}
-
-/* Flex column for item-left content */
-.entity-list-item-col {
-    display: flex;
-    flex-direction: column;
-}
-
-/* Delete-error guard rail */
+/* Delete guard — shown under a row when the entity is still referenced */
 .entity-delete-error {
-    margin-top: 6px;
+    margin: 2px 4px 6px;
     padding: 10px 12px;
-    background: rgba(255, 68, 68, 0.1);
-    border: 1px solid var(--color-danger);
-    border-left: 3px solid var(--color-danger);
-    border-radius: var(--radius-sm);
-    font-size: var(--font-size-sm);
+    border: 1px solid var(--br-line);
+    border-left: 2px solid var(--br-danger);
+    border-radius: var(--br-radius-control);
+    background: var(--br-danger-wash);
+    font-size: var(--br-text-sm);
+    color: var(--br-text-2);
 }
 
 .entity-delete-error__title {
-    color: var(--color-danger);
     display: block;
     margin-bottom: 8px;
+    color: var(--br-text);
+    font-weight: 500;
 }
 
 .entity-delete-error__list {
-    margin: 0 0 10px 0;
-    padding-left: 0;
-    list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
+    margin: 0 0 10px;
+    padding: 0;
+    list-style: none;
 }
 
 .entity-delete-error__ref {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 8px;
-    background: var(--color-bg-base);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 5px;
+    background: var(--br-well);
 }
 
 .entity-delete-error__ref-name {
-    color: var(--color-text-primary);
-}
-
-.entity-delete-error__focus-btn {
-    padding: 2px 8px;
-    font-size: var(--font-size-xs);
-    background: var(--color-bg-hover);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 3px;
-    cursor: pointer;
-    transition: background var(--transition-fast);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--br-text);
 }
 
 .entity-delete-error__footer {
     display: flex;
     justify-content: flex-end;
+    gap: 6px;
 }
 
-.entity-delete-error__dismiss-btn {
-    padding: 4px 12px;
-    font-size: var(--font-size-sm);
-    background: var(--color-bg-hover);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
+.entity-delete-error__focus-btn,
+.entity-delete-error__dismiss-btn,
+.entity-delete-error__force-btn {
+    height: var(--br-control-h-sm);
+    padding: 0 8px;
+    border: 1px solid var(--br-line);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--br-text);
+    font-family: var(--br-font);
+    font-size: var(--br-text-sm);
     cursor: pointer;
-    border-radius: var(--radius-sm);
 }
 
-.entity-icon--pink {
-    color: var(--color-pink-500, #ec4899);
-}
+.entity-delete-error__focus-btn:hover,
+.entity-delete-error__dismiss-btn:hover { background: var(--br-hover); }
 
 .entity-delete-error__force-btn {
-    padding: 4px 12px;
-    font-size: var(--font-size-sm);
-    background: rgba(255, 68, 68, 0.15);
-    color: var(--color-danger);
-    border: 1px solid var(--color-danger);
-    cursor: pointer;
-    border-radius: var(--radius-sm);
-    margin-left: 8px;
-    transition: all var(--transition-fast);
+    border-color: transparent;
+    background: var(--br-danger);
+    color: var(--br-text-on-chalk);
+    font-weight: 500;
 }
 
-.entity-delete-error__force-btn:hover {
-    background: var(--color-danger);
-    color: white;
-}
+.entity-delete-error__force-btn:hover { filter: brightness(1.08); }
