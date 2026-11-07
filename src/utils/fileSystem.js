@@ -114,65 +114,102 @@ export async function clearCampaignsIndexedDB() {
   }
 }
 
-export async function exportProject(graphData, campaigns = {}, defaultTitle = 'graph') {
-  // ZIP export for projects with campaigns; plain JSON fallback.
+// Builds the project file: plain .json, or a .zip bundle (datamodel.json + campaigns/) when campaigns exist.
+async function buildProjectFile(graphData, campaigns = {}, title = 'graph') {
   const jsonString = JSON.stringify(graphData, null, 2);
-  const safeTitle = defaultTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'graph';
+  const safeTitle = String(title).replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'graph';
 
-  const hasCampaigns = Object.keys(campaigns).length > 0;
-  
-  let exportBlob;
-  let defaultExtension = '.json';
-  let fileTypeDescription = 'JSON Files';
-  let acceptMime = { 'application/json': ['.json'] };
-  let suggestedName = `${safeTitle}.json`;
-
-  if (hasCampaigns) {
+  if (Object.keys(campaigns).length > 0) {
     const zip = new JSZip();
     zip.file("datamodel.json", jsonString);
     const campaignsFolder = zip.folder("campaigns");
-    for (const [id, campaign] of Object.entries(campaigns)) {
+    for (const campaign of Object.values(campaigns)) {
       campaignsFolder.file(`${campaign.name}.json`, JSON.stringify(campaign, null, 2));
     }
     // AR-10: browser side only
-    exportBlob = await zip.generateAsync({ type: "blob" });
-    
-    defaultExtension = '.zip';
-    fileTypeDescription = 'ZIP Archives';
-    acceptMime = { 'application/zip': ['.zip'] };
-    suggestedName = `${safeTitle}.zip`;
-  } else {
-    exportBlob = new Blob([jsonString], { type: 'application/json' });
+    const blob = await zip.generateAsync({ type: "blob" });
+    return { blob, name: `${safeTitle}.zip`, description: 'ZIP Archives', accept: { 'application/zip': ['.zip'] } };
   }
+  return {
+    blob: new Blob([jsonString], { type: 'application/json' }),
+    name: `${safeTitle}.json`,
+    description: 'JSON Files',
+    accept: { 'application/json': ['.json'] },
+  };
+}
+
+// Manual file save: Save-as picker where supported, otherwise a normal download. Used as the fallback of saveProject.
+export async function exportProject(graphData, campaigns = {}, defaultTitle = 'graph') {
+  const { blob, name, description, accept } = await buildProjectFile(graphData, campaigns, defaultTitle);
 
   if (typeof window.showSaveFilePicker === 'function') {
     try {
-      const fileHandle = await window.showSaveFilePicker({
-        suggestedName: suggestedName,
-        types: [{
-          description: fileTypeDescription,
-          accept: acceptMime,
-        }],
-      });
+      const fileHandle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description, accept }] });
       const writable = await fileHandle.createWritable();
-      await writable.write(exportBlob);
+      await writable.write(blob);
       await writable.close();
-      return;
+      return name;
     } catch (err) {
       if (err.name !== 'AbortError') throw err;
-      return;
+      return null;
     }
   }
 
-  // Fallback
-  const url = URL.createObjectURL(exportBlob);
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = suggestedName;
+  a.download = name;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  return name;
+}
+
+// ADDED (Save/Load): the dev server (vite.config.js savesPlugin) exposes the project's /saves folder at /__saves.
+// This is a same-origin call to our own dev server, not an external service (AR-10 exception, see architecture_rules).
+const SAVES_URL = '/__saves';
+const SAVES_HEADERS = { 'x-br-saves': '1' };
+
+async function savesFetch(path, init = {}) {
+  const res = await fetch(`${SAVES_URL}${path}`, { ...init, headers: { ...SAVES_HEADERS, ...init.headers } });
+  // The marker header proves the answer came from savesPlugin and not from a static host's index.html fallback.
+  if (!res.ok || res.headers.get('x-br-saves') !== '1') throw new Error('saves_unavailable');
+  return res;
+}
+
+/**
+ * Save the project to <repo>/saves/<title>.json (or .zip with campaigns), overwriting the same name.
+ * Falls back to the Save-as picker / download when the dev server is not running.
+ * Returns { name, where: 'saves' | 'download' } or null when the picker was cancelled.
+ */
+export async function saveProject(graphData, campaigns = {}, title = 'graph') {
+  const { blob, name } = await buildProjectFile(graphData, campaigns, title);
+  try {
+    await savesFetch(`/${encodeURIComponent(name)}`, { method: 'PUT', body: blob });
+    return { name, where: 'saves' };
+  } catch (err) {
+    if (err.message !== 'saves_unavailable' && !(err instanceof TypeError)) throw err;
+  }
+  const saved = await exportProject(graphData, campaigns, title);
+  return saved ? { name: saved, where: 'download' } : null;
+}
+
+/** Lists the files in /saves, newest first: [{ name, size, modified }]. Returns null when the dev server is unavailable. */
+export async function listSavedProjects() {
+  try {
+    const res = await savesFetch('');
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/** Reads one file from /saves through the same parse + migrate pipeline as importProject. */
+export async function loadSavedProject(name) {
+  const res = await savesFetch(`/${encodeURIComponent(name)}`);
+  const blob = await res.blob();
+  return parseProjectFile(new File([blob], name));
 }
 
 export async function importProject() {
@@ -208,7 +245,11 @@ export async function importProject() {
   }
 
   if (!file) return null;
+  return parseProjectFile(file);
+}
 
+// Reads a .json or .zip project file (File/Blob with a name) into { graphData, campaigns }.
+async function parseProjectFile(file) {
   let data;
   let campaigns = {};
 

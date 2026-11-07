@@ -45,3 +45,24 @@
     font-size: var(--br-text-sm);
     color: var(--br-text-3);
 }
+
+/* ADDED (2026-11-05): category name is a button that collapses / expands its collectibles */
+.br-collectibles__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--br-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.br-collectibles__toggle > svg { flex-shrink: 0; color: var(--br-text-3); }
+
+/* ADDED (2026-11-05): sequential mode block of the collectible dialog */
+.br-collectible-seq { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.br-collectible-seq__preview { display: flex; flex-wrap: wrap; gap: 4px; max-height: 120px; overflow-y: auto; }

@@ -16,7 +16,7 @@ Layout (since the 2026-11 redesign): **left = project data** (Flags, Status, Col
 | **State Management** | Zustand 5 | Global stores for graph data and simulation state |
 | **Icon** | Lucide-React | UI icons for rails, panels, toolbars, menus and dialogs |
 | **Language** | JavaScript (`.jsx` / `.js`) | No TypeScript |
-| **Backend** | None | Zero network requests; primary persistence via IndexedDB auto-save; explicit export/import via browser File System Access API (JSON for narrative-only projects, ZIP for projects with campaigns) |
+| **Backend** | None | Zero network requests; primary persistence via IndexedDB auto-save; explicit export/import via dev-server `saves/` folder (Save/Load; JSON for narrative-only projects, ZIP for projects with campaigns) with browser File System Access API / download as fallback |
 | **Drag & Drop** | @hello-pangea/dnd | Drag-and-drop reordering for entity lists (nodes, flags, statuses) |
 | **ZIP Bundling** | JSZip | Browser-only ZIP creation/extraction for multi-campaign project export/import |
 
@@ -27,26 +27,28 @@ Layout (since the 2026-11 redesign): **left = project data** (Flags, Status, Col
 ```
 branching-routes/
 ├── index.html              # Entry point HTML shell without external font CDNs
-├── vite.config.js          # Build config with src/ path aliases and manualChunks vendor code-splitting
+├── vite.config.js          # Build config with src/ path aliases, manualChunks vendor code-splitting, and savesPlugin (dev-only /__saves endpoint for Save/Load)
+├── start-app.bat           # Windows launcher: installs dependencies on first run, then npm run dev -- --open
+├── saves/                  # Created by Save (Ctrl+S): <project title>.json or .zip; git-ignored
 ├── package.json            # Dependencies and scripts
 │
 ├── public/                 # Static assets served as-is
 │   └── favicon.svg
 │
 ├── src/
-│   ├── main.jsx            # React bootstrap — async boot: wrapped App with ErrorBoundary, restores graph and campaigns from IndexedDB, wires debounced auto-save subscriptions for both stores, then renders <App />
-│   ├── App.jsx             # Root layout: TopBar + LeftSidebar + Canvas (with FloatingMiddleBar overlay) + RightSidebar; mount points for <Toast /> and <CommandPalette /> fixed overlays
-│   ├── App.css             # Grid layout styles for the three regions
+│   ├── main.jsx            # Bootstrap: initPersistence() restores the IndexedDB autosave through migrateGraph(), starts undo history (initHistory), restores campaigns, wires debounced auto-save, then renders <App /> in ErrorBoundary; dev-only #design opens the design-system sheet
+│   ├── App.jsx             # Root layout: TopBar + LeftSidebar (data) + canvas (FloatingMiddleBar overlay) + RightSidebar (Browse / Inspect) + StatusStrip; overlays Toast, CommandPalette, SettingsModal, ShortcutsDialog
+│   ├── App.css             # Grid shell (48px top bar, data | canvas | nodes, 28px status strip); regions use z-index 1–3 only
 │   │
 │   ├── styles/
-│   │   ├── buttons.css     # Shared interactive button style classes
-│   │   ├── tokens.css      # Design system CSS custom properties (colours, spacing, typography using system font stack); explicit z-index scale (--z-cluster, --z-context-menu, --z-modal, --z-palette, --z-toast); cluster palette color tokens; indigo accent scale; shadow and animation keyframe tokens; node type color tokens (--color-node-common, --color-node-choice, --color-node-ending)
+│   │   ├── buttons.css     # Legacy .btn classes (frozen; new UI uses .br-btn)
+│   │   ├── tokens.css      # Legacy tokens; since Redesign Step 8 the surface/text/border/primary values follow the design system; z-index scale; node identity colours; keyframes
 │   │   ├── system.css      # Design system (Redesign Step 3): --br-* tokens + .br-* primitives (buttons, inputs, switch, segmented, rows, chips, menu, dialog, route marks)
-│   │   └── global.css      # CSS reset, base styles, component styles, simulation mode overrides (!important); Toast overlay; CommandPalette overlay; cluster overlay SVG regions; node type box-shadow glows; hover-only React Flow handles; frozen-prefix edge overlay; ErrorBoundary styles; ending-node active halo
+│   │   └── global.css      # Reset + legacy component styles (node cards, campaign states, edges, snap guides, context menu, palette, toasts, NameModal) aligned with the design system; imports tokens, buttons, system
 │   │
 │   ├── store/
 │   │   ├── narrativeStore.js # Zustand store: canonical graph (common, choice, ending, edges, flag, status, path, chapter, tag, commonType, endingType, collectibleCategory, collectible, meta); schema v5; persistent editor-level seen marks (editorSeenNodeIds, editorSeenOptionIds) with toggle, clear, and applySeenFromCampaign actions; tag CRUD; load-bearing cross-store comments
-│   │   ├── uiStore.js      # Zustand store: UI state (selection, multi-select, snap-to-grid, choice display mode, label display mode, canvas filters (chapter/path/tag with AND/OR logic), shortest route overlays, selected route index, frozenWaypointEdgeIds, mergedGroupEdgeIds, copiedNode buffer, followActiveNode toggle, sequential flag batch settings persistent to localStorage via safeStorage)
+│   │   ├── uiStore.js      # UI state: selection, snap / display settings, minimap, canvas filters (chapter, path, tags AND/OR, node type, collectible category), featureCampaign, searchIncludeEdges, Settings / shortcut sheet visibility, campaign overlays, batch flag settings (persisted via safeStorage)
 │   │   ├── uiStore.test.js # Unit test for selection equality
 │   │   ├── toastStore.js   # Zustand store: ephemeral toast notifications (toasts[], addToast, removeToast, auto-dismiss timer); never persisted to IndexedDB
 │   │   ├── simulationStore.js  # Zustand store: campaign-mode lifecycle, six-state node enum, campaign-only seen tracking (seenNodeIds), traversal records capped at MAX_TRAVERSAL_DEPTH=1000, async computeRoutesFromStart, selected option, passive analysis, sequence pathfinding (Route Finder), sandbox overrides, campaign snapshotting
@@ -78,7 +80,7 @@ branching-routes/
 │   │   └── index.js        # Barrel re-export for all utilities
 │   │
 │   ├── hooks/
-│   │   ├── useKeyboardShortcuts.js  # Global keydown handler: shortcut dispatch using dynamic getState() without top-level store hook; input-field and campaign-mode guards
+│   │   ├── useKeyboardShortcuts.js  # Global shortcuts: undo/redo, select all, duplicate, arrow nudge, zoom/fit, Ctrl+S save, copy/paste, add-node and add-entity keys, ? shortcut sheet; input and campaign guards; exports duplicateSelection / nudgeSelection
 │   │   ├── useFocusTrap.js          # Custom hook for modal focus trapping + ARIA
 │   │   └── useFocusTrap.test.js     # Unit test for useFocusTrap
 │   │
@@ -92,24 +94,24 @@ branching-routes/
 │       ├── CollectibleManager.css
 │       ├── CollectibleDialog.jsx  # Create / rename a collectible or category
 │       ├── ErrorBoundary.jsx    # React class component error boundary with emergency export + storage reset
-│       ├── TopBar.jsx           # Project title input + edit mode controls (node quick-create buttons & campaign start selector, disabled in campaign mode) + file ops (New/Import/Export); structural import validation error handling
-│       ├── GraphCanvas.jsx      # React Flow canvas wrapper; centralized canvas filter evaluation; declarative campaign mode guards; nodeTypes/edgeTypes in module scope
+│       ├── TopBar.jsx           # Brand + project title | "Add node" group (labelled, route dots) | campaign selector + Start (Campaign switch on), undo / redo, File menu (New / Load / Save, Ctrl+S), Settings
+│       ├── GraphCanvas.jsx      # React Flow canvas: derives nodes/edges, shared filter predicate, campaign guards, modals, undo groups, Inspector on click, canvas events (view, select, align, focus…), CanvasControls + minimap, Snap Assist
 │       ├── SandboxPanel.jsx     # Campaign-only flag/status override panel (Sandbox Overrides section only); mounted in RightSidebar Sandbox tab; never writes to narrativeStore
-│       ├── StatusStrip.jsx      # Bottom strip with lucide-react icons; live coverage metrics (Nodes/Endings/Edges/Dead-ends traversal fractions); reads from simulationStore and narrativeStore via per-slice selectors
-│       ├── ConfirmModal.jsx     # Reusable confirmation dialog (title, message, confirmLabel, danger flag) with ARIA attributes + useFocusTrap
+│       ├── StatusStrip.jsx      # Bottom strip: node counts (route colours) and entity counts; campaign coverage numbers while a campaign runs
+│       ├── ConfirmModal.jsx     # Confirmation dialog through ModalPortal; Enter confirms, Esc cancels; danger variant
 │       ├── FlagManager.jsx      # Flag CRUD with name validation and reference checking; restyled with EntityList.css and lucide-react icons
 │       ├── StatusManager.jsx    # Status CRUD with name validation and reference checking; restyled with EntityList.css and lucide-react icons
 │       ├── PathChapterManager.jsx # Path and Chapter CRUD management UI; restyled with EntityList.css; filterType prop selects path vs chapter view
 │       ├── EntityList.css       # Shared CSS for FlagManager, StatusManager, PathChapterManager list views; includes drag-and-drop affordances
-│       ├── ContextMenu.jsx      # Right-click context menu at cursor; pane/node/edge/multi-select action lists; Edit Node and Edit Edge actions dispatch canvas-edit-node-modal / canvas-edit-edge-modal events; viewport-edge flip; dismisses on Escape, click-outside, pan, and drag
-│       ├── NameModal.jsx        # Naming modal for quick-create of flags, statuses, paths, and chapters with ARIA attributes + useFocusTrap
+│       ├── ContextMenu.jsx      # Right-click menu: add nodes / paste (pane), edit / start / copy / duplicate / delete (node), edit / delete (edge), align / distribute / duplicate / delete (multi); Esc closes
+│       ├── NameModal.jsx        # Name / rename flags, statuses, paths, chapters, tags, types; spaces → _ for flags and statuses; batch flags; Enter confirms; through ModalPortal
 │       ├── CommandPalette.jsx   # Ctrl+K searchable overlay using per-slice selectors and functional state updates; entity search index across all narrative types; navigate-to-entity via canvas-navigate-to-node DOM event
-│       ├── Toast.jsx            # Top-right fixed overlay reading toastStore; renders stacked auto-dismiss notifications with info/success/warning/error variants
+│       ├── Toast.jsx            # Top-right corner of the canvas area (mounted inside .app__canvas), reading toastStore; renders stacked auto-dismiss notifications with info/success/warning/error variants
 │       ├── layout/
 │       │   ├── SideRail.jsx     # Shared icon+label rail + docked panel (Redesign Step 4); replaces NameplateTab
 │       │   ├── SideRail.css
-│       │   ├── LeftSidebar.jsx  # Nameplate-tab sidebar: Flags / Status / Chapter / Paths tabs; dims to opacity 0.4 + grayscale during campaign mode
-│       │   ├── RightSidebar.jsx # Nameplate-tab sidebar: Filters / Nodes / Route Tracing / Campaign List / Sandbox tabs; dims during campaign mode; mounts SandboxPanel directly in Sandbox tab
+│       │   ├── LeftSidebar.jsx  # Project data rail (SideRail): Flags, Status, Collectibles, Tags, Chapters, Paths, Types; dims during campaigns
+│       │   ├── RightSidebar.jsx # Nodes rail (SideRail): Browse, Inspect (+ Routes, Campaigns, Sandbox when the Campaign switch is on); listens for switch-right-panel
 │       ├── panels/
 │       │   ├── BrowsePanel.jsx         # Right "Browse": unified search (labels, flags, statuses, collectibles, options, edge conditions) + filters that dim the canvas
 │       │   ├── BrowsePanel.css
@@ -126,15 +128,16 @@ branching-routes/
 │       │   ├── FloatingMiddleBar.jsx   # Centered overlay above canvas; hidden in authoring mode (functions moved to TopBar); displays exclusively in campaign mode: active-campaign pill with Overlay/Follow/Undo/Reset/Save/Load/Autosave/Save Seen/Exit controls
 │       │   └── FloatingMiddleBar.css
 │       ├── modals/
-│       │   ├── NodeConfigModal.jsx     # Full-screen 2-column node editor (Common/Choice) or narrow single-column (Ending); disabled save button when label empty
+│       │   ├── NodeConfigModal.jsx     # Full node editor (Common / Choice two columns, Ending single, Hub compact): text, chapter/path/type, collectibles, start node, on-enter changes, Choice options + conditions, tags; Enter saves
 │       │   ├── NodeConfigModal.css
-│       │   ├── WarpConfigModal.jsx     # Narrow single-column configuration modal for warp entrance/exit node connections (portalChannel selector, delete button); disabled save button when label empty
-│       │   ├── EdgeConfigModal.jsx     # Full-screen edge editor with ARIA attributes; label, AND/OR condition builder with flag and status clauses; edge deletion
+│       │   ├── WarpConfigModal.jsx     # Warp editor: label, text, connected warp / channel, delete; Enter saves
+│       │   ├── EdgeConfigModal.jsx     # Edge editor: from → to, label, AND/OR condition builder, delete; Enter saves
 │       │   ├── EdgeConfigModal.css
+│       │   ├── LoadProjectDialog.jsx   # Load project dialog: lists saves/ (name, size, date), "Browse other file…" fallback
 │       │   ├── ShortcutsDialog.jsx     # Keyboard shortcut sheet ("?" or Settings)
 │       │   └── SettingsModal.jsx       # Editor preferences (snap, display modes, search edge toggle, Campaign & Route Tracing switch); built on system.css primitives; applies live
 │       ├── nodes/
-│       │   ├── CommonNode.jsx          # Custom React Flow node; reads isFilteredOut from data; type bar displays user-defined subtype name when assigned
+│       │   ├── CommonNode.jsx          # Common node card: subtype or "Common" label, effects + collectible badges, warnings; reads isFilteredOut
 │       │   ├── ChoiceNode.jsx          # Custom React Flow node for player choices with per-option source handles; reads isFilteredOut from data; options with unmet requirements show a lock pill and are dimmed/click-gated in campaign mode
 │       │   ├── EndingNode.jsx          # Custom React Flow node for terminal states (no source handle); reads isFilteredOut from data; green border glow and corner badge (story-node--seen) from narrativeStore.editorSeenNodeIds in edit mode
 │       │   ├── WarpEntranceNode.jsx    # Custom React Flow node for warp entrance (left target handle, purple type bar, square shape); reads isFilteredOut from data

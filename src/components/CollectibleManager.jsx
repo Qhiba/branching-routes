@@ -1,6 +1,7 @@
 // ADDED (Redesign Step 4): left-sidebar "Collectibles" panel.
 // Categories with their collectibles; each collectible shows how many Common nodes grant it (expand to jump to
 // them) or that it is not placed yet. Drag to reorder within a category or move to another category.
+// CHANGED (2026-11-05): clicking a category name collapses / expands its collectibles (session-only; searching shows matches).
 // All mutations go through narrativeStore actions (AR-04); built on design-system primitives (AR-37).
 import React, { useMemo, useState } from 'react';
 import { Search, Plus, FolderPlus, Pencil, Trash2, Gem, ChevronRight, ChevronDown, GripVertical } from 'lucide-react';
@@ -27,6 +28,8 @@ export default function CollectibleManager() {
     const [dialog, setDialog] = useState(null);      // { kind, initialData, defaultCategoryId }
     const [confirm, setConfirm] = useState(null);    // { title, message, confirmLabel, onConfirm }
     const [expandedId, setExpandedId] = useState(null);
+    const [collapsed, setCollapsed] = useState({}); // groupId -> true while the category is collapsed
+    const toggleCollapsed = (groupId) => setCollapsed(prev => ({ ...prev, [groupId]: !prev[groupId] }));
 
     // collectibleId -> [{ id, label }] of Common nodes granting it
     const grantedBy = useMemo(() => {
@@ -140,15 +143,25 @@ export default function CollectibleManager() {
             ) : (
                 <DragDropContext onDragEnd={onDragEnd}>
                     <div className="entity-list-content custom-scrollbar">
-                        {groups.map(group => (
+                        {groups.map(group => {
+                            // While searching, every group stays open so the matches are visible
+                            const isCollapsed = !q && !!collapsed[group.id];
+                            return (
                             <div key={group.id} className="br-collectibles__group">
                                 <div className="entity-list-item br-collectibles__category">
-                                    <div className="entity-list-item-left">
+                                    <button
+                                        type="button"
+                                        className="br-collectibles__toggle"
+                                        aria-expanded={!isCollapsed}
+                                        onClick={() => toggleCollapsed(group.id)}
+                                        title={isCollapsed ? 'Show collectibles' : 'Hide collectibles'}
+                                    >
+                                        {isCollapsed ? <ChevronRight size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
                                         <span className="entity-list-item-name br-collectibles__category-name">
                                             {group.category ? group.category.name : 'No category'}
                                         </span>
                                         <span className="br-badge">{group.items.length}</span>
-                                    </div>
+                                    </button>
                                     {group.category && (
                                         <div className="entity-list-item-actions">
                                             <button className="entity-action-btn" title="New collectible in this category" aria-label={`New collectible in ${group.category.name}`}
@@ -170,6 +183,7 @@ export default function CollectibleManager() {
                                     )}
                                 </div>
 
+                                {!isCollapsed && (
                                 <Droppable droppableId={group.id} isDropDisabled={dragDisabled}>
                                     {(provided) => (
                                         <div ref={provided.innerRef} {...provided.droppableProps} className="br-collectibles__items">
@@ -242,8 +256,10 @@ export default function CollectibleManager() {
                                         </div>
                                     )}
                                 </Droppable>
+                                )}
                             </div>
-                        ))}
+                            );
+                        })}
                         {q && groups.every(g => g.items.length === 0) && (
                             <p className="br-collectibles__hint">No collectible matches "{query.trim()}".</p>
                         )}

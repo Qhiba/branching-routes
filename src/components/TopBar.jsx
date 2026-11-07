@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Network, Play, Settings, ChevronDown, FilePlus, FolderOpen, Download, Undo2, Redo2 } from 'lucide-react';
+import { Network, Play, Settings, ChevronDown, FilePlus, FolderOpen, Save, Undo2, Redo2 } from 'lucide-react';
 import { useNarrativeStore, useUIStore, useSimulationStore, useCampaignStore, useToastStore, useHistoryStore, undo, redo } from 'store';
-import { exportProject, importProject, clearIndexedDB, clearCampaignsIndexedDB } from 'utils';
+import { saveProject, importProject, listSavedProjects, loadSavedProject, clearIndexedDB, clearCampaignsIndexedDB } from 'utils';
 import ConfirmModal from './ConfirmModal.jsx';
+import LoadProjectDialog from './modals/LoadProjectDialog.jsx';
 import './TopBar.css';
 
 // CHANGED (Redesign Step 4): rebuilt on design-system primitives (AR-37).
@@ -10,7 +11,7 @@ import './TopBar.css';
 //   Centre: "Add node" group — one labelled button per node type, marked with its route colour
 //   Right:  campaign selector + Start (only when the Campaign feature is on, AR-36), File menu, Settings
 // Center (0,0) moved to the canvas controls. Snap Assist moved to Settings (Step 1).
-// The unused Dagre auto-layout handler was removed (L stays "fit view"). Import/export feedback uses toasts instead of alert().
+// The unused Dagre auto-layout handler was removed (L stays "fit view"). Save/load feedback uses toasts instead of alert(). CHANGED (Save/Load): Export -> Save (Ctrl+S), Import -> Load.
 
 const NODE_BUTTONS = [
   { type: 'common', route: 'common', label: 'Common', hint: 'Add a Common node (N)' },
@@ -21,7 +22,7 @@ const NODE_BUTTONS = [
   { type: 'warp_exit', route: 'warp', label: 'Warp out', hint: 'Add a Warp exit (Ctrl+W)' },
 ];
 
-function FileMenu({ disabled, onNew, onImport, onExport }) {
+function FileMenu({ disabled, onNew, onLoad, onSave }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
   const firstItemRef = useRef(null);
@@ -66,12 +67,12 @@ function FileMenu({ disabled, onNew, onImport, onExport }) {
           <button ref={firstItemRef} className="br-menu__item" role="menuitem" onClick={run(onNew)}>
             <FilePlus />New project
           </button>
-          <button className="br-menu__item" role="menuitem" onClick={run(onImport)}>
-            <FolderOpen />Open project…
+          <button className="br-menu__item" role="menuitem" onClick={run(onLoad)}>
+            <FolderOpen />Load project…
           </button>
           <hr className="br-menu__divider" />
-          <button className="br-menu__item" role="menuitem" onClick={run(onExport)}>
-            <Download />Export project…
+          <button className="br-menu__item" role="menuitem" onClick={run(onSave)}>
+            <Save />Save project<span className="br-kbd">Ctrl S</span>
           </button>
         </div>
       )}
@@ -84,7 +85,6 @@ export default function TopBar() {
   const updateMeta = useNarrativeStore(s => s.updateMeta);
   const newGraph = useNarrativeStore(s => s.newGraph);
   const loadGraph = useNarrativeStore(s => s.loadGraph);
-  const exportGraph = useNarrativeStore(s => s.exportGraph);
 
   // ADDED (Redesign Step 1): campaign selector gated by the Campaign feature switch
   const featureCampaign = useUIStore(s => s.featureCampaign);
@@ -107,6 +107,8 @@ export default function TopBar() {
   // Derive a valid selection instead of syncing it in an effect: fall back to the first campaign.
   const selectedId = campaignsMap[selectedCampaignId] ? selectedCampaignId : (campaignsList[0]?.id || '');
   const [showNewConfirm, setShowNewConfirm] = useState(false);
+  // ADDED (Save/Load): files in /saves while the Load dialog is open (null = closed)
+  const [savedFiles, setSavedFiles] = useState(null);
 
   const toast = (msg, variant) => useToastStore.getState().addToast(msg, variant);
 
@@ -131,47 +133,88 @@ export default function TopBar() {
     exitCampaign();
   };
 
-  const handleImport = async () => {
-    try {
-      const data = await importProject();
-      if (data) {
-        exitCampaign();
-        clearCampaignsStore();
-        if (data.campaigns) loadCampaignsFromObject(data.campaigns);
-        loadGraph(data.graphData || data);
-        toast(`Opened "${data.graphData?.meta?.title || 'project'}"`, 'success');
-      }
-    } catch (err) {
-      if (err.message === 'unsupported_schema_version') {
-        toast("This file was made by a newer or unknown version of Branching Routes, so it can't be opened.", 'error');
-      } else if (err.message === 'invalid_project_structure') {
-        toast("This file isn't a Branching Routes project: its nodes or edges are missing.", 'error');
-      } else {
-        toast(`Couldn't open the file: ${err.message}`, 'error');
-      }
+  // CHANGED (Save/Load): "Import" is now Load. Both the saves list and the file picker end up here.
+  const applyLoaded = (data) => {
+    exitCampaign();
+    clearCampaignsStore();
+    if (data.campaigns) loadCampaignsFromObject(data.campaigns);
+    loadGraph(data.graphData || data);
+    toast(`Loaded "${data.graphData?.meta?.title || 'project'}"`, 'success');
+  };
+
+  const reportLoadError = (err) => {
+    if (err.message === 'unsupported_schema_version') {
+      toast("This file was made by a newer or unknown version of Branching Routes, so it can't be loaded.", 'error');
+    } else if (err.message === 'invalid_project_structure') {
+      toast("This file isn't a Branching Routes project: its nodes or edges are missing.", 'error');
+    } else {
+      toast(`Couldn't load the file: ${err.message}`, 'error');
     }
   };
 
-  const handleExport = async () => {
+  const handleBrowse = async () => {
+    setSavedFiles(null);
     try {
-      await exportProject(exportGraph(), campaignsMap, meta?.title || 'branching_routes_project');
-      toast('Project exported', 'success');
-    } catch {
-      toast("Couldn't export. Check that the browser may save files here.", 'error');
+      const data = await importProject();
+      if (data) applyLoaded(data);
+    } catch (err) {
+      reportLoadError(err);
     }
   };
+
+  // Load opens the /saves list; without the dev server (no list) it goes straight to the file picker.
+  const handleLoad = async () => {
+    const files = await listSavedProjects();
+    if (files) setSavedFiles(files);
+    else handleBrowse();
+  };
+
+  const handlePickSaved = async (name) => {
+    setSavedFiles(null);
+    try {
+      applyLoaded(await loadSavedProject(name));
+    } catch (err) {
+      reportLoadError(err);
+    }
+  };
+
+  // CHANGED (Save/Load): "Export" is now Save. It writes saves/<project title>.json (or .zip with campaigns).
+  const handleSave = async () => {
+    if (useSimulationStore.getState().isCampaignActive) return;
+    try {
+      const { exportGraph, meta: currentMeta } = useNarrativeStore.getState();
+      const result = await saveProject(exportGraph(), useCampaignStore.getState().campaigns, currentMeta?.title || 'branching_routes_project');
+      if (!result) return;
+      toast(result.where === 'saves' ? `Saved saves/${result.name}` : `Saved ${result.name}`, 'success');
+    } catch {
+      toast("Couldn't save the project. Check that the app is still running.", 'error');
+    }
+  };
+
+  // Ctrl+S (useKeyboardShortcuts) asks for a save through a DOM event, because the hook lives in GraphCanvas (AR-19).
+  // The handler is read through a ref so the listener is attached once.
+  const saveRef = useRef(handleSave);
+  useEffect(() => { saveRef.current = handleSave; });
+  useEffect(() => {
+    const onSaveRequest = () => saveRef.current();
+    window.addEventListener('project-save', onSaveRequest);
+    return () => window.removeEventListener('project-save', onSaveRequest);
+  }, []);
 
   return (
     <>
       <ConfirmModal
         isOpen={showNewConfirm}
         title="Start a new project?"
-        message="Everything in the current project is cleared. Export it first if you want to keep it."
+        message="Everything in the current project is cleared. Save it first if you want to keep it."
         confirmLabel="Start new project"
         danger
         onConfirm={handleNewConfirmed}
         onCancel={() => setShowNewConfirm(false)}
       />
+      {savedFiles && (
+        <LoadProjectDialog files={savedFiles} onPick={handlePickSaved} onBrowse={handleBrowse} onClose={() => setSavedFiles(null)} />
+      )}
       <div className="br-topbar">
         <div className="br-topbar__left">
           <div className="br-topbar__brand" aria-label="Branching Routes">
@@ -252,8 +295,8 @@ export default function TopBar() {
           <FileMenu
             disabled={isCampaignActive}
             onNew={() => setShowNewConfirm(true)}
-            onImport={handleImport}
-            onExport={handleExport}
+            onLoad={handleLoad}
+            onSave={handleSave}
           />
           <button
             className="br-btn br-btn--ghost br-btn--icon"

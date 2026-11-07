@@ -79,7 +79,9 @@ The exported JSON structure is versioned via a top-level `"schemaVersion"` field
 
 ## AR-10 — No External Backend
 
-This application makes zero network requests at runtime. No fetch, axios, or WebSocket calls are permitted in application code. All persistence is via the browser's File System Access API (`showSaveFilePicker` / `showOpenFilePicker`).
+This application makes zero network requests at runtime. No fetch, axios, or WebSocket calls are permitted in application code. Persistence is IndexedDB autosave plus explicit files (browser File System Access API / download).
+
+**Single exception (2026-11-05):** the project Save/Load feature may call the app's own dev server at `/__saves` (same origin, served by `savesPlugin` in `vite.config.js`, which reads and writes the repo's `saves/` folder). It is confined to `saveProject`, `listSavedProjects` and `loadSavedProject` in `utils/fileSystem.js`, only exists under `npm run dev`, and `saveProject` falls back to the picker/download when the endpoint is missing. No other network calls are allowed.
 
 > **NOTE:** RESOLVED — CDN links removed from index.html, system font stack now used in tokens.css.
 

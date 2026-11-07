@@ -8,7 +8,6 @@ import useFocusTrap from '../../hooks/useFocusTrap';
 import './NodeConfigModal.css';
 import ModalPortal from 'components/ModalPortal';
 import { isConfirmEnter } from 'utils';
-import ChipsField from 'components/fields/ChipsField';
 
 // CHANGED: Phase 6 — Replaced legacy NodeInspector docked panel → full-screen 2-column modal
 
@@ -109,7 +108,7 @@ function ConditionBuilder({ requires, flags, statuses, onChange }) {
     };
 
     const addStatusClause = () => {
-        const clause = { status: statuses[0]?.id || '', min: 0 };
+        const clause = { status: statuses[0]?.id || '' }; // CHANGED (2026-11-06): Min and Max start empty
         onChange({ ...requires, conditions: [...requires.conditions, clause] });
     };
 
@@ -222,7 +221,8 @@ function ConditionBuilder({ requires, flags, statuses, onChange }) {
 // REMOVED (Redesign Step 2): VariantCard — Narrative Variants dropped from the data model (schema v5)
 
 // -- Sub-component: Searchable flag dropdown --
-function FlagDropdown({ flags, selectedIds, onAdd }) {
+// CHANGED (2026-11-05): also used for collectibles. `flags` is any list of { id, name, hint? }; the wording props default to flags.
+function FlagDropdown({ flags, selectedIds, onAdd, triggerLabel = 'Add flag…', searchLabel = 'Search flags…', emptyLabel = 'No flags found' }) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const ref = useRef(null);
@@ -247,7 +247,7 @@ function FlagDropdown({ flags, selectedIds, onAdd }) {
                 disabled={flags.length === 0}
             >
                 <Plus className="br-flag-dropdown__icon" />
-                Add flag…
+                {triggerLabel}
                 <ChevronDown className={`br-flag-dropdown__chevron ${open ? 'br-flag-dropdown__chevron--open' : ''}`} />
             </button>
             {open && (
@@ -256,13 +256,13 @@ function FlagDropdown({ flags, selectedIds, onAdd }) {
                         className="br-flag-dropdown__search"
                         autoFocus
                         type="text"
-                        placeholder="Search flags…"
+                        placeholder={searchLabel}
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
                     <div className="br-flag-dropdown__options">
                         {available.length === 0
-                            ? <span className="br-flag-dropdown__empty">No flags found</span>
+                            ? <span className="br-flag-dropdown__empty">{emptyLabel}</span>
                             : available.map(f => (
                                 <button
                                     key={f.id}
@@ -270,6 +270,7 @@ function FlagDropdown({ flags, selectedIds, onAdd }) {
                                     onClick={() => { onAdd(f.id); setOpen(false); setSearch(''); }}
                                 >
                                     {f.name}
+                                    {f.hint && <span className="br-flag-dropdown__hint">{f.hint}</span>}
                                 </button>
                             ))
                         }
@@ -480,6 +481,8 @@ function NodeConfigModalInner({ nodeId, onClose, onCancel }) {
     const collectibleDict = useNarrativeStore(s => s.collectible);
     const collectibleCategories = useNarrativeStore(s => s.collectibleCategory);
     const toggleNodeCollectible = useNarrativeStore(s => s.toggleNodeCollectible);
+    // Options for the collectible dropdown: name plus its category as a hint
+    const collectibleList = Object.values(collectibleDict).map(c => ({ id: c.id, name: c.name, hint: collectibleCategories[c.categoryId]?.name || '' }));
 
     // Close on Escape — use handleCancel so new-node orphan is deleted on ESC
     useEffect(() => {
@@ -821,20 +824,6 @@ function NodeConfigModalInner({ nodeId, onClose, onCancel }) {
                             </div>
                         </div>
 
-                        {/* ADDED (Redesign Step 7): collectibles granted by this Common node */}
-                        {isCommon && !isHub && (
-                            <div className="br-node-config-modal__collectibles">
-                                <ChipsField
-                                    id="br-ncm-collectibles"
-                                    label="Collectibles granted here"
-                                    options={Object.values(collectibleDict).map(c => ({ id: c.id, name: c.name, group: collectibleCategories[c.categoryId]?.name || 'No category' }))}
-                                    selectedIds={data.collectibleIds}
-                                    onToggle={(cid) => toggleNodeCollectible(node.id, cid)}
-                                    noOptionsText="No collectibles yet. Create them in the Collectibles panel on the left."
-                                />
-                            </div>
-                        )}
-
                         {/* FIX 7: Set Start Node as a button, not a toggle */}
                         {!isEnding && (
                             <div>
@@ -927,6 +916,42 @@ function NodeConfigModalInner({ nodeId, onClose, onCancel }) {
                                             <Plus className="br-node-config-modal__icon-xs" /> Add status change
                                         </button>
                                     </div>
+
+                                    {/* CHANGED (2026-11-05): collectibles moved here from the left column (order: flags, statuses, collectibles) */}
+                                    {isCommon && !isHub && (
+                                        <div className="br-node-config-modal__border-top">
+                                            <label className="br-node-config-modal__label br-node-config-modal__label--block">Collectibles granted</label>
+                                            {collectibleList.length === 0
+                                                ? <span className="br-node-config-modal__hint--inline">No collectibles yet. Create them in the Collectibles panel on the left.</span>
+                                                : <FlagDropdown
+                                                    flags={collectibleList}
+                                                    selectedIds={data.collectibleIds || []}
+                                                    onAdd={(cid) => toggleNodeCollectible(node.id, cid)}
+                                                    triggerLabel="Add collectible…"
+                                                    searchLabel="Search collectibles…"
+                                                    emptyLabel="No collectibles found"
+                                                />
+                                            }
+                                            {(data.collectibleIds || []).length > 0 && (
+                                                <>
+                                                    <div className="br-flag-dropdown__divider" />
+                                                    <div className="br-node-config-modal__flags-tags">
+                                                        {(data.collectibleIds || []).map(cid => {
+                                                            const c = collectibleDict[cid];
+                                                            return c ? (
+                                                                <span key={cid} className="br-node-config-modal__flag-tag">
+                                                                    {c.name}
+                                                                    <button className="br-node-config-modal__flag-tag__remove" onClick={() => toggleNodeCollectible(node.id, cid)}>
+                                                                        <X className="br-node-config-modal__icon-xs" />
+                                                                    </button>
+                                                                </span>
+                                                            ) : null;
+                                                        })}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

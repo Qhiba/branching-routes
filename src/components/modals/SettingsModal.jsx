@@ -6,6 +6,7 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useUIStore, useSimulationStore } from 'store';
+import { CANVAS_DOT_LEVEL_MAX } from 'utils';
 import useFocusTrap from 'hooks/useFocusTrap';
 import ModalPortal from 'components/ModalPortal';
 
@@ -69,6 +70,8 @@ function SettingsModalInner() {
     const snapAssist = useUIStore(s => s.snapAssist);
     const toggleSnapAssist = useUIStore(s => s.toggleSnapAssist);
     const snapThreshold = useUIStore(s => s.snapThreshold);
+    const canvasDotLevel = useUIStore(s => s.canvasDotLevel);
+    const setCanvasDotLevel = useUIStore(s => s.setCanvasDotLevel);
     const setSnapThreshold = useUIStore(s => s.setSnapThreshold);
     const choiceDisplayMode = useUIStore(s => s.choiceDisplayMode);
     const setChoiceDisplayMode = useUIStore(s => s.setChoiceDisplayMode);
@@ -153,6 +156,28 @@ function SettingsModalInner() {
                                 </span>
                             </div>
                         )}
+                        {/* ADDED (2026-11-06): brightness of the dots on the canvas */}
+                        <div className="br-setting">
+                            <div className="br-setting__text">
+                                <label htmlFor="set-dot-level" className="br-setting__label">Dot brightness</label>
+                                <p className="br-setting__hint">0 hides the dots on the canvas, 10 is the brightest.</p>
+                            </div>
+                            <span className="br-setting__control">
+                                <input
+                                    id="set-dot-level"
+                                    className="br-range"
+                                    type="range"
+                                    min="0"
+                                    max={CANVAS_DOT_LEVEL_MAX}
+                                    step="1"
+                                    value={canvasDotLevel}
+                                    onChange={(e) => setCanvasDotLevel(e.target.value)}
+                                />
+                                <span className="br-value">
+                                    {canvasDotLevel}
+                                </span>
+                            </span>
+                        </div>
                     </section>
 
                     <section className="br-section">

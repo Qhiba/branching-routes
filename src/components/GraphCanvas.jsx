@@ -10,7 +10,7 @@ import {
   MarkerType
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { computeSnapGuides, getSnappedPosition, getActiveGuides, applyAxisLock, miniMapNodeColor, computeAlignment, nodeMatchesFilters, nodeRouteType, EDGE_COLOR } from 'utils';
+import { computeSnapGuides, getSnappedPosition, getActiveGuides, applyAxisLock, miniMapNodeColor, computeAlignment, nodeMatchesFilters, nodeRouteType, EDGE_COLOR, canvasDotColor } from 'utils';
 
 import { useNarrativeStore, useSimulationStore, useUIStore, beginGroup, endGroup, cancelGroup } from 'store';
 import useKeyboardShortcuts from 'hooks/useKeyboardShortcuts'; // ADDED: Phase 1 hook import
@@ -71,6 +71,7 @@ function GraphCanvasInner() {
   const snapToGrid = useUIStore(s => s.snapToGrid);
   const followActiveNode = useUIStore(s => s.followActiveNode);
   const showMiniMap = useUIStore(s => s.showMiniMap); // ADDED (Redesign Step 4)
+  const canvasDotLevel = useUIStore(s => s.canvasDotLevel); // ADDED (2026-11-06): Settings -> Dot brightness
 
   const canvasFilterChapterId = useUIStore(s => s.canvasFilterChapterId);
   const canvasFilterPathId = useUIStore(s => s.canvasFilterPathId);
@@ -799,7 +800,7 @@ function GraphCanvasInner() {
         minZoom={0.1}
         fitView
       >
-        <Background variant="dots" gap={16} color="#2a3040" />
+        {canvasDotLevel > 0 && <Background variant="dots" gap={16} color={canvasDotColor(canvasDotLevel)} />}
         {/* CHANGED (Redesign Step 4): default <Controls/> replaced by <CanvasControls/>; minimap skinned + toggleable */}
         {showMiniMap && (
           <MiniMap

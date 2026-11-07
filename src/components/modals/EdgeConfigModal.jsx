@@ -135,7 +135,7 @@ function EdgeConfigModalInner({ edgeId, onClose }) {
     };
 
     const addStatusClause = () => {
-        const clause = { status: statuses[0]?.id || '', min: 0 };
+        const clause = { status: statuses[0]?.id || '' }; // CHANGED (2026-11-06): Min and Max start empty
         updateEdge(edge.id, {
             condition: { ...edge.condition, conditions: [...edge.condition.conditions, clause] }
         });

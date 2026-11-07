@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { safeGet, safeSet } from '../utils/safeStorage';
+import { clampCanvasDotLevel } from '../utils/nodeColors';
 
 export const useUIStore = create((set, get) => ({
   selectedNodeId: null,
@@ -126,6 +127,14 @@ export const useUIStore = create((set, get) => ({
   // snapThreshold: persisted to localStorage via safeStorage (AR-33)
   snapAssist: true,
   snapThreshold: Number(safeGet('br_snapThreshold', 8)),
+
+  // ADDED (2026-11-06): brightness of the canvas dots, 0 (hidden) .. 10 (very bright), persisted via safeStorage (AR-33)
+  canvasDotLevel: clampCanvasDotLevel(safeGet('br_canvasDotBrightness', 3)),
+  setCanvasDotLevel: (val) => {
+    const level = clampCanvasDotLevel(val);
+    safeSet('br_canvasDotBrightness', level);
+    set({ canvasDotLevel: level });
+  },
 
   // ADDED (Redesign Step 1): Feature switch — Campaign & Route Tracing (incl. Seen marks, Sandbox).
   // Default OFF. Persisted via safeStorage (AR-33). Hides UI only; stores and code stay intact.

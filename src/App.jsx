@@ -16,6 +16,8 @@ export default function App() {
         {/* ADDED: Phase 5 — Floating bar for quick-create and campaign active pill */}
         <FloatingMiddleBar />
         <GraphCanvas />
+        {/* CHANGED (2026-11-05): toasts live in the canvas corner, below the top bar and left of the right sidebar */}
+        <Toast />
       </main>
       {/* CHANGED: Render RightSidebar instead of raw Sidebar; RightSidebar hosts legacy Sidebar internally */}
       <aside className="app__rightbar">
@@ -25,8 +27,6 @@ export default function App() {
       <footer className="app__statusbar">
         <StatusStrip />
       </footer>
-      {/* ADDED: Phase 1 — Toast notifications overlay (fixed positioning, no grid impact) */}
-      <Toast />
       {/* ADDED: Phase 2 — Command palette overlay for keyboard-driven navigation/authoring (fixed positioning, no grid impact) */}
       <CommandPalette />
       {/* ADDED (Redesign Step 1): Settings modal overlay (opened via uiStore.showSettings) */}

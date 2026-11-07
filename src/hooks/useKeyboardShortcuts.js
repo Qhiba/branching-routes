@@ -59,6 +59,13 @@ export default function useKeyboardShortcuts() {
         return;
       }
 
+      // ADDED (Save/Load): Ctrl+S saves the project (before the input guard so it also works while typing the title)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && !e.shiftKey && !e.altKey) {
+        e.preventDefault(); // suppress the browser's "Save page as"
+        if (!isCampaignActive) window.dispatchEvent(new Event('project-save'));
+        return;
+      }
+
       // Guard: do not trigger if an input field is focused
       if (
         e.target.tagName === 'INPUT' ||

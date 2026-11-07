@@ -40,18 +40,25 @@ function statusEffectText(se, statusDict) {
   return `${name} ${amount >= 0 ? '+' : '−'}${Math.abs(amount)}`;
 }
 
-/** Human-readable clause: "has_key is true", "affection ≥ 5", "affection 2–8", nested groups in brackets. */
+/**
+ * ADDED (2026-11-06): one wording for status conditions everywhere (edge labels, Choice option chips, Browse, Inspector).
+ * "affection = 5" (Min = Max), "2 ≤ affection ≤ 8" (both ends included), "affection ≥ 5", "affection ≤ 5", "affection (any value)".
+ */
+export function formatStatusClause(name, clause) {
+  const hasMin = clause.min !== undefined && clause.min !== null && clause.min !== '';
+  const hasMax = clause.max !== undefined && clause.max !== null && clause.max !== '';
+  if (hasMin && hasMax) return Number(clause.min) === Number(clause.max) ? `${name} = ${clause.min}` : `${clause.min} ≤ ${name} ≤ ${clause.max}`;
+  if (hasMin) return `${name} ≥ ${clause.min}`;
+  if (hasMax) return `${name} ≤ ${clause.max}`;
+  return `${name} (any value)`;
+}
+
+/** Human-readable clause: "has_key is true", "affection ≥ 5", "2 ≤ affection ≤ 8", nested groups in brackets. */
 export function describeClause(clause, dicts) {
   if (!clause) return '';
   if ('operator' in clause) return `(${describeCondition(clause, dicts)})`;
   if ('status' in clause) {
-    const name = nameOf(dicts.status, clause.status, 'unknown status');
-    const hasMin = clause.min !== undefined && clause.min !== null && clause.min !== '';
-    const hasMax = clause.max !== undefined && clause.max !== null && clause.max !== '';
-    if (hasMin && hasMax) return Number(clause.min) === Number(clause.max) ? `${name} = ${clause.min}` : `${name} ${clause.min}–${clause.max}`;
-    if (hasMin) return `${name} ≥ ${clause.min}`;
-    if (hasMax) return `${name} ≤ ${clause.max}`;
-    return `${name} (any value)`;
+    return formatStatusClause(nameOf(dicts.status, clause.status, 'unknown status'), clause);
   }
   if ('flag' in clause) return `${nameOf(dicts.flag, clause.flag, 'unknown flag')} is ${clause.state ? 'true' : 'false'}`;
   return '';

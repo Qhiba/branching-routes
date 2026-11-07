@@ -97,6 +97,13 @@
     color: var(--color-text-primary);
 }
 
+/* ADDED (2026-11-05): category shown next to a collectible in the shared dropdown */
+.br-flag-dropdown__hint {
+    margin-left: 8px;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
 .br-flag-dropdown__empty {
     padding: 8px 10px;
     font-size: var(--font-size-xs);
@@ -1257,5 +1264,3 @@
     border-color: var(--color-pink-500);
     color: var(--color-pink-400);
 }
-/* ADDED (Redesign Step 7): collectible picker block in the left column */
-.br-node-config-modal__collectibles { padding: 4px 0 8px; }

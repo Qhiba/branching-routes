@@ -1,7 +1,7 @@
 import { useToastStore } from 'store';
 
 // ADDED: Phase 1 — Toast notification component
-// Fixed-position overlay for stacked, auto-dismissing notifications
+// Stacked, auto-dismissing notifications in the top-right corner of the canvas area (mounted inside .app__canvas in App.jsx)
 export default function Toast() {
   // ADDED: Stable selector per AR-14: returns undefined if no toasts, consuming component handles empty state
   const toasts = useToastStore((s) => s.toasts);

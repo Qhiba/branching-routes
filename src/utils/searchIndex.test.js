@@ -75,7 +75,7 @@ describe('describeCondition', () => {
       { status: 's1', min: 2, max: 8 },
       { status: 's1', min: 4, max: 4 },
       { operator: 'and', conditions: [{ flag: 'f1', state: false }, { status: 's1', max: 1 }] },
-    ] }, dicts)).toBe('affection 2–8 or affection = 4 or (met_alice is false and affection ≤ 1)');
+    ] }, dicts)).toBe('2 ≤ affection ≤ 8 or affection = 4 or (met_alice is false and affection ≤ 1)');
   });
 });
 
@@ -99,5 +99,18 @@ describe('filters', () => {
 
   it('counts active filters', () => {
     expect(countActiveFilters({ nodeType: 'hub', tagIds: ['t1', 't2'], chapterId: null })).toBe(2);
+  });
+});
+
+// ADDED (2026-11-06): one status wording for edges, Choice option chips, Browse and Inspector
+import { formatStatusClause } from './searchIndex.js';
+
+describe('formatStatusClause', () => {
+  it('writes ranges with both ends included, equal ends as "=", and open ends as ≥ / ≤', () => {
+    expect(formatStatusClause('saori_bathroom', { min: 1, max: 10 })).toBe('1 ≤ saori_bathroom ≤ 10');
+    expect(formatStatusClause('saori_bathroom', { min: 1, max: 1 })).toBe('saori_bathroom = 1');
+    expect(formatStatusClause('affection', { min: 5 })).toBe('affection ≥ 5');
+    expect(formatStatusClause('affection', { max: 5 })).toBe('affection ≤ 5');
+    expect(formatStatusClause('affection', { min: null, max: '' })).toBe('affection (any value)');
   });
 });

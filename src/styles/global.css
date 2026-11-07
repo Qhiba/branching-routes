@@ -1014,10 +1014,12 @@ body.alt-pressed .conditional-edge__label-container--draggable:active {
 /* =========================================
    TOAST (Phase 1)
    ========================================= */
+/* CHANGED (2026-11-05): anchored to the top-right corner of the canvas area (<Toast /> is mounted inside .app__canvas),
+   so it never covers the top bar or the right sidebar. */
 .toast-container {
-  position: fixed;
-  top: var(--space-4);
-  right: var(--space-4);
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
   z-index: var(--z-toast);
   display: flex;
   flex-direction: column;

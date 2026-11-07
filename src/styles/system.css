@@ -207,7 +207,34 @@
 .br-select option { background: var(--br-slate); color: var(--br-text); }
 
 /* Range slider */
-.br-range { width: 140px; accent-color: var(--br-chalk); cursor: pointer; }
+/* CHANGED (2026-11-06): explicit track and thumb. The native control left a gap between the thumb and the end of the track. */
+.br-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 140px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.br-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--br-line-strong);
+}
+.br-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px; /* centres the 14px thumb on the 4px track */
+  border: none;
+  border-radius: 50%;
+  background: var(--br-chalk);
+}
+.br-range::-moz-range-track { height: 4px; border-radius: 999px; background: var(--br-line-strong); }
+.br-range::-moz-range-thumb { width: 14px; height: 14px; border: none; border-radius: 50%; background: var(--br-chalk); }
 
 /* Switch: <button role="switch" aria-checked> with a .br-switch__thumb child */
 .br-switch {

@@ -10,6 +10,7 @@ const GROUPS = [
     {
         title: 'Edit',
         rows: [
+            [['Ctrl', 'S'], 'Save project'],
             [['Ctrl', 'Z'], 'Undo'],
             [['Ctrl', 'Shift', 'Z'], 'Redo (also Ctrl Y)'],
             [['Ctrl', 'A'], 'Select all nodes'],

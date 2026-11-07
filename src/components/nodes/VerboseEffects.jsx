@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNarrativeStore } from 'store';
+import { formatStatusClause } from 'utils';
 import { Lock } from 'lucide-react';
 
 export function FlagChip({ flagId, compact = false, suffix = '' }) {
@@ -24,15 +25,12 @@ export function FlagConditionChip({ condition }) {
 
 export function StatusConditionChip({ condition }) {
   const statusName = useNarrativeStore(s => s.status[condition.status]?.name);
-  let range = '';
-  if (condition.min !== undefined && condition.max !== undefined) range = `${condition.min}..${condition.max}`;
-  else if (condition.min !== undefined) range = `≥${condition.min}`;
-  else if (condition.max !== undefined) range = `≤${condition.max}`;
 
   return (
     <span className="effect-chip effect-chip--compact effect-chip--status">
       <Lock size={9} style={{ marginRight: '3px', marginTop: '-1px' }} />
-      {statusName || 'Unknown'} {range}
+      {/* CHANGED (2026-11-06): shared wording, e.g. "1 ≤ affection ≤ 10" or "affection = 5" */}
+      {formatStatusClause(statusName || 'Unknown', condition)}
     </span>
   );
 }

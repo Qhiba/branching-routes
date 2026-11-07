@@ -1,6 +1,7 @@
 import React, { memo, useMemo, useCallback, useRef } from 'react';
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, useReactFlow } from '@xyflow/react';
 import { useSimulationStore, useUIStore, useNarrativeStore } from 'store';
+import { formatStatusClause } from 'utils';
 
 function clamp(val, min, max) {
   return Math.max(min, Math.min(max, val));
@@ -221,14 +222,8 @@ function ConditionalEdge(props) {
                           </div>
                         );
                       } else if ('status' in clause) {
-                        let text = statusDict[clause.status]?.name || 'Unknown';
-                        if (clause.min !== undefined && clause.max !== undefined) {
-                          text += ` [${clause.min}…${clause.max}]`;
-                        } else if (clause.min !== undefined) {
-                          text += ` ≥ ${clause.min}`;
-                        } else if (clause.max !== undefined) {
-                          text += ` ≤ ${clause.max}`;
-                        }
+                        // CHANGED (2026-11-06): shared wording, e.g. "1 ≤ affection ≤ 10" or "affection = 5"
+                        const text = formatStatusClause(statusDict[clause.status]?.name || 'Unknown', clause);
                         return (
                           <div key={idx} className="edge-clause-pill edge-clause-pill--status">
                             {text}
